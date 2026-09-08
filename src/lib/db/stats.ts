@@ -1,23 +1,6 @@
 import { prisma } from "./client";
 import { LEAD_STATUSES, type LeadStatus } from "../types";
-
-const STAGE_ORDER: LeadStatus[] = [
-  "NEW",
-  "RESEARCHED",
-  "ANALYZED",
-  "QUALIFIED",
-  "DEMO_CREATED",
-  "MESSAGE_READY",
-  "WAITING_FOR_REVIEW",
-  "APPROVED",
-  "CONTACTED",
-  "REPLIED",
-  "CONVERTED",
-];
-
-function stageIndex(status: LeadStatus) {
-  return STAGE_ORDER.indexOf(status);
-}
+import { stageIndex } from "../status";
 
 export async function getOverviewStats() {
   const [total, byStatusRaw, demosCreated, messages] = await Promise.all([
@@ -75,9 +58,18 @@ export async function getOverviewStats() {
   };
 }
 
-interface StoredConcept {
+export interface StoredConcept {
   scoring?: { salesOpportunityScore: number; tier: "hot" | "warm" | "cold"; wowPotential: number };
   pricing?: { recommendedOfferPrice: number };
+}
+
+/** Reads the X-Ray-derived priority tier off a Demo's stored concept
+ * JSON, for anywhere a lead needs a HOT/WARM/COLD signal (the leads
+ * table, this file's own aggregate stats). Null until a demo with a
+ * concept exists — a lead can't have a sales-opportunity tier before
+ * research has actually produced one. */
+export function deriveLeadTier(concept: unknown): "hot" | "warm" | "cold" | null {
+  return (concept as StoredConcept | null)?.scoring?.tier ?? null;
 }
 
 /** Aggregates the X-Ray/concept scoring across every lead that has a

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { listLeads } from "@/lib/db";
+import { listLeads, deriveLeadTier } from "@/lib/db";
 import { LEAD_STATUSES, type LeadStatus } from "@/lib/types";
 import { STATUS_META } from "@/lib/status";
 import { PageHeader } from "@/components/layout/page-header";
@@ -7,6 +7,7 @@ import { Input, Select } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { ScoreBadge } from "@/components/ui/score-badge";
+import { PriorityBadge } from "@/components/ui/priority-badge";
 import { Table, Thead, Tbody, Tr, Th, Td } from "@/components/ui/table";
 import { SortableTh } from "@/components/leads/sortable-th";
 import { ResearchPanel } from "@/components/leads/research-panel";
@@ -112,6 +113,7 @@ export default async function LeadsPage({
               <Tr>
                 <SortableTh field="companyName" label="Unternehmen" currentSort={sortBy} currentDir={sortDir} buildHref={buildHref} />
                 <Th>Branche / Ort</Th>
+                <Th>Priorität</Th>
                 <Th>Status</Th>
                 <SortableTh field="websiteScore" label="Website" currentSort={sortBy} currentDir={sortDir} buildHref={buildHref} />
                 <SortableTh field="leadScore" label="Lead-Score" currentSort={sortBy} currentDir={sortDir} buildHref={buildHref} />
@@ -134,6 +136,9 @@ export default async function LeadsPage({
                   </Td>
                   <Td className="text-xs text-muted-foreground">
                     {[lead.industry, lead.location].filter(Boolean).join(" · ") || "—"}
+                  </Td>
+                  <Td>
+                    <PriorityBadge tier={deriveLeadTier(lead.demo?.concept)} />
                   </Td>
                   <Td>
                     <StatusBadge status={lead.status} />
