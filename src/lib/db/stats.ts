@@ -77,6 +77,7 @@ export async function getOverviewStats() {
 
 interface StoredConcept {
   scoring?: { salesOpportunityScore: number; tier: "hot" | "warm" | "cold"; wowPotential: number };
+  pricing?: { recommendedOfferPrice: number };
 }
 
 /** Aggregates the X-Ray/concept scoring across every lead that has a
@@ -96,6 +97,7 @@ export async function getSalesOpportunityStats() {
   let warm = 0;
   let cold = 0;
   let publicDemos = 0;
+  let pipelineValue = 0;
   let best: { leadId: string; companyName: string; score: number } | null = null;
 
   for (const demo of demos) {
@@ -108,6 +110,12 @@ export async function getSalesOpportunityStats() {
     else if (scoring.tier === "warm") warm += 1;
     else cold += 1;
 
+    // Only hot/warm opportunities count toward pipeline value — a cold
+    // lead's offer price isn't a realistic near-term deal.
+    if (scoring.tier !== "cold" && concept?.pricing?.recommendedOfferPrice) {
+      pipelineValue += concept.pricing.recommendedOfferPrice;
+    }
+
     if (!best || scoring.salesOpportunityScore > best.score) {
       best = {
         leadId: demo.lead.id,
@@ -117,7 +125,7 @@ export async function getSalesOpportunityStats() {
     }
   }
 
-  return { hot, warm, cold, publicDemos, bestOpportunity: best };
+  return { hot, warm, cold, publicDemos, pipelineValue, bestOpportunity: best };
 }
 
 export async function getRecentActivity(limit = 12) {

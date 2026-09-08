@@ -21,7 +21,7 @@ export function KpiCard({
   }[tone];
 
   return (
-    <div className="rounded-lg border border-border bg-card p-4">
+    <div className="hover-lift rounded-lg border border-border bg-card p-4">
       <div className="flex items-start justify-between">
         <span className="text-xs font-medium text-muted-foreground">{label}</span>
         <span className={cn("flex h-7 w-7 items-center justify-center rounded-md", toneClass)}>

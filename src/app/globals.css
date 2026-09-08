@@ -109,3 +109,76 @@ body {
     scroll-behavior: auto !important;
   }
 }
+
+/* --- Premium surface & motion primitives ---------------------------
+   Shared tokens so shimmer/glass/lift read the same everywhere they're
+   used, instead of one-off values per component. Every animation here
+   is transform/opacity/background-position only (compositor-friendly)
+   and is already neutralized by the reduced-motion block above. */
+
+@keyframes shimmer-sweep {
+  0% { background-position: -150% 0; }
+  60%, 100% { background-position: 250% 0; }
+}
+
+@keyframes gradient-flow {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+.btn-shimmer {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+.btn-shimmer::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    110deg,
+    transparent 35%,
+    color-mix(in srgb, white 32%, transparent) 50%,
+    transparent 65%
+  );
+  background-size: 200% 100%;
+  background-position: -150% 0;
+  animation: shimmer-sweep 3.6s ease-in-out infinite;
+  animation-delay: 1s;
+  pointer-events: none;
+}
+
+.text-gradient-animated {
+  background: linear-gradient(
+    90deg,
+    var(--color-foreground),
+    var(--color-primary),
+    var(--color-foreground)
+  );
+  background-size: 220% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: gradient-flow 7s ease-in-out infinite;
+}
+
+.glass-panel {
+  background: color-mix(in srgb, var(--color-card) 72%, transparent);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid color-mix(in srgb, var(--color-border) 70%, transparent);
+}
+
+.hover-lift {
+  transition: transform 220ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 220ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+.hover-lift:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 16px 32px -12px color-mix(in srgb, var(--color-foreground) 20%, transparent);
+}
+
+.shadow-premium {
+  box-shadow:
+    0 1px 2px color-mix(in srgb, var(--color-foreground) 4%, transparent),
+    0 12px 28px -10px color-mix(in srgb, var(--color-foreground) 14%, transparent);
+}

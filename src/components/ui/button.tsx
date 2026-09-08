@@ -6,7 +6,7 @@ type Size = "sm" | "md" | "icon";
 
 const variantClasses: Record<Variant, string> = {
   primary:
-    "bg-primary text-primary-foreground hover:bg-primary-hover",
+    "btn-shimmer bg-primary text-primary-foreground shadow-premium hover:bg-primary-hover hover:-translate-y-px active:translate-y-0",
   secondary:
     "bg-secondary text-secondary-foreground hover:bg-border",
   outline:
@@ -36,7 +36,7 @@ export function Button({
   return (
     <button
       className={cn(
-        "inline-flex items-center justify-center rounded-md font-medium transition-colors duration-150",
+        "inline-flex items-center justify-center rounded-md font-medium transition-all duration-150 active:scale-[0.98]",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
         "disabled:pointer-events-none disabled:opacity-50",
         "cursor-pointer",

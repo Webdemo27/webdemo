@@ -25,7 +25,6 @@ export function PublishDemoButton({
     <div className="flex flex-col items-end gap-1">
       <Button
         size="sm"
-        variant="outline"
         disabled={pending}
         onClick={() =>
           startTransition(async () => {

@@ -208,9 +208,10 @@ export function MessageReviewCard({
         {message.approvedAt && !message.sentAt ? (
           <div className="space-y-2 border-t border-border pt-3">
             <p className="text-xs text-muted-foreground">
-              Freigegeben. Automatischer Versand ist noch nicht implementiert (Gmail-Integration
-              folgt in Phase 10) — kopieren Sie den Text und senden Sie ihn selbst, dann hier
-              als versendet markieren.
+              Freigegeben. Automatischer Versand bleibt bewusst deaktiviert — entweder Text
+              kopieren und selbst versenden, oder unten einen echten Gmail-Entwurf vorbereiten
+              (landet im Gmail-Postfach, wird aber nie automatisch gesendet). Danach hier als
+              versendet markieren.
             </p>
             <div className="flex gap-2">
               <Button
@@ -228,6 +229,7 @@ export function MessageReviewCard({
               </Button>
               <Button
                 size="sm"
+                variant="outline"
                 disabled={pending}
                 onClick={() =>
                   startTransition(async () => {
@@ -245,7 +247,6 @@ export function MessageReviewCard({
               </Button>
               <Button
                 size="sm"
-                variant="outline"
                 disabled={pending}
                 onClick={() =>
                   startTransition(async () => {

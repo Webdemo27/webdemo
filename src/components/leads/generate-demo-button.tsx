@@ -22,7 +22,7 @@ export function GenerateDemoButton({
     <div className="flex flex-col items-end gap-1">
       <Button
         size="sm"
-        variant={hasDemo ? "outline" : "primary"}
+        variant="primary"
         disabled={pending || !hasAnalysis}
         onClick={() =>
           startTransition(async () => {
