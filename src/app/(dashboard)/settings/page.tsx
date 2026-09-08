@@ -1,5 +1,6 @@
 import { PageHeader } from "@/components/layout/page-header";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { isGmailConfigured } from "@/lib/email";
 import { CheckCircle, XCircle, ShieldCheck } from "@phosphor-icons/react/dist/ssr";
 
 export const dynamic = "force-dynamic";
@@ -27,9 +28,7 @@ function ConfigRow({ label, configured, hint }: { label: string; configured: boo
 }
 
 export default function SettingsPage() {
-  const gmailConfigured = Boolean(
-    process.env.GMAIL_CLIENT_ID && process.env.GMAIL_CLIENT_SECRET && process.env.GMAIL_REFRESH_TOKEN
-  );
+  const gmailConfigured = isGmailConfigured();
   const cloudflareConfigured = Boolean(
     process.env.CLOUDFLARE_API_TOKEN && process.env.CLOUDFLARE_ACCOUNT_ID
   );
