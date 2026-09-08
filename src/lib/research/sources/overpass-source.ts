@@ -4,6 +4,19 @@ import { findCategory } from "../osm-categories";
 
 const OVERPASS_ENDPOINT = "https://overpass-api.de/api/interpreter";
 const USER_AGENT = "webdemo-lead-platform/0.1 (local dev tool, manual use)";
+// The public Overpass instance regularly returns transient 502/503/504
+// under load — observed repeatedly during real testing, and a bare
+// retry after a short pause reliably succeeds. Retrying here (rather
+// than in loop.ts) means every caller of this source gets the same
+// resilience, and a lead-processing run only ever aborts on a genuinely
+// persistent failure.
+const RETRYABLE_STATUS = new Set([429, 502, 503, 504]);
+const MAX_ATTEMPTS = 3;
+const RETRY_DELAY_MS = 3000;
+
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
 interface OverpassElement {
   type: "node" | "way" | "relation";
@@ -72,20 +85,33 @@ export const overpassSource: LeadSource = {
       out center tags ${limit * 2};
     `;
 
-    const res = await fetch(OVERPASS_ENDPOINT, {
-      method: "POST",
-      headers: {
-        "User-Agent": USER_AGENT,
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
-      body: `data=${encodeURIComponent(query)}`,
-    });
+    let lastStatus = 0;
+    let data: OverpassResponse | null = null;
+    for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+      const res = await fetch(OVERPASS_ENDPOINT, {
+        method: "POST",
+        headers: {
+          "User-Agent": USER_AGENT,
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: `data=${encodeURIComponent(query)}`,
+      });
 
-    if (!res.ok) {
-      throw new Error(`Overpass-Anfrage fehlgeschlagen: HTTP ${res.status}`);
+      if (res.ok) {
+        data = (await res.json()) as OverpassResponse;
+        break;
+      }
+
+      lastStatus = res.status;
+      if (!RETRYABLE_STATUS.has(res.status) || attempt === MAX_ATTEMPTS) {
+        throw new Error(`Overpass-Anfrage fehlgeschlagen: HTTP ${res.status}`);
+      }
+      await sleep(RETRY_DELAY_MS * attempt);
     }
 
-    const data = (await res.json()) as OverpassResponse;
+    if (!data) {
+      throw new Error(`Overpass-Anfrage fehlgeschlagen: HTTP ${lastStatus}`);
+    }
 
     const seen = new Set<string>();
     const candidates: LeadCandidate[] = [];
