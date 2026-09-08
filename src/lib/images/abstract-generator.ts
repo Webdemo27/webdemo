@@ -38,8 +38,13 @@ function gradientMesh(colors: ColorWorld, rand: () => number, w: number, h: numb
   `;
 }
 
-/** Clean diagonal line grid with one solid accent shape — suits
- * professional, grid-clean, and technical/active directions. */
+/** Clean diagonal line grid with a full-height accent panel anchored to
+ * the right edge — suits professional, grid-clean, and technical/active
+ * directions. Anchoring the panel to the canvas edge (rather than
+ * floating a circle at a radius derived from min(w,h)) keeps the
+ * composition intentional-looking at any aspect ratio, including a wide
+ * 16:9 hero — a floating shape sized off the shorter dimension reads as
+ * a stray blob once stretched across a wide banner. */
 function geometricPattern(colors: ColorWorld, rand: () => number, w: number, h: number): string {
   const lineCount = 7;
   const lines = Array.from({ length: lineCount })
@@ -49,15 +54,18 @@ function geometricPattern(colors: ColorWorld, rand: () => number, w: number, h: 
     })
     .join("\n");
 
-  const shapeX = (0.55 + rand() * 0.3) * w;
-  const shapeY = (0.25 + rand() * 0.3) * h;
-  const shapeR = Math.min(w, h) * 0.22;
+  const panelWidth = (0.22 + rand() * 0.08) * w;
+  const panelX = w - panelWidth;
+  const accentHeight = (0.3 + rand() * 0.15) * h;
+  const accentY = (0.15 + rand() * 0.1) * h;
+  const accentWidth = panelWidth * 0.44;
+  const accentX = panelX + (panelWidth - accentWidth) / 2;
 
   return `
     <rect width="${w}" height="${h}" fill="${colors.background}" />
-    <g opacity="0.6">${lines}</g>
-    <circle cx="${shapeX.toFixed(0)}" cy="${shapeY.toFixed(0)}" r="${shapeR.toFixed(0)}" fill="${colors.accent}" opacity="0.85" />
-    <rect x="${(shapeX - shapeR * 0.4).toFixed(0)}" y="${(shapeY - shapeR * 0.4).toFixed(0)}" width="${(shapeR * 0.8).toFixed(0)}" height="${(shapeR * 0.8).toFixed(0)}" fill="${colors.primary}" opacity="0.9" />
+    <g opacity="0.5">${lines}</g>
+    <rect x="${panelX.toFixed(0)}" y="0" width="${panelWidth.toFixed(0)}" height="${h}" fill="${colors.primary}" opacity="0.92" />
+    <rect x="${accentX.toFixed(0)}" y="${accentY.toFixed(0)}" width="${accentWidth.toFixed(0)}" height="${accentHeight.toFixed(0)}" fill="${colors.accent}" />
   `;
 }
 

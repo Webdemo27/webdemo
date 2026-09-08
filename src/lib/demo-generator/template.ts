@@ -61,7 +61,7 @@ function pictureTag(asset: DemoAssetView, className: string, eager = false): str
 const ABOUT_OPENERS = [
   "{company} steht für {mood} Qualität in {location}.",
   "In {location} ist {company} die Adresse für {mood} Service.",
-  "{company} verbindet {mood} Handwerk mit persönlicher Beratung in {location}.",
+  "{company} verbindet {mood} Erfahrung mit persönlicher Beratung in {location}.",
 ];
 
 const ABOUT_CLOSERS = [
@@ -173,7 +173,7 @@ function editorialSection(assets: DemoAssetView[], name: string, location: strin
   const headlines = ["Ein Ort mit Charakter", "Erfahrung, die man sieht", "Details, die zählen"];
   const bodies = [
     `${name} legt Wert auf Atmosphäre und Sorgfalt – spürbar in jedem Detail vor Ort in ${location}.`,
-    `Wer ${name} besucht, merkt schnell: hier steckt echtes Handwerk und Aufmerksamkeit dahinter.`,
+    `Wer ${name} besucht, merkt schnell: hier steckt echte Erfahrung und Aufmerksamkeit dahinter.`,
     `Kleine Details machen den Unterschied – genau die, die ${name} täglich im Blick hat.`,
   ];
   const rows = assets
