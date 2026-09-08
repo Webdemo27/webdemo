@@ -58,10 +58,18 @@ function pictureTag(asset: DemoAssetView, className: string, eager = false): str
   return `<picture>${sources}<img src="${asset.src}" alt="${escapeHtml(asset.altText)}" class="${className}" loading="${loading}" width="${asset.width}" height="${asset.height}"${fetchPriority} /></picture>`;
 }
 
+/* Deliberately predicate-only phrasing (adjective after a verb like
+ * "wirkt"/"auf", never modifying a noun directly): brandImpression can
+ * hold multiple comma-separated adjectives, and German attributive
+ * adjectives before a noun require gender/case endings that a raw
+ * adjective list can't supply correctly ("für seriös Qualität" is
+ * wrong; "für seriöse Qualität" would be right, but the plural-list
+ * case has no single correct ending). Predicate position never
+ * declines, so it stays grammatical for any mood string. */
 const ABOUT_OPENERS = [
-  "{company} steht für {mood} Qualität in {location}.",
-  "In {location} ist {company} die Adresse für {mood} Service.",
-  "{company} verbindet {mood} Erfahrung mit persönlicher Beratung in {location}.",
+  "{company} wirkt in {location} auf den ersten Blick {mood}.",
+  "In {location} zeigt sich {company} {mood} — und immer persönlich.",
+  "{company} tritt in {location} {mood} auf, mit viel Aufmerksamkeit für die Beratung im Detail.",
 ];
 
 const ABOUT_CLOSERS = [
@@ -530,9 +538,10 @@ export function renderDemoHtml(
 }
 
 function taglineFor(company: string, location: string, profile: VisualProfile, seed: string): string {
+  const mood = formatMoodList(profile.brandImpression);
   const templates = [
-    `${profile.brandImpression[0].toUpperCase()}${profile.brandImpression.slice(1)} in ${location}`,
-    `Für Kund:innen in ${location}, die Wert auf ${profile.brandImpression.split(",")[0]} legen`,
+    `${mood[0].toUpperCase()}${mood.slice(1)} in ${location}`,
+    `Für alle in ${location}, denen ein ${mood} wirkender Auftritt wichtig ist`,
     `${profile.industryKey} mit Haltung — mitten in ${location}`,
   ];
   return pickVariant(templates, seed + ":tagline");
