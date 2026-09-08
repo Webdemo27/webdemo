@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { GenerateDemoButton } from "./generate-demo-button";
-import { ArrowSquareOut } from "@phosphor-icons/react/dist/ssr";
+import { ArrowSquareOut, Globe } from "@phosphor-icons/react/dist/ssr";
 
 export function DemoPreviewCard({
   leadId,
@@ -9,7 +9,12 @@ export function DemoPreviewCard({
   generateAction,
 }: {
   leadId: string;
-  demo: { slug: string; templateKey: string; createdAt: Date } | null;
+  demo: {
+    slug: string;
+    templateKey: string;
+    createdAt: Date;
+    publicUrl: string | null;
+  } | null;
   generateAction: (leadId: string) => Promise<{ ok: boolean; error?: string }>;
 }) {
   if (!demo) {
@@ -28,7 +33,7 @@ export function DemoPreviewCard({
     );
   }
 
-  const url = `/demos/${demo.slug}/index.html`;
+  const previewUrl = `/demos/${demo.slug}/index.html`;
 
   return (
     <Card>
@@ -38,19 +43,35 @@ export function DemoPreviewCard({
           <CardDescription>Vorlage: {demo.templateKey}</CardDescription>
         </div>
         <div className="flex items-center gap-2">
-          <a href={url} target="_blank" rel="noopener noreferrer">
+          <a href={previewUrl} target="_blank" rel="noopener noreferrer">
             <Button variant="outline" size="sm">
               <ArrowSquareOut size={14} aria-hidden="true" />
-              Öffnen
+              Vorschau
             </Button>
           </a>
           <GenerateDemoButton leadId={leadId} hasDemo={true} action={generateAction} />
         </div>
       </CardHeader>
-      <CardContent>
+      <CardContent className="space-y-3">
+        {demo.publicUrl ? (
+          <a
+            href={demo.publicUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-2 rounded-md border border-border bg-muted px-3 py-2 text-xs text-primary hover:underline"
+          >
+            <Globe size={14} aria-hidden="true" />
+            {demo.publicUrl}
+          </a>
+        ) : (
+          <p className="text-xs text-muted-foreground">
+            Nur lokale Vorschau — öffentliche Bereitstellung (Cloudflare) ist vorbereitet, aber
+            noch nicht aktiviert (Phase 11).
+          </p>
+        )}
         <div className="overflow-hidden rounded-md border border-border bg-muted">
           <iframe
-            src={url}
+            src={previewUrl}
             title={`Demo-Vorschau ${demo.slug}`}
             className="h-80 w-full"
             loading="lazy"

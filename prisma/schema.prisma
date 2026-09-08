@@ -104,6 +104,11 @@ model Demo {
   outputDir   String
   placeholders Json
 
+  /// Set once Phase 11 (Cloudflare) actually publishes this demo. Null
+  /// means it only exists as a local preview under /public/demos.
+  publicUrl   String?
+  publishedAt DateTime?
+
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }

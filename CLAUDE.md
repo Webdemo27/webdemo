@@ -21,7 +21,9 @@ automatically — sending is always a separate, explicit, human-triggered action
 - `scoring/` — transparent 0–100 lead score derived from the analysis. Never artificially inflate a score.
 - `demo-generator/` — builds the per-lead demo site. Never invents company facts; uses clearly-marked neutral placeholders for missing info.
 - `messaging/` — drafts the personalized outreach message (short, natural, specific, no invented claims, no mass-marketing tone).
-- `email/` — **abstraction/interface only for now**. Real Gmail sending is Phase 10 and is not implemented yet.
+- `email/` — **abstraction/interface only for now**. `GmailSender` is real OAuth2 code but fails closed without credentials and isn't wired to any button (Phase 10). `requireApprovedMessage()` is the mandatory gate any future send path must call.
+- `publishing/` — **abstraction/interface only for now**. `CloudflarePagesPublisher` follows Cloudflare's Pages "direct upload" API shape (one Pages project per lead slug → `https://<slug>.pages.dev`) but is unverified against a live account and not wired to any button (Phase 11).
+- `pipeline/` — the shared step functions (`runAnalysisAndScoring`, `runDemoGeneration`, `runMessageGeneration`) that both the dashboard's manual buttons and `scripts/loop.ts` call — one implementation, never duplicated.
 - `db/` — Prisma client + repository functions.
 
 ## Lead status flow
