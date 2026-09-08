@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { prisma, logActivity, updateLeadStatus } from "@/lib/db";
 import { runAnalysisAndScoring, runDemoGeneration, runMessageGeneration } from "@/lib/pipeline/steps";
 import { safeRecordError } from "@/lib/research";
+import { publishDemoPublicly, type PublishDemoOutcome } from "@/lib/publishing";
 import {
   runPreflightChecklist,
   GmailSender,
@@ -64,6 +65,16 @@ export async function generateLeadMessage(leadId: string): Promise<{ ok: boolean
     refresh(leadId);
     return { ok: false, error: message };
   }
+}
+
+/** Publishes the demo publicly via Cloudflare and verifies the URL is
+ * actually reachable over HTTPS before saving it — see
+ * lib/publishing/publish-demo.ts. Fails closed with a clear reason when
+ * Cloudflare isn't configured (no credentials in this project). */
+export async function publishLeadDemo(leadId: string): Promise<PublishDemoOutcome> {
+  const result = await publishDemoPublicly(leadId);
+  refresh(leadId);
+  return result;
 }
 
 /** Manual status override — part of dashboard status management. Does not

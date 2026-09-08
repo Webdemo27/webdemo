@@ -1,13 +1,22 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { GenerateDemoButton } from "./generate-demo-button";
+import { PublishDemoButton } from "./publish-demo-button";
 import { ArrowSquareOut, Globe } from "@phosphor-icons/react/dist/ssr";
+
+interface PublishOutcome {
+  ok: boolean;
+  publicUrl?: string;
+  error?: string;
+  configured: boolean;
+}
 
 export function DemoPreviewCard({
   leadId,
   demo,
   hasAnalysis,
   generateAction,
+  publishAction,
 }: {
   leadId: string;
   demo: {
@@ -18,6 +27,7 @@ export function DemoPreviewCard({
   } | null;
   hasAnalysis: boolean;
   generateAction: (leadId: string) => Promise<{ ok: boolean; error?: string }>;
+  publishAction: (leadId: string) => Promise<PublishOutcome>;
 }) {
   if (!demo) {
     return (
@@ -66,10 +76,12 @@ export function DemoPreviewCard({
             {demo.publicUrl}
           </a>
         ) : (
-          <p className="text-xs text-muted-foreground">
-            Nur lokale Vorschau — öffentliche Bereitstellung (Cloudflare) ist vorbereitet, aber
-            noch nicht aktiviert (Phase 11).
-          </p>
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-xs text-muted-foreground">
+              Nur lokale Vorschau — noch nicht öffentlich verfügbar.
+            </p>
+            <PublishDemoButton leadId={leadId} action={publishAction} />
+          </div>
         )}
         <div className="overflow-hidden rounded-md border border-border bg-muted">
           <iframe
