@@ -38,9 +38,13 @@ export async function runDemoGeneration(leadId: string) {
 }
 
 export async function runMessageGeneration(leadId: string) {
-  const lead = await prisma.lead.findUnique({ where: { id: leadId }, include: { analysis: true } });
+  const lead = await prisma.lead.findUnique({
+    where: { id: leadId },
+    include: { analysis: true, demo: true },
+  });
   if (!lead) throw new Error("Lead nicht gefunden.");
   if (!lead.analysis) throw new Error("Für diesen Lead liegt noch keine Website-Analyse vor.");
+  if (!lead.demo) throw new Error("Für diesen Lead wurde noch keine Demo erstellt.");
 
   const analysisData = fromJson<WebsiteAnalysisData>({
     design: lead.analysis.design,

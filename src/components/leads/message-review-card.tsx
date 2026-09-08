@@ -19,6 +19,7 @@ export function MessageReviewCard({
   leadId,
   message,
   hasAnalysis,
+  hasDemo,
   approveAction,
   rejectAction,
   updateAction,
@@ -28,6 +29,7 @@ export function MessageReviewCard({
   leadId: string;
   message: MessageData | null;
   hasAnalysis: boolean;
+  hasDemo: boolean;
   approveAction: (leadId: string) => Promise<void>;
   rejectAction: (leadId: string) => Promise<void>;
   updateAction: (leadId: string, formData: FormData) => Promise<void>;
@@ -46,7 +48,7 @@ export function MessageReviewCard({
           <CardTitle>Nachricht</CardTitle>
           <Button
             size="sm"
-            disabled={pending || !hasAnalysis}
+            disabled={pending || !hasAnalysis || !hasDemo}
             onClick={() =>
               startTransition(async () => {
                 setError(null);
@@ -61,9 +63,11 @@ export function MessageReviewCard({
         </CardHeader>
         <CardContent>
           <p className="text-xs text-muted-foreground">
-            {hasAnalysis
-              ? "Noch kein Nachrichtenentwurf."
-              : "Website-Analyse wird benötigt, bevor ein Entwurf erstellt werden kann."}
+            {!hasAnalysis
+              ? "Website-Analyse wird benötigt, bevor ein Entwurf erstellt werden kann."
+              : !hasDemo
+              ? "Demo wird benötigt, bevor ein Entwurf erstellt werden kann."
+              : "Noch kein Nachrichtenentwurf."}
           </p>
           {error ? <p className="mt-2 text-xs text-destructive">{error}</p> : null}
         </CardContent>

@@ -114,6 +114,7 @@ export default async function LeadDetailPage({
               leadId={lead.id}
               message={lead.message}
               hasAnalysis={Boolean(lead.analysis)}
+              hasDemo={Boolean(lead.demo)}
               approveAction={approveMessage}
               rejectAction={rejectMessage}
               updateAction={updateMessageDraft}

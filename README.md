@@ -1,36 +1,56 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Webdemo — Lead-Generation & Demo-Plattform
 
-## Getting Started
+Lokales Tool: findet lokale Unternehmen mit veralteten Websites, analysiert und bewertet sie,
+generiert eine individuelle Demo-Website und einen personalisierten Nachrichtenentwurf — und
+wartet auf manuelle Freigabe, bevor irgendetwas versendet wird.
 
-First, run the development server:
+## Setup
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+cp .env.example .env   # DATABASE_URL ist bereits korrekt vorbelegt
+npm run db:migrate     # legt prisma/dev.db an
+npm run dev            # Dashboard unter http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Optional Beispieldaten laden: `npm run db:seed`
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Die Pipeline
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```
+RESEARCH → DEDUPLICATE → ANALYZE → SCORE → QUALIFY
+  → BUILD DEMO → CREATE MESSAGE → WAIT_FOR_REVIEW
+```
 
-## Learn More
+Manuell pro Lead über das Dashboard (Lead-Detailseite) oder gesamthaft über:
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+npm run loop                                                   # bestehende Leads weiterverarbeiten
+npm run loop -- --location "Frankfurt am Main" --category bakery --limit 15
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Verfügbare `--category`-Werte: siehe `src/lib/research/osm-categories.ts`.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Jeder Lauf überspringt bereits entschiedene Leads (`WAITING_FOR_REVIEW` und alles danach) und
+lässt einzelne Fehler nie den gesamten Lauf abbrechen. **Nachrichten werden nie automatisch
+versendet** — jede landet bei `WAITING_FOR_REVIEW` und muss im Dashboard freigegeben werden.
 
-## Deploy on Vercel
+## Architektur
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Siehe [CLAUDE.md](./CLAUDE.md) für Modulgrenzen, Status-Flow und die Sicherheits-Leitplanken
+(keine Secrets im Repo, kein Auto-Versand, kein Zugriff auf das Home-Verzeichnis-Repo).
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- **Next.js (App Router) + TypeScript + Tailwind CSS** — Dashboard und Backend in einer App.
+- **Prisma + SQLite** — lokale, persistente Datenbank (`prisma/dev.db`, git-ignoriert).
+- **`src/lib/*`** — unabhängige Module: `research`, `analysis`, `scoring`, `demo-generator`,
+  `messaging`, `email` (Gmail-Architektur, noch nicht aktiv), `publishing` (Cloudflare-Architektur,
+  noch nicht aktiv), `pipeline` (gemeinsame Schritte für Dashboard-Buttons und `/loop`).
+- Generierte Demos liegen unter `public/demos/<slug>/index.html` (git-ignoriert).
+
+## Nützliche Befehle
+
+```bash
+npm run build        # Produktions-Build
+npm run lint          # ESLint
+npm run db:studio     # Prisma Studio (DB-Browser)
+```
