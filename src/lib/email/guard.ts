@@ -1,13 +1,15 @@
 import { prisma } from "../db";
 
 /**
- * The one gate every future send path must go through. Throws unless a
+ * The one gate every send/draft path must go through. Throws unless a
  * human has explicitly approved this exact message and it hasn't been
- * sent or rejected since. Any code that wants to send email — a UI
+ * sent or rejected since. Any code that wants to reach Gmail — a UI
  * button, a script, a future automation — calls this first; there is no
- * other way to reach a sender in this codebase, and nothing currently
- * calls it, because no send action exists yet (Phase 10 architecture
- * only).
+ * other way to reach a sender in this codebase. Called today by
+ * `prepareGmailDraft()` (src/app/(dashboard)/leads/[id]/actions.ts)
+ * before every `GmailSender.createDraft()` call. `GmailSender.send()`
+ * exists and is gated the same way, but is deliberately never called
+ * from any button — draft-only, matching "niemals automatisch senden".
  */
 export async function requireApprovedMessage(leadId: string) {
   const message = await prisma.message.findUnique({ where: { leadId } });

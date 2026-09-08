@@ -46,14 +46,14 @@ export default function SettingsPage() {
           </CardHeader>
           <CardContent>
             <ConfigRow
-              label="Gmail-Versand"
+              label="Gmail-Entwürfe"
               configured={gmailConfigured}
-              hint={`Absender: ${process.env.GMAIL_SENDER_ADDRESS ?? "nicht gesetzt"} — Architektur vorbereitet (Phase 10), tatsächlicher Versand noch nicht implementiert.`}
+              hint={`Absender: ${process.env.GMAIL_SENDER_ADDRESS ?? "nicht gesetzt"} — Entwurf-Erstellung ist aktiv (Button "Gmail-Entwurf vorbereiten"); echter Versand bleibt bewusst nicht verdrahtet, nur ein Mensch klickt in Gmail auf Senden.`}
             />
             <ConfigRow
               label="Cloudflare (öffentliche Demo-URLs)"
               configured={cloudflareConfigured}
-              hint="Für Phase 11 vorgesehen — noch nicht aktiv."
+              hint="Aktiv (Button „Öffentlich bereitstellen“) — bei fehlenden Zugangsdaten schlägt die Aktion mit klarer Fehlermeldung fehl, statt stillschweigend nichts zu tun."
             />
             <ConfigRow label="Datenbank" configured={Boolean(process.env.DATABASE_URL)} hint="Lokale SQLite-Datei (prisma/dev.db)." />
           </CardContent>

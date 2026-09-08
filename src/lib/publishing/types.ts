@@ -11,8 +11,9 @@ export interface PublishResult {
 
 /** Provider-agnostic "make this demo publicly reachable" abstraction, so
  * a different host could replace Cloudflare later without touching call
- * sites. Nothing in this project calls a DemoPublisher yet — Phase 11
- * is architecture preparation only. */
+ * sites. Implemented today by `CloudflarePagesPublisher` and called from
+ * `publishDemoPublicly()` (src/lib/publishing/publish-demo.ts), wired to
+ * the "Öffentlich bereitstellen" button on the lead detail page. */
 export interface DemoPublisher {
   publish(input: PublishInput): Promise<PublishResult>;
 }
