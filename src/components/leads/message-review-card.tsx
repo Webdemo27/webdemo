@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input, Label, Textarea } from "@/components/ui/input";
-import { PencilSimple, Check, X } from "@phosphor-icons/react";
+import { PencilSimple, Check, X, Sparkle } from "@phosphor-icons/react";
 
 interface MessageData {
   subject: string | null;
@@ -18,15 +18,19 @@ interface MessageData {
 export function MessageReviewCard({
   leadId,
   message,
+  hasAnalysis,
   approveAction,
   rejectAction,
   updateAction,
+  generateAction,
 }: {
   leadId: string;
   message: MessageData | null;
+  hasAnalysis: boolean;
   approveAction: (leadId: string) => Promise<void>;
   rejectAction: (leadId: string) => Promise<void>;
   updateAction: (leadId: string, formData: FormData) => Promise<void>;
+  generateAction: (leadId: string) => Promise<{ ok: boolean; error?: string }>;
 }) {
   const [editing, setEditing] = useState(false);
   const [pending, startTransition] = useTransition();
@@ -37,12 +41,28 @@ export function MessageReviewCard({
       <Card>
         <CardHeader>
           <CardTitle>Nachricht</CardTitle>
+          <Button
+            size="sm"
+            disabled={pending || !hasAnalysis}
+            onClick={() =>
+              startTransition(async () => {
+                setError(null);
+                const result = await generateAction(leadId);
+                if (!result.ok) setError(result.error ?? "Fehler bei der Nachrichtenerstellung.");
+              })
+            }
+          >
+            <Sparkle size={14} aria-hidden="true" />
+            {pending ? "Erstelle…" : "Entwurf erstellen"}
+          </Button>
         </CardHeader>
         <CardContent>
           <p className="text-xs text-muted-foreground">
-            Noch kein Nachrichtenentwurf. Wird automatisch erstellt, sobald der Lead
-            qualifiziert und die Demo erstellt wurde.
+            {hasAnalysis
+              ? "Noch kein Nachrichtenentwurf."
+              : "Website-Analyse wird benötigt, bevor ein Entwurf erstellt werden kann."}
           </p>
+          {error ? <p className="mt-2 text-xs text-destructive">{error}</p> : null}
         </CardContent>
       </Card>
     );

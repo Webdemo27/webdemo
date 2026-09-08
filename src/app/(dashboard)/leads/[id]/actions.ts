@@ -2,11 +2,13 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma, logActivity, updateLeadStatus, saveWebsiteAnalysis, saveLeadScore } from "@/lib/db";
+import { fromJson } from "@/lib/db/json";
 import { analyzeWebsite } from "@/lib/analysis";
 import { scoreLead, isQualified } from "@/lib/scoring";
 import { generateDemo } from "@/lib/demo-generator";
+import { generateMessage } from "@/lib/messaging";
 import { safeRecordError } from "@/lib/research";
-import type { LeadStatus } from "@/lib/types";
+import type { LeadStatus, WebsiteAnalysisData } from "@/lib/types";
 
 function refresh(leadId: string) {
   revalidatePath(`/leads/${leadId}`);
@@ -54,6 +56,56 @@ export async function generateLeadDemo(leadId: string): Promise<{ ok: boolean; e
     return { ok: true };
   } catch (e) {
     const message = e instanceof Error ? e.message : "Unbekannter Fehler bei der Demo-Erstellung.";
+    await safeRecordError(leadId, message);
+    refresh(leadId);
+    return { ok: false, error: message };
+  }
+}
+
+/** Manually generates (or regenerates) the outreach message draft for a
+ * lead. Always lands the lead at WAITING_FOR_REVIEW — nothing is ever
+ * sent from here or automatically afterwards. */
+export async function generateLeadMessage(leadId: string): Promise<{ ok: boolean; error?: string }> {
+  const lead = await prisma.lead.findUnique({ where: { id: leadId }, include: { analysis: true } });
+  if (!lead) return { ok: false, error: "Lead nicht gefunden." };
+  if (!lead.analysis) return { ok: false, error: "Für diesen Lead liegt noch keine Website-Analyse vor." };
+
+  try {
+    const analysisData = fromJson<WebsiteAnalysisData>({
+      design: lead.analysis.design,
+      mobileUx: lead.analysis.mobileUx,
+      navigation: lead.analysis.navigation,
+      performance: lead.analysis.performance,
+      content: lead.analysis.content,
+      cta: lead.analysis.cta,
+      trust: lead.analysis.trust,
+      contactExperience: lead.analysis.contactExperience,
+      accessibility: lead.analysis.accessibility,
+      conversionPotential: lead.analysis.conversionPotential,
+      strengths: lead.analysis.strengths,
+      weaknesses: lead.analysis.weaknesses,
+      opportunities: lead.analysis.opportunities,
+    });
+
+    const { subject, body } = generateMessage(
+      { companyName: lead.companyName, location: lead.location },
+      analysisData,
+      leadId
+    );
+
+    await prisma.message.upsert({
+      where: { leadId },
+      create: { leadId, subject, body },
+      update: { subject, body, editedByUser: false, approvedAt: null, rejectedAt: null, sentAt: null },
+    });
+
+    await logActivity(leadId, "MESSAGE_DRAFTED", "Nachrichtenentwurf erstellt");
+    await updateLeadStatus(leadId, "WAITING_FOR_REVIEW", "Nachricht bereit — wartet auf manuelle Prüfung");
+
+    refresh(leadId);
+    return { ok: true };
+  } catch (e) {
+    const message = e instanceof Error ? e.message : "Unbekannter Fehler bei der Nachrichtenerstellung.";
     await safeRecordError(leadId, message);
     refresh(leadId);
     return { ok: false, error: message };
