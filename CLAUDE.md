@@ -12,7 +12,7 @@ automatically — sending is always a separate, explicit, human-triggered action
 - **Next.js (App Router) + TypeScript** — dashboard UI and backend (API routes / server actions) in one app.
 - **Tailwind CSS** for styling; dashboard UI follows the UI/UX Pro Max skill (high-quality SaaS look, not a generic admin template).
 - **Prisma + SQLite** (`prisma/dev.db`, git-ignored) for local persistent storage. Swapping to a hosted Postgres DB later is a config change, not a rewrite.
-- Generated demo sites live under `/generated-demos/<leadId>/` as static output, isolated from the dashboard, previewed via iframe.
+- Generated demo sites live under `/public/demos/<slug>/index.html` as static, self-contained HTML (no framework dependency), served directly by Next.js and previewed via iframe. Note: Next.js does not auto-resolve directory index files for `/public` assets — always link to `index.html` explicitly, never a bare trailing-slash path. Git-ignored (per-lead output).
 
 ## Module boundaries (`src/lib/*`)
 

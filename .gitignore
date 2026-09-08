@@ -50,8 +50,8 @@ next-env.d.ts
 *.sqlite3
 
 # generated demo sites (per-lead output, not committed)
-/generated-demos/*
-!/generated-demos/.gitkeep
+/public/demos/*
+!/public/demos/.gitkeep
 
 # editor
 .vscode/*
