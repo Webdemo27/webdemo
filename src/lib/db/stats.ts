@@ -75,6 +75,51 @@ export async function getOverviewStats() {
   };
 }
 
+interface StoredConcept {
+  scoring?: { salesOpportunityScore: number; tier: "hot" | "warm" | "cold"; wowPotential: number };
+}
+
+/** Aggregates the X-Ray/concept scoring across every lead that has a
+ * demo (Demo.concept is only set once analysis exists — see
+ * demo-generator/index.ts) — hot/warm/cold counts, public demo count,
+ * and today's single best opportunity by Sales Opportunity Score. */
+export async function getSalesOpportunityStats() {
+  const demos = await prisma.demo.findMany({
+    select: {
+      concept: true,
+      publicUrl: true,
+      lead: { select: { id: true, companyName: true } },
+    },
+  });
+
+  let hot = 0;
+  let warm = 0;
+  let cold = 0;
+  let publicDemos = 0;
+  let best: { leadId: string; companyName: string; score: number } | null = null;
+
+  for (const demo of demos) {
+    if (demo.publicUrl) publicDemos += 1;
+    const concept = demo.concept as unknown as StoredConcept | null;
+    const scoring = concept?.scoring;
+    if (!scoring) continue;
+
+    if (scoring.tier === "hot") hot += 1;
+    else if (scoring.tier === "warm") warm += 1;
+    else cold += 1;
+
+    if (!best || scoring.salesOpportunityScore > best.score) {
+      best = {
+        leadId: demo.lead.id,
+        companyName: demo.lead.companyName,
+        score: scoring.salesOpportunityScore,
+      };
+    }
+  }
+
+  return { hot, warm, cold, publicDemos, bestOpportunity: best };
+}
+
 export async function getRecentActivity(limit = 12) {
   return prisma.activityLog.findMany({
     orderBy: { createdAt: "desc" },

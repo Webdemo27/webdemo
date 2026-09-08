@@ -1,4 +1,4 @@
-import { getOverviewStats, getRecentActivity } from "@/lib/db";
+import { getOverviewStats, getRecentActivity, getSalesOpportunityStats } from "@/lib/db";
 import { PageHeader } from "@/components/layout/page-header";
 import { KpiCard } from "@/components/ui/kpi-card";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,14 +12,18 @@ import {
   ClockCountdown,
   ChatCircleText,
   PaperPlaneTilt,
+  Fire,
+  Globe,
+  Target,
 } from "@phosphor-icons/react/dist/ssr";
 
 export const dynamic = "force-dynamic";
 
 export default async function OverviewPage() {
-  const [stats, activity] = await Promise.all([
+  const [stats, activity, opportunity] = await Promise.all([
     getOverviewStats(),
     getRecentActivity(10),
+    getSalesOpportunityStats(),
   ]);
 
   const maxStatusCount = Math.max(1, ...stats.statusBreakdown.map((s) => s.count));
@@ -31,7 +35,29 @@ export default async function OverviewPage() {
         description="Pipeline-Status auf einen Blick"
       />
       <div className="flex-1 space-y-6 overflow-y-auto p-6">
+        {opportunity.bestOpportunity ? (
+          <Link
+            href={`/leads/${opportunity.bestOpportunity.leadId}`}
+            className="flex items-center gap-3 rounded-lg border border-warning/30 bg-warning/5 p-4 hover:bg-warning/10"
+          >
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-warning/15 text-warning">
+              <Target size={18} weight="bold" aria-hidden="true" />
+            </span>
+            <div>
+              <div className="text-xs font-medium text-muted-foreground">Beste Chance heute</div>
+              <div className="text-sm font-semibold text-foreground">
+                {opportunity.bestOpportunity.companyName}
+                <span className="tabular ml-2 text-xs font-normal text-muted-foreground">
+                  Sales Opportunity {opportunity.bestOpportunity.score}/100
+                </span>
+              </div>
+            </div>
+          </Link>
+        ) : null}
+
         <div className="grid grid-cols-2 gap-4 lg:grid-cols-3 xl:grid-cols-6">
+          <KpiCard label="Hot Leads" value={opportunity.hot} icon={Fire} tone="warning" />
+          <KpiCard label="Öffentliche Demos" value={opportunity.publicDemos} icon={Globe} />
           <KpiCard label="Neue Leads" value={stats.newLeads} icon={Sparkle} />
           <KpiCard
             label="Qualifiziert"
