@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { ScoreBadge } from "@/components/ui/score-badge";
 import type { AnalysisDimension } from "@/lib/types";
@@ -50,12 +51,19 @@ interface AnalysisRecord {
   fetchedAt: Date;
 }
 
-export function AnalysisPanel({ analysis }: { analysis: AnalysisRecord | null }) {
+export function AnalysisPanel({
+  analysis,
+  actions,
+}: {
+  analysis: AnalysisRecord | null;
+  actions?: ReactNode;
+}) {
   if (!analysis) {
     return (
       <Card>
         <CardHeader>
           <CardTitle>Website-Analyse</CardTitle>
+          {actions}
         </CardHeader>
         <CardContent>
           <p className="text-xs text-muted-foreground">
@@ -80,6 +88,7 @@ export function AnalysisPanel({ analysis }: { analysis: AnalysisRecord | null })
             Zuletzt geprüft: {new Intl.DateTimeFormat("de-DE", { dateStyle: "medium", timeStyle: "short" }).format(analysis.fetchedAt)}
           </CardDescription>
         </div>
+        {actions}
       </CardHeader>
       <CardContent className="space-y-5">
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">

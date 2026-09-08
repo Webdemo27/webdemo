@@ -7,11 +7,18 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScoreBadge } from "@/components/ui/score-badge";
 import { StatusSelect } from "@/components/leads/status-select";
 import { AnalysisPanel } from "@/components/leads/analysis-panel";
+import { AnalyzeButton } from "@/components/leads/analyze-button";
 import { DemoPreviewCard } from "@/components/leads/demo-preview-card";
 import { MessageReviewCard } from "@/components/leads/message-review-card";
 import { ActivityTimeline } from "@/components/leads/activity-timeline";
 import { ArrowLeft, Globe, MapPin, EnvelopeSimple, Phone } from "@phosphor-icons/react/dist/ssr";
-import { changeLeadStatus, approveMessage, rejectMessage, updateMessageDraft } from "./actions";
+import {
+  changeLeadStatus,
+  approveMessage,
+  rejectMessage,
+  updateMessageDraft,
+  analyzeLead,
+} from "./actions";
 
 export const dynamic = "force-dynamic";
 
@@ -85,7 +92,12 @@ export default async function LeadDetailPage({
               </CardContent>
             </Card>
 
-            <AnalysisPanel analysis={lead.analysis} />
+            <AnalysisPanel
+              analysis={lead.analysis}
+              actions={
+                <AnalyzeButton leadId={lead.id} hasWebsite={Boolean(lead.website)} action={analyzeLead} />
+              }
+            />
             <ActivityTimeline entries={lead.activity} />
           </div>
 

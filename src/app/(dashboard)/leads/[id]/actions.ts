@@ -1,7 +1,9 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { prisma, logActivity, updateLeadStatus } from "@/lib/db";
+import { prisma, logActivity, updateLeadStatus, saveWebsiteAnalysis } from "@/lib/db";
+import { analyzeWebsite } from "@/lib/analysis";
+import { safeRecordError } from "@/lib/research";
 import type { LeadStatus } from "@/lib/types";
 
 function refresh(leadId: string) {
@@ -9,6 +11,27 @@ function refresh(leadId: string) {
   revalidatePath("/leads");
   revalidatePath("/");
   revalidatePath("/messages");
+}
+
+/** Manually runs the website-analysis step for one lead. Never throws to
+ * the caller — a failure is recorded on the lead (per the "one lead's
+ * error never stops the pipeline" rule) and reported back for display. */
+export async function analyzeLead(leadId: string): Promise<{ ok: boolean; error?: string }> {
+  const lead = await prisma.lead.findUnique({ where: { id: leadId } });
+  if (!lead) return { ok: false, error: "Lead nicht gefunden." };
+  if (!lead.website) return { ok: false, error: "Lead hat keine Website hinterlegt." };
+
+  try {
+    const { data, websiteScore } = await analyzeWebsite(lead.website);
+    await saveWebsiteAnalysis(leadId, data, websiteScore);
+    refresh(leadId);
+    return { ok: true };
+  } catch (e) {
+    const message = e instanceof Error ? e.message : "Unbekannter Fehler bei der Analyse.";
+    await safeRecordError(leadId, message);
+    refresh(leadId);
+    return { ok: false, error: message };
+  }
 }
 
 /** Manual status override — part of dashboard status management. Does not

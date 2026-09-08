@@ -9,6 +9,8 @@ import { StatusBadge } from "@/components/ui/status-badge";
 import { ScoreBadge } from "@/components/ui/score-badge";
 import { Table, Thead, Tbody, Tr, Th, Td } from "@/components/ui/table";
 import { SortableTh } from "@/components/leads/sortable-th";
+import { ResearchPanel } from "@/components/leads/research-panel";
+import { runResearchAction } from "./research-actions";
 import { MagnifyingGlass, Buildings } from "@phosphor-icons/react/dist/ssr";
 
 export const dynamic = "force-dynamic";
@@ -55,6 +57,7 @@ export default async function LeadsPage({
         description={`${leads.length} Lead${leads.length === 1 ? "" : "s"}`}
       />
       <div className="flex-1 space-y-4 overflow-y-auto p-6">
+        <ResearchPanel action={runResearchAction} />
         <form
           method="get"
           className="flex flex-wrap items-center gap-3 rounded-lg border border-border bg-card p-3"

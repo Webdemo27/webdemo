@@ -147,7 +147,7 @@ export async function recordLeadError(id: string, error: string) {
 export async function saveWebsiteAnalysis(
   leadId: string,
   data: WebsiteAnalysisData,
-  websiteScore: number
+  websiteScore: number | null
 ) {
   const analysis = await prisma.websiteAnalysis.upsert({
     where: { leadId },
@@ -192,7 +192,13 @@ export async function saveWebsiteAnalysis(
     data: { websiteScore, status: "ANALYZED" },
   });
 
-  await logActivity(leadId, "ANALYZED", `Website analyzed, score ${websiteScore}/100`);
+  await logActivity(
+    leadId,
+    "ANALYZED",
+    websiteScore == null
+      ? "Website-Analyse abgeschlossen (Website nicht erreichbar)"
+      : `Website analysiert, Score ${websiteScore}/100`
+  );
   return analysis;
 }
 
