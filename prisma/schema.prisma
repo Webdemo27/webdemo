@@ -109,8 +109,45 @@ model Demo {
   publicUrl   String?
   publishedAt DateTime?
 
+  /// The computed VisualProfile (art direction, colors, typography,
+  /// layout/motion direction, asset plan) this demo was built from.
+  visualProfile Json?
+  assets        DemoAsset[]
+
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+}
+
+/// One visual asset used in a demo — a real photo extracted from the
+/// lead's own existing website, an AI-generated image (once a provider
+/// is configured), or a deterministic abstract SVG composition. Never a
+/// generic stock photo.
+model DemoAsset {
+  id       String @id @default(cuid())
+  demoId   String
+  demo     Demo   @relation(fields: [demoId], references: [id], onDelete: Cascade)
+
+  role     String
+  source   String
+  altText  String
+
+  /// Relative path under public/demos/<slug>/assets/, or null for an
+  /// inline-rendered abstract SVG (no file on disk).
+  localPath String?
+  sourceUrl String?
+
+  width       Int?
+  height      Int?
+  aspectRatio String
+  /// { webp?: string, avif?: string, original?: string } — relative
+  /// paths per generated format, when this asset has files on disk.
+  formats     Json?
+
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([demoId])
 }
 
 /// A drafted outreach message awaiting human review. Sending is a
