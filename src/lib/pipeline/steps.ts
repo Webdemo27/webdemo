@@ -63,7 +63,7 @@ export async function runMessageGeneration(leadId: string) {
   });
 
   const { subject, body } = generateMessage(
-    { companyName: lead.companyName, location: lead.location },
+    { companyName: lead.companyName, location: lead.location, demoUrl: lead.demo.publicUrl },
     analysisData,
     leadId
   );

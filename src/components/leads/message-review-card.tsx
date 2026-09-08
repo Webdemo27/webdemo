@@ -4,7 +4,8 @@ import { useState, useTransition } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input, Label, Textarea } from "@/components/ui/input";
-import { PencilSimple, Check, X, Sparkle, Copy, PaperPlaneTilt } from "@phosphor-icons/react";
+import { PencilSimple, Check, X, Sparkle, Copy, PaperPlaneTilt, EnvelopeSimple } from "@phosphor-icons/react";
+import type { PreflightResult } from "@/lib/email";
 
 interface MessageData {
   subject: string | null;
@@ -25,6 +26,7 @@ export function MessageReviewCard({
   updateAction,
   generateAction,
   markSentAction,
+  gmailDraftAction,
 }: {
   leadId: string;
   message: MessageData | null;
@@ -35,11 +37,23 @@ export function MessageReviewCard({
   updateAction: (leadId: string, formData: FormData) => Promise<void>;
   generateAction: (leadId: string) => Promise<{ ok: boolean; error?: string }>;
   markSentAction: (leadId: string) => Promise<void>;
+  gmailDraftAction: (leadId: string) => Promise<{
+    preflight: PreflightResult;
+    draftCreated: boolean;
+    gmailConfigured: boolean;
+    error?: string;
+  }>;
 }) {
   const [editing, setEditing] = useState(false);
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [gmailResult, setGmailResult] = useState<{
+    preflight: PreflightResult;
+    draftCreated: boolean;
+    gmailConfigured: boolean;
+    error?: string;
+  } | null>(null);
 
   if (!message) {
     return (
@@ -229,7 +243,48 @@ export function MessageReviewCard({
                 <PaperPlaneTilt size={14} aria-hidden="true" />
                 Als gesendet markieren
               </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={pending}
+                onClick={() =>
+                  startTransition(async () => {
+                    setError(null);
+                    setGmailResult(null);
+                    const result = await gmailDraftAction(leadId);
+                    setGmailResult(result);
+                  })
+                }
+              >
+                <EnvelopeSimple size={14} aria-hidden="true" />
+                Gmail-Entwurf vorbereiten
+              </Button>
             </div>
+
+            {gmailResult ? (
+              <div className="space-y-1.5 rounded-md border border-border p-2.5">
+                <p className="text-xs font-medium text-foreground">
+                  {gmailResult.draftCreated
+                    ? "Gmail-Entwurf erstellt — öffnen Sie Gmail, prüfen Sie den Entwurf und senden Sie ihn selbst."
+                    : !gmailResult.gmailConfigured
+                    ? "Gmail ist nicht konfiguriert — Checkliste unten, Text oben manuell kopierbar."
+                    : "Entwurf konnte nicht erstellt werden — siehe Checkliste."}
+                </p>
+                <ul className="space-y-1">
+                  {gmailResult.preflight.checks.map((c, i) => (
+                    <li key={i} className="flex items-start gap-1.5 text-xs">
+                      <span className={c.passed ? "text-success" : "text-destructive"}>
+                        {c.passed ? "✓" : "✗"}
+                      </span>
+                      <span className="text-muted-foreground">
+                        <span className="font-medium text-foreground">{c.label}:</span> {c.detail}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+                {gmailResult.error ? <p className="text-xs text-destructive">{gmailResult.error}</p> : null}
+              </div>
+            ) : null}
           </div>
         ) : null}
       </CardContent>

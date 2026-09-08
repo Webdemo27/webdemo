@@ -33,18 +33,29 @@ function encodeMimeMessage(from: string, email: OutgoingEmail): string {
     .replace(/=+$/, "");
 }
 
+async function getAccessToken(): Promise<{ token?: string; error?: string }> {
+  try {
+    const oauth2Client = new OAuth2Client(process.env.GMAIL_CLIENT_ID, process.env.GMAIL_CLIENT_SECRET);
+    oauth2Client.setCredentials({ refresh_token: process.env.GMAIL_REFRESH_TOKEN });
+    const { token } = await oauth2Client.getAccessToken();
+    if (!token) return { error: "Konnte kein Gmail-Zugriffstoken beziehen." };
+    return { token };
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "Unbekannter Fehler beim Gmail-Token-Abruf." };
+  }
+}
+
 /**
  * Real Gmail API integration via OAuth2 (never a stored password — a
  * refresh token from env only, per the security rules in CLAUDE.md).
  *
- * This class is intentionally NOT wired into any dashboard button or
- * pipeline step yet. Phase 10 of the roadmap asks for the architecture
- * only; actually sending requires the user to complete Google's OAuth
- * consent flow themselves (an external-authentication step outside
- * this project's control) and then explicitly ask for a "Send" action
- * to be added to the UI. Until GMAIL_CLIENT_ID/SECRET/REFRESH_TOKEN are
- * set, every call fails closed with a clear error rather than doing
- * nothing silently.
+ * `send` is intentionally NOT wired into any dashboard button — that
+ * would send real email, which needs the user's own OAuth consent
+ * (external authentication outside this project's control) and an
+ * explicit later request. `createDraft` IS wired to a dashboard action
+ * (see leads/[id]/actions.ts) because a Gmail draft is inert until the
+ * user opens Gmail and clicks Send themselves — matching "niemals
+ * automatisch senden" exactly. Both fail closed without credentials.
  */
 export class GmailSender implements EmailSender {
   async send(email: OutgoingEmail): Promise<EmailSendResult> {
@@ -56,26 +67,15 @@ export class GmailSender implements EmailSender {
       };
     }
 
+    const { token, error: tokenError } = await getAccessToken();
+    if (!token) return { ok: false, error: tokenError };
+
     try {
-      const oauth2Client = new OAuth2Client(
-        process.env.GMAIL_CLIENT_ID,
-        process.env.GMAIL_CLIENT_SECRET
-      );
-      oauth2Client.setCredentials({ refresh_token: process.env.GMAIL_REFRESH_TOKEN });
-
-      const { token } = await oauth2Client.getAccessToken();
-      if (!token) {
-        return { ok: false, error: "Konnte kein Gmail-Zugriffstoken beziehen." };
-      }
-
       const raw = encodeMimeMessage(process.env.GMAIL_SENDER_ADDRESS as string, email);
 
       const res = await fetch("https://gmail.googleapis.com/gmail/v1/users/me/messages/send", {
         method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
         body: JSON.stringify({ raw }),
       });
 
@@ -87,10 +87,42 @@ export class GmailSender implements EmailSender {
       const data = (await res.json()) as { id?: string };
       return { ok: true, messageId: data.id };
     } catch (e) {
+      return { ok: false, error: e instanceof Error ? e.message : "Unbekannter Fehler beim Gmail-Versand." };
+    }
+  }
+
+  /** Creates a Gmail draft (users.drafts.create) — never sends. The user
+   * opens Gmail themselves, reviews the finished draft, and clicks Send. */
+  async createDraft(email: OutgoingEmail): Promise<EmailSendResult> {
+    if (!isGmailConfigured()) {
       return {
         ok: false,
-        error: e instanceof Error ? e.message : "Unbekannter Fehler beim Gmail-Versand.",
+        error:
+          "Gmail ist nicht konfiguriert (GMAIL_CLIENT_ID/GMAIL_CLIENT_SECRET/GMAIL_REFRESH_TOKEN/GMAIL_SENDER_ADDRESS fehlen in .env).",
       };
+    }
+
+    const { token, error: tokenError } = await getAccessToken();
+    if (!token) return { ok: false, error: tokenError };
+
+    try {
+      const raw = encodeMimeMessage(process.env.GMAIL_SENDER_ADDRESS as string, email);
+
+      const res = await fetch("https://gmail.googleapis.com/gmail/v1/users/me/drafts", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ message: { raw } }),
+      });
+
+      if (!res.ok) {
+        const text = await res.text();
+        return { ok: false, error: `Gmail API Fehler: HTTP ${res.status} — ${text}` };
+      }
+
+      const data = (await res.json()) as { id?: string; message?: { id?: string } };
+      return { ok: true, messageId: data.id ?? data.message?.id };
+    } catch (e) {
+      return { ok: false, error: e instanceof Error ? e.message : "Unbekannter Fehler beim Erstellen des Gmail-Entwurfs." };
     }
   }
 }

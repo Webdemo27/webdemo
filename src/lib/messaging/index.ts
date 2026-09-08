@@ -1,5 +1,13 @@
 import type { WebsiteAnalysisData, AnalysisDimension } from "../types";
-import { SUBJECT_TEMPLATES, OPENERS, BRIDGES, CLOSINGS, SIGNOFF, pickVariant } from "./templates";
+import {
+  SUBJECT_TEMPLATES,
+  OPENERS,
+  BRIDGES_WITH_LINK,
+  BRIDGES_NO_LINK,
+  CLOSINGS,
+  buildSignature,
+  pickVariant,
+} from "./templates";
 
 const OBSERVATION_CANDIDATES: Array<keyof WebsiteAnalysisData> = [
   "mobileUx",
@@ -34,6 +42,11 @@ function pickKeyObservation(analysis: WebsiteAnalysisData, seed: string): string
 export interface MessageContext {
   companyName: string;
   location: string | null;
+  /** Real, publicly reachable HTTPS URL for the demo, or null if it
+   * hasn't been deployed yet (Cloudflare, Phase 11). Never a localhost
+   * path — when null, the message simply doesn't mention a link rather
+   * than showing a placeholder or an unreachable address. */
+  demoUrl: string | null;
 }
 
 export interface GeneratedMessage {
@@ -61,8 +74,11 @@ export function generateMessage(
   const opener = pickVariant(OPENERS, seed + ":opener")
     .replace("{company}", lead.companyName)
     .replace("{location}", location);
-  const bridge = pickVariant(BRIDGES, seed + ":bridge");
   const closing = pickVariant(CLOSINGS, seed + ":closing");
+
+  const bridgeLine = lead.demoUrl
+    ? `${pickVariant(BRIDGES_WITH_LINK, seed + ":bridge")} ${lead.demoUrl}`
+    : pickVariant(BRIDGES_NO_LINK, seed + ":bridge");
 
   const lines = [
     `Hallo,`,
@@ -70,11 +86,11 @@ export function generateMessage(
     opener,
     observation ? observation : null,
     ``,
-    `${bridge} [Demo-Link einfügen]`,
+    bridgeLine,
     ``,
     closing,
     ``,
-    SIGNOFF,
+    buildSignature(),
   ].filter((line): line is string => line !== null);
 
   return { subject, body: lines.join("\n") };

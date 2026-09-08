@@ -4,6 +4,13 @@ import { revalidatePath } from "next/cache";
 import { prisma, logActivity, updateLeadStatus } from "@/lib/db";
 import { runAnalysisAndScoring, runDemoGeneration, runMessageGeneration } from "@/lib/pipeline/steps";
 import { safeRecordError } from "@/lib/research";
+import {
+  runPreflightChecklist,
+  GmailSender,
+  requireApprovedMessage,
+  isGmailConfigured,
+  type PreflightResult,
+} from "@/lib/email";
 import type { LeadStatus } from "@/lib/types";
 
 function refresh(leadId: string) {
@@ -93,6 +100,54 @@ export async function markMessageSent(leadId: string) {
   await prisma.message.update({ where: { leadId }, data: { sentAt: new Date() } });
   await updateLeadStatus(leadId, "CONTACTED", "Nachricht manuell versendet (außerhalb der App) und als gesendet markiert");
   refresh(leadId);
+}
+
+export interface GmailDraftOutcome {
+  preflight: PreflightResult;
+  draftCreated: boolean;
+  gmailConfigured: boolean;
+  error?: string;
+}
+
+/** Runs the full pre-send checklist (recipient, subject, body, approval,
+ * reachable HTTPS demo URL, no localhost/placeholder text, signature),
+ * then — only if every check passes AND Gmail is configured — creates a
+ * Gmail draft via the API. A draft is inert until the user opens Gmail
+ * and clicks Send themselves; this never sends anything. When Gmail
+ * isn't configured, the checklist and composed text are still returned
+ * so the user can copy it manually. */
+export async function prepareGmailDraft(leadId: string): Promise<GmailDraftOutcome> {
+  const preflight = await runPreflightChecklist(leadId);
+  const gmailConfigured = isGmailConfigured();
+
+  if (!preflight.passed || !preflight.recipient) {
+    return { preflight, draftCreated: false, gmailConfigured };
+  }
+
+  try {
+    await requireApprovedMessage(leadId);
+    const sender = new GmailSender();
+    const result = await sender.createDraft({
+      to: preflight.recipient,
+      subject: preflight.subject,
+      body: preflight.body,
+    });
+
+    if (!result.ok) {
+      return { preflight, draftCreated: false, gmailConfigured, error: result.error };
+    }
+
+    await logActivity(leadId, "GMAIL_DRAFT_CREATED", "Gmail-Entwurf erstellt (nicht versendet)");
+    refresh(leadId);
+    return { preflight, draftCreated: true, gmailConfigured };
+  } catch (e) {
+    return {
+      preflight,
+      draftCreated: false,
+      gmailConfigured,
+      error: e instanceof Error ? e.message : "Unbekannter Fehler.",
+    };
+  }
 }
 
 /** Human review: reject/discard the draft. */
