@@ -10,8 +10,13 @@ export interface UrlVerification {
   error?: string;
 }
 
-const POLL_ATTEMPTS = 6;
-const POLL_DELAY_MS = 8000;
+// A brand-new *.pages.dev subdomain's first DNS propagation can take
+// noticeably longer than a re-deploy to an existing project — confirmed
+// live: a fresh project's URL returned "fetch failed" for the first ~50s
+// of polling, then 200 moments later. 14 x 10s (~140s total) gives real
+// first-time propagation room without polling forever.
+const POLL_ATTEMPTS = 14;
+const POLL_DELAY_MS = 10000;
 
 function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));

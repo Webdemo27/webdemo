@@ -52,12 +52,12 @@ export async function publishDemoPublicly(leadId: string): Promise<PublishDemoOu
     await logActivity(
       leadId,
       "PUBLISH_FAILED",
-      `Deployment erstellt, aber URL-Verifikation fehlgeschlagen: ${verification.error ?? `HTTP ${verification.status}`}`
+      `Deployment erstellt (${result.publicUrl}), aber URL-Verifikation fehlgeschlagen: ${verification.error ?? `HTTP ${verification.status}`}`
     );
     return {
       ok: false,
       configured,
-      error: `Demo wurde deployt, aber die URL ist nicht erreichbar (${verification.error ?? `HTTP ${verification.status}`}). publicUrl wurde NICHT gespeichert.`,
+      error: `Demo wurde deployt (${result.publicUrl}), aber die URL ist innerhalb der Wartezeit nicht erreichbar geworden (${verification.error ?? `HTTP ${verification.status}`}). publicUrl wurde NICHT gespeichert — bei einem brandneuen Projekt kann die DNS-Freischaltung vereinzelt länger dauern als das Wartefenster; einfach erneut auf „Öffentlich bereitstellen" klicken.`,
     };
   }
   if (!verification.contentMatches) {

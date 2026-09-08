@@ -107,7 +107,7 @@ export function MessageReviewCard({
             {message.editedByUser ? " · bearbeitet" : ""}
           </CardDescription>
         </div>
-        {!decided && !editing && (
+        {!message.sentAt && !editing && (
           <Button variant="ghost" size="sm" onClick={() => setEditing(true)}>
             <PencilSimple size={14} aria-hidden="true" />
             Bearbeiten
