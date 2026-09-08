@@ -8,6 +8,7 @@ import { buildVisualProfile, pickNextVariant } from "../visual-director";
 import { reviewDemo } from "../visual-director/review";
 import { buildDemoConcept, preferredVariantFor, buildXray } from "../visual-director/concept";
 import { generateAssetsForLead, type AssetPipelineSummary } from "../images";
+import { captureAfterScreenshots } from "../analysis/screenshot";
 import type { WebsiteAnalysisData } from "../types";
 
 export { slugify } from "./slug";
@@ -129,6 +130,26 @@ export async function generateDemo(leadId: string): Promise<GenerateDemoResult> 
 
   const { html, placeholders } = renderDemoHtml(demoData, profile, assetRows, variant);
   await fs.writeFile(path.join(outputDir, "index.html"), html, "utf8");
+
+  // Real screenshots of the just-rendered demo, straight off disk — the
+  // "Nachher" half of the Before/After comparison shown next to the
+  // lead's existing site (captured during analysis). Never blocks demo
+  // creation: a failed capture just leaves these fields null.
+  const afterScreenshots = await captureAfterScreenshots(
+    path.join(outputDir, "index.html"),
+    path.join(outputDir, "assets")
+  );
+  await prisma.demo.update({
+    where: { id: demo.id },
+    data: {
+      afterScreenshotDesktopPath: afterScreenshots.desktop
+        ? `/demos/${slug}/assets/${afterScreenshots.desktop.publicPath}`
+        : null,
+      afterScreenshotMobilePath: afterScreenshots.mobile
+        ? `/demos/${slug}/assets/${afterScreenshots.mobile.publicPath}`
+        : null,
+    },
+  });
 
   if (analysisData) {
     const concept = buildDemoConcept({

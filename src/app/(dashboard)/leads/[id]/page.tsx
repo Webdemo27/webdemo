@@ -9,6 +9,7 @@ import { StatusSelect } from "@/components/leads/status-select";
 import { ScoreReasons } from "@/components/leads/score-reasons";
 import { AnalysisPanel } from "@/components/leads/analysis-panel";
 import { ConceptPanel } from "@/components/leads/concept-panel";
+import { BeforeAfterCard } from "@/components/leads/before-after-card";
 import { AnalyzeButton } from "@/components/leads/analyze-button";
 import { DemoPreviewCard } from "@/components/leads/demo-preview-card";
 import { MessageReviewCard } from "@/components/leads/message-review-card";
@@ -130,6 +131,10 @@ export default async function LeadDetailPage({
               }
             />
             <ConceptPanel concept={lead.demo?.concept} />
+            <BeforeAfterCard
+              beforePath={lead.analysis?.screenshotDesktopPath}
+              afterPath={lead.demo?.afterScreenshotDesktopPath}
+            />
             <ActivityTimeline entries={lead.activity} />
           </div>
 
