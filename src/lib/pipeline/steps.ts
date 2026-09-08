@@ -1,7 +1,7 @@
 import {
   prisma,
   logActivity,
-  updateLeadStatus,
+  advancePipelineStatus,
   saveWebsiteAnalysis,
   saveLeadScore,
   saveContactDiscovery,
@@ -64,7 +64,7 @@ export async function runAnalysisAndScoring(leadId: string) {
 
   const qualified = isQualified(leadScore);
   if (qualified) {
-    await updateLeadStatus(leadId, "QUALIFIED", `Lead qualifiziert (Score ${leadScore}/100)`);
+    await advancePipelineStatus(leadId, "QUALIFIED", `Lead qualifiziert (Score ${leadScore}/100)`);
   }
 
   return { websiteScore, leadScore, qualified };
@@ -77,11 +77,23 @@ export async function runDemoGeneration(leadId: string) {
 export async function runMessageGeneration(leadId: string) {
   const lead = await prisma.lead.findUnique({
     where: { id: leadId },
-    include: { analysis: true, demo: true },
+    include: { analysis: true, demo: true, message: true },
   });
   if (!lead) throw new Error("Lead nicht gefunden.");
   if (!lead.analysis) throw new Error("Für diesen Lead liegt noch keine Website-Analyse vor.");
   if (!lead.demo) throw new Error("Für diesen Lead wurde noch keine Demo erstellt.");
+  // A human has already decided on this exact message — never silently
+  // overwrite that decision. This is the last line of defense against
+  // the pipeline re-entering an already-reviewed lead (e.g. a stray
+  // re-analysis regressing its status, or /loop picking it back up);
+  // regenerating a message that's genuinely still pending review is
+  // fine and expected, deciding-over one that's approved/rejected/sent
+  // is not.
+  if (lead.message?.approvedAt || lead.message?.rejectedAt || lead.message?.sentAt) {
+    throw new Error(
+      "Für diesen Lead liegt bereits eine entschiedene Nachricht vor (freigegeben/abgelehnt/versendet) — wird nicht überschrieben."
+    );
+  }
 
   const analysisData = fromJson<WebsiteAnalysisData>({
     design: lead.analysis.design,
@@ -112,5 +124,5 @@ export async function runMessageGeneration(leadId: string) {
   });
 
   await logActivity(leadId, "MESSAGE_DRAFTED", "Nachrichtenentwurf erstellt");
-  await updateLeadStatus(leadId, "WAITING_FOR_REVIEW", "Nachricht bereit — wartet auf manuelle Prüfung");
+  await advancePipelineStatus(leadId, "WAITING_FOR_REVIEW", "Nachricht bereit — wartet auf manuelle Prüfung");
 }

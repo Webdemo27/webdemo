@@ -2,6 +2,7 @@ import { prisma } from "./client";
 import { logActivity } from "./activity";
 import { normalizeDomain, normalizeCompanyName } from "./normalize";
 import { toJson } from "./json";
+import { stageIndex } from "../status";
 import type { LeadInput, LeadStatus, WebsiteAnalysisData, ScoreReason } from "../types";
 import type { Prisma } from "@prisma/client";
 
@@ -134,6 +135,23 @@ export async function updateLeadStatus(
     status,
   });
   return lead;
+}
+
+/** Forward-only version of `updateLeadStatus` for automated pipeline
+ * steps (analysis, scoring, demo/message generation). Re-running
+ * analysis on a lead a human has already moved past — WAITING_FOR_REVIEW,
+ * APPROVED, even REJECTED — must not silently rewind its status: doing
+ * so makes it look "newly qualified" again to /loop, which will then
+ * regenerate the demo and overwrite an already-approved message,
+ * destroying a human decision no automated step should ever touch. A
+ * human explicitly changing status via the dashboard dropdown still goes
+ * through the unguarded `updateLeadStatus` above — a human moving a lead
+ * backwards on purpose is not the case this guards against. No-ops
+ * (returns null) when the lead is already at or past `status`. */
+export async function advancePipelineStatus(id: string, status: LeadStatus, note?: string) {
+  const current = await prisma.lead.findUnique({ where: { id }, select: { status: true } });
+  if (!current || stageIndex(status) <= stageIndex(current.status)) return null;
+  return updateLeadStatus(id, status, note);
 }
 
 export async function recordLeadError(id: string, error: string) {
@@ -271,8 +289,9 @@ export async function saveWebsiteAnalysis(
 
   await prisma.lead.update({
     where: { id: leadId },
-    data: { websiteScore, status: "ANALYZED" },
+    data: { websiteScore },
   });
+  await advancePipelineStatus(leadId, "ANALYZED");
 
   await logActivity(
     leadId,

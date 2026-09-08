@@ -1,6 +1,6 @@
 import { promises as fs } from "fs";
 import path from "path";
-import { prisma, logActivity } from "../db";
+import { prisma, logActivity, advancePipelineStatus } from "../db";
 import { toJson, fromJson } from "../db/json";
 import { renderDemoHtml, type DemoData } from "./template";
 import { slugify } from "./slug";
@@ -159,7 +159,7 @@ export async function generateDemo(leadId: string): Promise<GenerateDemoResult> 
     html,
   });
 
-  await prisma.lead.update({ where: { id: leadId }, data: { status: "DEMO_CREATED" } });
+  await advancePipelineStatus(leadId, "DEMO_CREATED");
   await logActivity(
     leadId,
     "DEMO_CREATED",

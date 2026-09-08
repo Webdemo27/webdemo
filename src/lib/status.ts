@@ -1,4 +1,12 @@
-import type { LeadStatus } from "./types";
+import { LEAD_STATUSES, type LeadStatus } from "./types";
+
+/** Position of a status in the pipeline's natural order — see
+ * LEAD_STATUSES. Used to tell "further along" from "further behind",
+ * never to validate that a transition is legal (REJECTED can happen
+ * from anywhere). */
+export function stageIndex(status: LeadStatus): number {
+  return LEAD_STATUSES.indexOf(status);
+}
 
 export interface StatusMeta {
   label: string;
