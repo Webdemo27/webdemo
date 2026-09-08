@@ -1,6 +1,7 @@
 import type { WebsiteAnalysisData, ScoreReason } from "../types";
 import type { ConceptVariant } from "./variants";
 import type { VisualProfile } from "./types";
+import { MARKET_PRICE_SOURCES, averageMarketAnchor, averageOfferPrice, type MarketPriceSource } from "../pricing/market-data";
 
 export type ProblemCategory = "technical" | "ux" | "trust" | "conversion" | "brand";
 
@@ -30,9 +31,9 @@ export interface KeyChange {
 }
 
 export interface PricingEstimate {
-  basePrice: number;
-  complexityMultiplier: number;
-  estimatedPrice: number;
+  sources: MarketPriceSource[];
+  averageMarketAnchor: number;
+  recommendedOfferPrice: number;
   currency: "EUR";
   disclaimer: string;
 }
@@ -193,30 +194,21 @@ function salesOpportunityScore(leadScore: number, wow: number): { score: number;
   return { score, tier };
 }
 
-const BASE_PRICE_BY_VARIANT: Record<string, number> = {
-  "premium-editorial": 690,
-  "bold-conversion": 590,
-  "immersive-visual": 890,
-  "luxury-minimal": 990,
-  "interactive-3d": 1290,
-};
-
-/** A calculated starting point for a quote, not a researched market
- * price (there is no such fact to look up) — adjust BASE_PRICE_BY_VARIANT
- * to your own rate card. Always shown with its disclaimer. */
-function buildPricing(variant: ConceptVariant, realImageCount: number): PricingEstimate {
-  const basePrice = BASE_PRICE_BY_VARIANT[variant.id] ?? 650;
-  let complexityMultiplier = 1;
-  if (realImageCount > 0) complexityMultiplier += 0.1;
-  if (variant.forceUse3d) complexityMultiplier += 0.2;
-
-  const estimatedPrice = Math.round((basePrice * complexityMultiplier) / 10) * 10;
+/** Real, sourced German web-design market pricing (see
+ * pricing/market-data.ts) for a one-page local-business site — the
+ * closest comparable to what this project builds. Each source's offer
+ * price is exactly its documented market anchor minus €100; the
+ * recommended price is the average across all three sources. Nothing
+ * here is invented, and nothing varies by variant/industry — the
+ * market data doesn't know or care which concept was chosen. */
+function buildPricing(): PricingEstimate {
   return {
-    basePrice,
-    complexityMultiplier: Math.round(complexityMultiplier * 100) / 100,
-    estimatedPrice,
+    sources: MARKET_PRICE_SOURCES,
+    averageMarketAnchor: averageMarketAnchor(),
+    recommendedOfferPrice: averageOfferPrice(),
     currency: "EUR",
-    disclaimer: "Richtwert zur Orientierung basierend auf Konzept-Komplexität — kein verbindliches Angebot.",
+    disclaimer:
+      "Recherchierte Marktpreise für vergleichbare Onepager-Websites (3 Quellen, siehe Tabelle) — Angebotspreis je Quelle = Marktanker − 100 €. Kein automatisch verbindliches Angebot.",
   };
 }
 
@@ -364,7 +356,7 @@ export function buildDemoConcept(input: BuildConceptInput): DemoConcept {
       rationale: buildRationale(biggestProblemCategory, input.variant, input.analysis),
     },
     keyChanges: buildKeyChanges(input.analysis, problems),
-    pricing: buildPricing(input.variant, input.realImageCount),
+    pricing: buildPricing(),
     objections: Array.from(
       new Set([biggestProblemCategory, ...problems.slice(0, 2).map((p) => p.category)].filter(Boolean))
     )

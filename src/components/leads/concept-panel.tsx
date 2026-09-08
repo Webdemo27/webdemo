@@ -126,13 +126,53 @@ export function ConceptPanel({ concept }: { concept: unknown }) {
         )}
 
         {/* Pricing */}
-        <div className="rounded-md border border-border p-3">
-          <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Preis-Richtwert</h4>
-          <div className="tabular mt-1 text-lg font-semibold text-foreground">
-            {c.pricing.estimatedPrice.toLocaleString("de-DE")} {c.pricing.currency}
+        {typeof c.pricing?.recommendedOfferPrice !== "number" ? (
+          <div className="rounded-md border border-dashed border-border p-3 text-xs text-muted-foreground">
+            Preisdaten aus einer älteren Version — &quot;Demo neu erstellen&quot; klicken, um sie zu aktualisieren.
           </div>
-          <p className="text-xs text-muted-foreground italic">{c.pricing.disclaimer}</p>
+        ) : (
+        <div className="rounded-md border border-border p-3">
+          <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+            Preis — recherchierte Marktdaten
+          </h4>
+          <div className="tabular mt-1 text-lg font-semibold text-foreground">
+            {c.pricing.recommendedOfferPrice.toLocaleString("de-DE")} {c.pricing.currency}
+            <span className="ml-2 text-xs font-normal text-muted-foreground">
+              empfohlen (Ø Marktanker {c.pricing.averageMarketAnchor.toLocaleString("de-DE")} € − 100 €)
+            </span>
+          </div>
+          <div className="mt-2 overflow-x-auto">
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="text-left text-muted-foreground">
+                  <th className="pr-2 pb-1 font-medium">Quelle</th>
+                  <th className="pr-2 pb-1 font-medium">Datum</th>
+                  <th className="pr-2 pb-1 font-medium text-right">Marktanker</th>
+                  <th className="pb-1 font-medium text-right">Angebotspreis</th>
+                </tr>
+              </thead>
+              <tbody>
+                {c.pricing.sources.map((s, i) => (
+                  <tr key={i} className="border-t border-border">
+                    <td className="py-1 pr-2">
+                      <a href={s.url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+                        {s.source}
+                      </a>
+                      <div className="text-muted-foreground">{s.anchorLabel}</div>
+                    </td>
+                    <td className="py-1 pr-2 text-muted-foreground">{s.accessedAt}</td>
+                    <td className="tabular py-1 pr-2 text-right">{s.marketAnchor.toLocaleString("de-DE")} €</td>
+                    <td className="tabular py-1 text-right font-medium text-foreground">
+                      {s.offerPrice.toLocaleString("de-DE")} €
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <p className="mt-1.5 text-xs text-muted-foreground italic">{c.pricing.disclaimer}</p>
         </div>
+        )}
 
         {/* Objections */}
         {c.objections.length > 0 && (
