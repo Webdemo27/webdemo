@@ -134,6 +134,7 @@ export default async function LeadDetailPage({
             <BeforeAfterCard
               beforePath={lead.analysis?.screenshotDesktopPath}
               afterPath={lead.demo?.afterScreenshotDesktopPath}
+              companyName={lead.companyName}
             />
             <ActivityTimeline entries={lead.activity} />
           </div>
