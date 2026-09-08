@@ -19,7 +19,17 @@ export { getVisualProfile } from "./profiles";
  * variant decides *structure*, the industry base still decides *brand*
  * (colors/typography/imagery stay industry-authentic even in a bold or
  * minimal variant). Returns a fresh copy so later steps can safely
- * adjust the asset plan per lead. */
+ * adjust the asset plan per lead.
+ *
+ * use3d is the AND of both signals, deliberately: the industry base
+ * says whether 3D ever has real value here at all ("Three.js nur bei
+ * echtem Mehrwert" — real estate/hotel/automotive only, never a
+ * bakery), and only the Interactive/3D variant actually turns it on for
+ * a given render. Without this, every variant for a 3D-eligible
+ * industry would render the same WebGL hero, defeating the point of
+ * having 8 visually distinct variants; with it, a bakery choosing
+ * "Interactive/3D" gracefully gets a strong full-bleed hero instead of
+ * a canvas that wouldn't suit the business. */
 export function buildVisualProfile(
   lead: { industry: string | null },
   variant?: ConceptVariant
@@ -36,8 +46,9 @@ export function buildVisualProfile(
   if (variant) {
     if (variant.layoutDirectionOverride) profile.layoutDirection = variant.layoutDirectionOverride;
     if (variant.motionOverride) profile.motion = variant.motionOverride;
-    if (variant.forceUse3d) profile.use3d = true;
   }
+
+  profile.use3d = base.use3d && Boolean(variant?.forceUse3d);
 
   return profile;
 }
