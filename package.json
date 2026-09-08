@@ -25,7 +25,8 @@
     "react": "19.2.8",
     "react-dom": "19.2.8",
     "sharp": "^0.35.4",
-    "tailwind-merge": "^3.6.0"
+    "tailwind-merge": "^3.6.0",
+    "wrangler": "^4.129.1"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",

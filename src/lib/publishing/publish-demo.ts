@@ -33,22 +33,21 @@ export async function publishDemoPublicly(leadId: string): Promise<PublishDemoOu
   if (!lead) return { ok: false, configured, error: "Lead nicht gefunden." };
   if (!lead.demo) return { ok: false, configured, error: "Für diesen Lead wurde noch keine Demo erstellt." };
 
-  const htmlPath = path.join(process.cwd(), "public", "demos", lead.demo.slug, "index.html");
-  let html: string;
+  const demoDir = path.join(process.cwd(), "public", "demos", lead.demo.slug);
   try {
-    html = await fs.readFile(htmlPath, "utf8");
+    await fs.access(path.join(demoDir, "index.html"));
   } catch {
     return { ok: false, configured, error: "Demo-HTML nicht gefunden — Demo zuerst (neu) erstellen." };
   }
 
   const publisher = new CloudflarePagesPublisher();
-  const result = await publisher.publish({ slug: lead.demo.slug, html });
+  const result = await publisher.publish({ slug: lead.demo.slug, directory: demoDir });
   if (!result.ok || !result.publicUrl) {
     await logActivity(leadId, "PUBLISH_FAILED", result.error ?? "Cloudflare-Veröffentlichung fehlgeschlagen");
     return { ok: false, configured, error: result.error };
   }
 
-  const verification = await verifyPublicUrl(result.publicUrl);
+  const verification = await verifyPublicUrl(result.publicUrl, lead.companyName);
   if (!verification.reachable) {
     await logActivity(
       leadId,
@@ -59,6 +58,18 @@ export async function publishDemoPublicly(leadId: string): Promise<PublishDemoOu
       ok: false,
       configured,
       error: `Demo wurde deployt, aber die URL ist nicht erreichbar (${verification.error ?? `HTTP ${verification.status}`}). publicUrl wurde NICHT gespeichert.`,
+    };
+  }
+  if (!verification.contentMatches) {
+    await logActivity(
+      leadId,
+      "PUBLISH_FAILED",
+      `URL erreichbar, zeigt aber nicht die erwartete Demo (Firmenname "${lead.companyName}" nicht im Inhalt gefunden).`
+    );
+    return {
+      ok: false,
+      configured,
+      error: `Die URL ist erreichbar, zeigt aber offenbar nicht diese Demo — bitte manuell prüfen, bevor sie verschickt wird. publicUrl wurde NICHT gespeichert.`,
     };
   }
 

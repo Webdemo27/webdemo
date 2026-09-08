@@ -1,6 +1,9 @@
 export interface PublishInput {
   slug: string;
-  html: string;
+  /** Absolute path to the demo's output directory (index.html plus its
+   * assets/ subfolder) — the whole tree gets uploaded, not just the HTML
+   * file, so generated images actually load on the published URL. */
+  directory: string;
 }
 
 export interface PublishResult {
