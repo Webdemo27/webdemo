@@ -78,6 +78,40 @@ export const CONCEPT_VARIANTS: ConceptVariant[] = [
     whitespaceScale: 1,
     forceUse3d: true,
   },
+  {
+    id: "corporate",
+    name: "Corporate",
+    description:
+      "Zurückhaltend und vertrauensbildend: Leistungen und Kompetenz stehen vor Atmosphäre, klares Raster, keine Ablenkung.",
+    heroStyle: "minimal",
+    sectionOrder: ["hero", "services", "about", "editorial", "contact"],
+    ctaIntensity: "standard",
+    whitespaceScale: 1.1,
+    layoutDirectionOverride: "grid-clean",
+    motionOverride: "none",
+  },
+  {
+    id: "asymmetric",
+    name: "Asymmetric",
+    description:
+      "Modernes Magazin-Layout mit bewusst ungleichen Spaltenbreiten und versetzten Bildern statt symmetrischer Kacheln.",
+    heroStyle: "full-bleed",
+    sectionOrder: ["hero", "editorial", "services", "location", "detail", "about", "contact"],
+    ctaIntensity: "standard",
+    whitespaceScale: 0.95,
+    layoutDirectionOverride: "editorial-asymmetric",
+  },
+  {
+    id: "product-focused",
+    name: "Product-Focused",
+    description:
+      "Leistungen/Produkte stehen direkt nach dem Hero im Zentrum — kurzer Weg vom ersten Eindruck zum Angebot.",
+    heroStyle: "minimal",
+    sectionOrder: ["hero", "services", "detail", "contact", "editorial", "about"],
+    ctaIntensity: "standard",
+    whitespaceScale: 0.9,
+    layoutDirectionOverride: "grid-clean",
+  },
 ];
 
 /** Picks the next concept variant for a lead. When `preferredId` is
