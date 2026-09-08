@@ -6,6 +6,7 @@ import { PageHeader } from "@/components/layout/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScoreBadge } from "@/components/ui/score-badge";
 import { StatusSelect } from "@/components/leads/status-select";
+import { ScoreReasons } from "@/components/leads/score-reasons";
 import { AnalysisPanel } from "@/components/leads/analysis-panel";
 import { AnalyzeButton } from "@/components/leads/analyze-button";
 import { DemoPreviewCard } from "@/components/leads/demo-preview-card";
@@ -80,7 +81,10 @@ export default async function LeadDetailPage({
                 </dl>
                 <div className="mt-4 flex flex-wrap items-center gap-6 border-t border-border pt-4">
                   <ScoreLabel label="Website-Score" score={lead.websiteScore} />
-                  <ScoreLabel label="Lead-Score" score={lead.leadScore} />
+                  <div>
+                    <ScoreLabel label="Lead-Score" score={lead.leadScore} />
+                    <ScoreReasons reasons={lead.scoreReasons} />
+                  </div>
                   <div>
                     <div className="mb-1 text-xs font-medium text-muted-foreground">Status</div>
                     <StatusSelect leadId={lead.id} status={lead.status} action={changeLeadStatus} />

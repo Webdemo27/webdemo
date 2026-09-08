@@ -31,7 +31,7 @@ export function AnalyzeButton({
         }
       >
         <ArrowsClockwise size={14} className={pending ? "animate-spin" : ""} aria-hidden="true" />
-        {pending ? "Analysiere…" : "Analyse (erneut) ausführen"}
+        {pending ? "Analysiere…" : "Analyse & Scoring ausführen"}
       </Button>
       {!hasWebsite ? (
         <p className="text-xs text-muted-foreground">Keine Website hinterlegt.</p>

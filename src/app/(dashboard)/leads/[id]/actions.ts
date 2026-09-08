@@ -1,8 +1,9 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { prisma, logActivity, updateLeadStatus, saveWebsiteAnalysis } from "@/lib/db";
+import { prisma, logActivity, updateLeadStatus, saveWebsiteAnalysis, saveLeadScore } from "@/lib/db";
 import { analyzeWebsite } from "@/lib/analysis";
+import { scoreLead, isQualified } from "@/lib/scoring";
 import { safeRecordError } from "@/lib/research";
 import type { LeadStatus } from "@/lib/types";
 
@@ -24,6 +25,16 @@ export async function analyzeLead(leadId: string): Promise<{ ok: boolean; error?
   try {
     const { data, websiteScore } = await analyzeWebsite(lead.website);
     await saveWebsiteAnalysis(leadId, data, websiteScore);
+
+    const { leadScore, reasons } = scoreLead(data, {
+      hasContactInfo: Boolean(lead.contactPhone || lead.address),
+    });
+    await saveLeadScore(leadId, leadScore, reasons);
+
+    if (isQualified(leadScore)) {
+      await updateLeadStatus(leadId, "QUALIFIED", `Lead qualifiziert (Score ${leadScore}/100)`);
+    }
+
     refresh(leadId);
     return { ok: true };
   } catch (e) {
