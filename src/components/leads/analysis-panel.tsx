@@ -49,6 +49,8 @@ interface AnalysisRecord {
   weaknesses: unknown;
   opportunities: unknown;
   fetchedAt: Date;
+  screenshotDesktopPath?: string | null;
+  screenshotMobilePath?: string | null;
 }
 
 export function AnalysisPanel({
@@ -91,6 +93,25 @@ export function AnalysisPanel({
         {actions}
       </CardHeader>
       <CardContent className="space-y-5">
+        {analysis.screenshotDesktopPath ? (
+          <div className="hover-lift overflow-hidden rounded-lg border border-border">
+            {/* eslint-disable-next-line @next/next/no-img-element -- local static
+                screenshot file, not an optimizable remote/app asset */}
+            <img
+              src={analysis.screenshotDesktopPath}
+              alt="Aktueller Zustand der bestehenden Website (Vorher)"
+              width={1440}
+              height={900}
+              className="block w-full"
+              style={{ aspectRatio: "1440 / 900", height: "auto" }}
+              loading="lazy"
+            />
+            <p className="border-t border-border bg-muted px-3 py-1.5 text-xs font-medium text-muted-foreground">
+              Vorher — aktueller Zustand der bestehenden Website
+            </p>
+          </div>
+        ) : null}
+
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
           {DIMENSION_ORDER.map((key) => {
             const dim = asDimension((analysis as unknown as Record<string, unknown>)[key]);

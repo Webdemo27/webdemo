@@ -53,6 +53,10 @@ next-env.d.ts
 /public/demos/*
 !/public/demos/.gitkeep
 
+# captured before/after screenshots (per-lead output, not committed)
+/public/screenshots/*
+!/public/screenshots/.gitkeep
+
 # editor
 .vscode/*
 !.vscode/extensions.json

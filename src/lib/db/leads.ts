@@ -144,11 +144,91 @@ export async function recordLeadError(id: string, error: string) {
   await logActivity(id, "ERROR", error);
 }
 
+/** Persists every candidate this discovery run found, and mirrors the
+ * winning one onto `Lead.contactEmail*` so the rest of the app (message
+ * generation, the Gmail preflight checklist, the leads table) can keep
+ * reading that single field without joining `contactEmails`. Replaces
+ * `isPrimary` on the whole set each run rather than only ever adding, so
+ * a better source found on a later run correctly displaces an older,
+ * weaker one. */
+export async function saveContactDiscovery(
+  leadId: string,
+  result: {
+    candidates: Array<{
+      email: string;
+      source: string;
+      sourceUrl: string;
+      confidence: string;
+      foundAt: string;
+    }>;
+    primary: { email: string; source: string; sourceUrl: string; confidence: string } | null;
+    contactQualityScore: number;
+    error: string | null;
+  }
+) {
+  await prisma.$transaction(
+    result.candidates.map((c) =>
+      prisma.contactEmail.upsert({
+        where: { leadId_email: { leadId, email: c.email } },
+        create: {
+          leadId,
+          email: c.email,
+          source: c.source,
+          sourceUrl: c.sourceUrl,
+          confidence: c.confidence,
+          isPrimary: result.primary?.email === c.email,
+          foundAt: new Date(c.foundAt),
+        },
+        update: {
+          source: c.source,
+          sourceUrl: c.sourceUrl,
+          confidence: c.confidence,
+          isPrimary: result.primary?.email === c.email,
+          foundAt: new Date(c.foundAt),
+        },
+      })
+    )
+  );
+
+  await prisma.lead.update({
+    where: { id: leadId },
+    data: result.primary
+      ? {
+          contactEmail: result.primary.email,
+          contactEmailSource: result.primary.source,
+          contactEmailConfidence: result.primary.confidence,
+          contactEmailSourceUrl: result.primary.sourceUrl,
+          contactEmailFoundAt: new Date(),
+          contactQualityScore: result.contactQualityScore,
+          contactDiscoveryError: null,
+        }
+      : {
+          contactQualityScore: 0,
+          contactDiscoveryError: result.error,
+        },
+  });
+}
+
+export interface ScreenshotSaveInput {
+  desktopPath: string | null;
+  mobilePath: string | null;
+  error: string | null;
+}
+
 export async function saveWebsiteAnalysis(
   leadId: string,
   data: WebsiteAnalysisData,
-  websiteScore: number | null
+  websiteScore: number | null,
+  screenshots?: ScreenshotSaveInput
 ) {
+  const screenshotFields = screenshots
+    ? {
+        screenshotDesktopPath: screenshots.desktopPath,
+        screenshotMobilePath: screenshots.mobilePath,
+        screenshotError: screenshots.error,
+      }
+    : {};
+
   const analysis = await prisma.websiteAnalysis.upsert({
     where: { leadId },
     create: {
@@ -167,6 +247,7 @@ export async function saveWebsiteAnalysis(
       weaknesses: toJson(data.weaknesses),
       opportunities: toJson(data.opportunities),
       rawSignals: data.rawSignals ? toJson(data.rawSignals) : undefined,
+      ...screenshotFields,
     },
     update: {
       design: toJson(data.design),
@@ -184,6 +265,7 @@ export async function saveWebsiteAnalysis(
       opportunities: toJson(data.opportunities),
       rawSignals: data.rawSignals ? toJson(data.rawSignals) : undefined,
       fetchedAt: new Date(),
+      ...screenshotFields,
     },
   });
 

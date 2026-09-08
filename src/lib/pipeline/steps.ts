@@ -1,6 +1,15 @@
-import { prisma, logActivity, updateLeadStatus, saveWebsiteAnalysis, saveLeadScore } from "../db";
+import {
+  prisma,
+  logActivity,
+  updateLeadStatus,
+  saveWebsiteAnalysis,
+  saveLeadScore,
+  saveContactDiscovery,
+} from "../db";
 import { fromJson } from "../db/json";
 import { analyzeWebsite } from "../analysis";
+import { captureBeforeScreenshots } from "../analysis/screenshot";
+import { discoverContactEmails, type EmailCandidate } from "../contact-discovery";
 import { scoreLead, isQualified } from "../scoring";
 import { generateDemo } from "../demo-generator";
 import { generateMessage } from "../messaging";
@@ -18,10 +27,38 @@ export async function runAnalysisAndScoring(leadId: string) {
   if (!lead.website) throw new Error("Lead hat keine Website hinterlegt.");
 
   const { data, websiteScore } = await analyzeWebsite(lead.website);
-  await saveWebsiteAnalysis(leadId, data, websiteScore);
+
+  // Real viewport screenshots of the lead's current site — the "Vorher"
+  // half of the Before/After comparison. Never blocks analysis: a failed
+  // capture just leaves the screenshot fields null, same "mark
+  // unverifiable, don't invent" discipline as the rest of analysis/.
+  const screenshots = await captureBeforeScreenshots(lead.website, leadId);
+  await saveWebsiteAnalysis(leadId, data, websiteScore, {
+    desktopPath: screenshots.desktop ? `/screenshots/${leadId}/${screenshots.desktop.publicPath}` : null,
+    mobilePath: screenshots.mobile ? `/screenshots/${leadId}/${screenshots.mobile.publicPath}` : null,
+    error: screenshots.error,
+  });
+
+  // Real, sourced contact-email discovery (Impressum/Kontakt/Datenschutz/
+  // Team/Über uns) — folds in whatever the lead already had (typically an
+  // OpenStreetMap contact:email tag from research) as one more candidate
+  // so ranking happens once, consistently, across every source.
+  const externalCandidates: EmailCandidate[] = lead.contactEmail
+    ? [
+        {
+          email: lead.contactEmail,
+          source: (lead.contactEmailSource as EmailCandidate["source"]) ?? "OpenStreetMap",
+          sourceUrl: lead.contactEmailSourceUrl ?? lead.website,
+          confidence: (lead.contactEmailConfidence as EmailCandidate["confidence"]) ?? "MEDIUM",
+          foundAt: (lead.contactEmailFoundAt ?? lead.createdAt).toISOString(),
+        },
+      ]
+    : [];
+  const contactDiscovery = await discoverContactEmails(lead.website, externalCandidates);
+  await saveContactDiscovery(leadId, contactDiscovery);
 
   const { leadScore, reasons } = scoreLead(data, {
-    hasContactInfo: Boolean(lead.contactPhone || lead.address),
+    hasContactInfo: Boolean(contactDiscovery.primary || lead.contactPhone || lead.address),
   });
   await saveLeadScore(leadId, leadScore, reasons);
 

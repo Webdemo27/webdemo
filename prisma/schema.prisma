@@ -38,7 +38,22 @@ model Lead {
   domain         String?
 
   contactName    String?
+  /// Denormalized primary contact email, always mirrored from the
+  /// ContactEmail row Contact Discovery marked `isPrimary` — never set by
+  /// hand, so the message/Gmail-draft pipeline can keep reading this one
+  /// field without joining `contactEmails` everywhere.
   contactEmail   String?
+  contactEmailSource     String?
+  contactEmailConfidence String?
+  contactEmailSourceUrl  String?
+  contactEmailFoundAt    DateTime?
+  /// 0-100, see contact-discovery/rank.ts — reflects source trustworthiness,
+  /// never mailbox deliverability (no send/verify probe exists).
+  contactQualityScore    Int?
+  /// Set when the last discovery run found nothing (or the site was
+  /// unreachable) — null once a candidate exists, so the dashboard can
+  /// distinguish "never looked" from "looked, found nothing".
+  contactDiscoveryError  String?
   contactPhone   String?
   address        String?
 
@@ -54,6 +69,7 @@ model Lead {
   demo           Demo?
   message        Message?
   activity       ActivityLog[]
+  contactEmails  ContactEmail[]
 
   lastErrorAt    DateTime?
   lastError      String?
@@ -91,9 +107,45 @@ model WebsiteAnalysis {
   opportunities       Json
 
   rawSignals          Json?
+
+  /// Real viewport screenshots of the lead's *current* live site — the
+  /// "Vorher" half of the Before/After comparison. Paths are relative to
+  /// public/screenshots/<leadId>/. Null when capture failed (site down,
+  /// blocked, Chromium unavailable) — see screenshotError, never guessed.
+  screenshotDesktopPath String?
+  screenshotMobilePath  String?
+  screenshotError       String?
+
   fetchedAt           DateTime @default(now())
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
+}
+
+/// One real, sourced business email finding for a lead — Contact
+/// Discovery may find several (info@, kontakt@, a named person); exactly
+/// one is flagged isPrimary at a time, mirrored onto Lead.contactEmail.
+model ContactEmail {
+  id         String   @id @default(cuid())
+  leadId     String
+  lead       Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  email      String
+  /// Human-readable source page/channel — "Impressum", "Kontaktseite",
+  /// "Startseite", "Datenschutzerklärung", "Über uns", "Team", or
+  /// "OpenStreetMap" for the one non-crawled, structured-directory source.
+  source     String
+  sourceUrl  String
+  /// HIGH | MEDIUM | LOW — see contact-discovery/rank.ts. Never upgraded
+  /// beyond what the source actually supports.
+  confidence String
+  isPrimary  Boolean  @default(false)
+
+  foundAt    DateTime @default(now())
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([leadId, email])
+  @@index([leadId])
 }
 
 /// A generated static demo site for a lead, isolated from the dashboard.
@@ -107,10 +159,18 @@ model Demo {
   outputDir   String
   placeholders Json
 
-  /// Set once Phase 11 (Cloudflare) actually publishes this demo. Null
-  /// means it only exists as a local preview under /public/demos.
+  /// Set once Cloudflare Pages actually publishes this demo (see
+  /// publishing/publish-demo.ts). Null means it only exists as a local
+  /// preview under /public/demos.
   publicUrl   String?
   publishedAt DateTime?
+
+  /// Real viewport screenshots of this generated demo, captured straight
+  /// off the rendered index.html via file:// (no server required) — the
+  /// "Nachher" half of the Before/After comparison. Relative to
+  /// public/demos/<slug>/assets/. Null when capture failed.
+  afterScreenshotDesktopPath String?
+  afterScreenshotMobilePath  String?
 
   /// The computed VisualProfile (art direction, colors, typography,
   /// layout/motion direction, asset plan) this demo was built from.

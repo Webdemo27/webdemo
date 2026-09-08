@@ -79,7 +79,28 @@ export default async function LeadDetailPage({
                     {lead.address ?? lead.location ?? "—"}
                   </Field>
                   <Field icon={EnvelopeSimple} label="E-Mail">
-                    {lead.contactEmail ?? "—"}
+                    {lead.contactEmail ? (
+                      <span className="inline-flex flex-wrap items-center gap-1.5">
+                        {lead.contactEmail}
+                        {lead.contactEmailSource ? (
+                          <span
+                            className="rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground"
+                            title={
+                              lead.contactEmailSourceUrl
+                                ? `Quelle: ${lead.contactEmailSourceUrl}`
+                                : undefined
+                            }
+                          >
+                            {lead.contactEmailSource}
+                            {lead.contactEmailConfidence ? ` · ${lead.contactEmailConfidence}` : ""}
+                          </span>
+                        ) : null}
+                      </span>
+                    ) : (
+                      <span title={lead.contactDiscoveryError ?? undefined}>
+                        {lead.contactDiscoveryError ? "— (nichts gefunden)" : "—"}
+                      </span>
+                    )}
                   </Field>
                   <Field icon={Phone} label="Telefon">
                     {lead.contactPhone ?? "—"}
