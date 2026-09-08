@@ -1,14 +1,10 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { prisma, logActivity, updateLeadStatus, saveWebsiteAnalysis, saveLeadScore } from "@/lib/db";
-import { fromJson } from "@/lib/db/json";
-import { analyzeWebsite } from "@/lib/analysis";
-import { scoreLead, isQualified } from "@/lib/scoring";
-import { generateDemo } from "@/lib/demo-generator";
-import { generateMessage } from "@/lib/messaging";
+import { prisma, logActivity, updateLeadStatus } from "@/lib/db";
+import { runAnalysisAndScoring, runDemoGeneration, runMessageGeneration } from "@/lib/pipeline/steps";
 import { safeRecordError } from "@/lib/research";
-import type { LeadStatus, WebsiteAnalysisData } from "@/lib/types";
+import type { LeadStatus } from "@/lib/types";
 
 function refresh(leadId: string) {
   revalidatePath(`/leads/${leadId}`);
@@ -17,27 +13,12 @@ function refresh(leadId: string) {
   revalidatePath("/messages");
 }
 
-/** Manually runs the website-analysis step for one lead. Never throws to
- * the caller — a failure is recorded on the lead (per the "one lead's
- * error never stops the pipeline" rule) and reported back for display. */
+/** Manually runs the website-analysis + scoring step for one lead. Never
+ * throws to the caller — a failure is recorded on the lead (per the "one
+ * lead's error never stops the pipeline" rule) and reported for display. */
 export async function analyzeLead(leadId: string): Promise<{ ok: boolean; error?: string }> {
-  const lead = await prisma.lead.findUnique({ where: { id: leadId } });
-  if (!lead) return { ok: false, error: "Lead nicht gefunden." };
-  if (!lead.website) return { ok: false, error: "Lead hat keine Website hinterlegt." };
-
   try {
-    const { data, websiteScore } = await analyzeWebsite(lead.website);
-    await saveWebsiteAnalysis(leadId, data, websiteScore);
-
-    const { leadScore, reasons } = scoreLead(data, {
-      hasContactInfo: Boolean(lead.contactPhone || lead.address),
-    });
-    await saveLeadScore(leadId, leadScore, reasons);
-
-    if (isQualified(leadScore)) {
-      await updateLeadStatus(leadId, "QUALIFIED", `Lead qualifiziert (Score ${leadScore}/100)`);
-    }
-
+    await runAnalysisAndScoring(leadId);
     refresh(leadId);
     return { ok: true };
   } catch (e) {
@@ -51,7 +32,7 @@ export async function analyzeLead(leadId: string): Promise<{ ok: boolean; error?
 /** Manually (re)generates the static demo site for a lead. */
 export async function generateLeadDemo(leadId: string): Promise<{ ok: boolean; error?: string }> {
   try {
-    await generateDemo(leadId);
+    await runDemoGeneration(leadId);
     refresh(leadId);
     return { ok: true };
   } catch (e) {
@@ -66,42 +47,8 @@ export async function generateLeadDemo(leadId: string): Promise<{ ok: boolean; e
  * lead. Always lands the lead at WAITING_FOR_REVIEW — nothing is ever
  * sent from here or automatically afterwards. */
 export async function generateLeadMessage(leadId: string): Promise<{ ok: boolean; error?: string }> {
-  const lead = await prisma.lead.findUnique({ where: { id: leadId }, include: { analysis: true } });
-  if (!lead) return { ok: false, error: "Lead nicht gefunden." };
-  if (!lead.analysis) return { ok: false, error: "Für diesen Lead liegt noch keine Website-Analyse vor." };
-
   try {
-    const analysisData = fromJson<WebsiteAnalysisData>({
-      design: lead.analysis.design,
-      mobileUx: lead.analysis.mobileUx,
-      navigation: lead.analysis.navigation,
-      performance: lead.analysis.performance,
-      content: lead.analysis.content,
-      cta: lead.analysis.cta,
-      trust: lead.analysis.trust,
-      contactExperience: lead.analysis.contactExperience,
-      accessibility: lead.analysis.accessibility,
-      conversionPotential: lead.analysis.conversionPotential,
-      strengths: lead.analysis.strengths,
-      weaknesses: lead.analysis.weaknesses,
-      opportunities: lead.analysis.opportunities,
-    });
-
-    const { subject, body } = generateMessage(
-      { companyName: lead.companyName, location: lead.location },
-      analysisData,
-      leadId
-    );
-
-    await prisma.message.upsert({
-      where: { leadId },
-      create: { leadId, subject, body },
-      update: { subject, body, editedByUser: false, approvedAt: null, rejectedAt: null, sentAt: null },
-    });
-
-    await logActivity(leadId, "MESSAGE_DRAFTED", "Nachrichtenentwurf erstellt");
-    await updateLeadStatus(leadId, "WAITING_FOR_REVIEW", "Nachricht bereit — wartet auf manuelle Prüfung");
-
+    await runMessageGeneration(leadId);
     refresh(leadId);
     return { ok: true };
   } catch (e) {
