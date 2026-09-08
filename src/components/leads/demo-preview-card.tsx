@@ -6,6 +6,7 @@ import { ArrowSquareOut, Globe } from "@phosphor-icons/react/dist/ssr";
 export function DemoPreviewCard({
   leadId,
   demo,
+  hasAnalysis,
   generateAction,
 }: {
   leadId: string;
@@ -15,6 +16,7 @@ export function DemoPreviewCard({
     createdAt: Date;
     publicUrl: string | null;
   } | null;
+  hasAnalysis: boolean;
   generateAction: (leadId: string) => Promise<{ ok: boolean; error?: string }>;
 }) {
   if (!demo) {
@@ -22,7 +24,7 @@ export function DemoPreviewCard({
       <Card>
         <CardHeader>
           <CardTitle>Demo</CardTitle>
-          <GenerateDemoButton leadId={leadId} hasDemo={false} action={generateAction} />
+          <GenerateDemoButton leadId={leadId} hasDemo={false} hasAnalysis={hasAnalysis} action={generateAction} />
         </CardHeader>
         <CardContent>
           <p className="text-xs text-muted-foreground">
@@ -49,7 +51,7 @@ export function DemoPreviewCard({
               Vorschau
             </Button>
           </a>
-          <GenerateDemoButton leadId={leadId} hasDemo={true} action={generateAction} />
+          <GenerateDemoButton leadId={leadId} hasDemo={true} hasAnalysis={hasAnalysis} action={generateAction} />
         </div>
       </CardHeader>
       <CardContent className="space-y-3">

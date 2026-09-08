@@ -429,6 +429,8 @@ export function renderDemoHtml(
   .hero.hero-minimal h1 { font-size: clamp(1.8rem, 3.5vw, 2.6rem); }
   .hero.hero-color-block { background: linear-gradient(135deg, var(--primary), var(--primary-dark)); }
   .hero.hero-color-block .hero-content { color: #fff; }
+  .hero.hero-color-block .btn-primary { background: #fff; color: var(--primary-dark); }
+  .hero.hero-color-block .btn-ghost { background: transparent; border-color: rgba(255,255,255,0.7); }
   .hero h1 { color: #fff; font-size: clamp(2.2rem, 5.5vw, 4rem); text-shadow: 0 2px 28px rgba(0,0,0,0.45), 0 1px 3px rgba(0,0,0,0.5); }
   .hero.hero-color-block h1 { text-shadow: none; }
   .hero-tagline { color: rgba(255,255,255,0.95); font-size: clamp(1.05rem, 2vw, 1.35rem); max-width: 34rem; text-shadow: 0 1px 12px rgba(0,0,0,0.4); }

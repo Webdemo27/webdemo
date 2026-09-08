@@ -8,6 +8,7 @@ import { ScoreBadge } from "@/components/ui/score-badge";
 import { StatusSelect } from "@/components/leads/status-select";
 import { ScoreReasons } from "@/components/leads/score-reasons";
 import { AnalysisPanel } from "@/components/leads/analysis-panel";
+import { ConceptPanel } from "@/components/leads/concept-panel";
 import { AnalyzeButton } from "@/components/leads/analyze-button";
 import { DemoPreviewCard } from "@/components/leads/demo-preview-card";
 import { MessageReviewCard } from "@/components/leads/message-review-card";
@@ -105,11 +106,17 @@ export default async function LeadDetailPage({
                 <AnalyzeButton leadId={lead.id} hasWebsite={Boolean(lead.website)} action={analyzeLead} />
               }
             />
+            <ConceptPanel concept={lead.demo?.concept} />
             <ActivityTimeline entries={lead.activity} />
           </div>
 
           <div className="space-y-4">
-            <DemoPreviewCard leadId={lead.id} demo={lead.demo} generateAction={generateLeadDemo} />
+            <DemoPreviewCard
+              leadId={lead.id}
+              demo={lead.demo}
+              hasAnalysis={Boolean(lead.analysis)}
+              generateAction={generateLeadDemo}
+            />
             <MessageReviewCard
               leadId={lead.id}
               message={lead.message}

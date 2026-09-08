@@ -43,6 +43,11 @@ export interface GenerateDemoResult {
 export async function generateDemo(leadId: string): Promise<GenerateDemoResult> {
   const lead = await prisma.lead.findUnique({ where: { id: leadId }, include: { analysis: true } });
   if (!lead) throw new Error("Lead nicht gefunden.");
+  if (!lead.analysis) {
+    throw new Error(
+      "Für diesen Lead liegt noch keine Website-Analyse vor — die Recherche muss die Demo bestimmen, nicht umgekehrt. Bitte zuerst analysieren."
+    );
+  }
 
   const existingDemo = await prisma.demo.findUnique({ where: { leadId } });
   const history: string[] = existingDemo?.variantHistory

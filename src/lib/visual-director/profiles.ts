@@ -158,8 +158,8 @@ export const VISUAL_PROFILES: Record<string, VisualProfile> = {
     "#1E3A8A"
   ),
 
-  Friseur: elegantProfile("Friseur", "Kund:innen, die Wert auf Stil legen", "#9D174D"),
-  Blumenladen: elegantProfile("Blumenladen", "Privat- und Anlasskund:innen", "#166534"),
+  Friseur: elegantProfile("Friseur", "Kund:innen, die Wert auf Stil legen", "#9D174D", "#701147"),
+  Blumenladen: elegantProfile("Blumenladen", "Privat- und Anlasskund:innen", "#166534", "#0F4023"),
 
   Immobilienmakler: luxuryProfile(
     "Immobilienmakler",
@@ -242,7 +242,7 @@ function professionalProfile(key: string, audience: string, primary: string): Vi
   };
 }
 
-function elegantProfile(key: string, audience: string, primary: string): VisualProfile {
+function elegantProfile(key: string, audience: string, primary: string, primaryDark: string): VisualProfile {
   return {
     industryKey: key,
     targetAudience: audience,
@@ -254,9 +254,9 @@ function elegantProfile(key: string, audience: string, primary: string): VisualP
     use3d: false,
     colors: {
       primary,
-      primaryDark: primary,
+      primaryDark,
       secondary: "#F9A8D4",
-      accent: primary,
+      accent: "#C9A227",
       background: "#FBFAF8",
       foreground: "#1F2937",
       card: "#FFFFFF",

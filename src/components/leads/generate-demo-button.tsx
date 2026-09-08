@@ -7,10 +7,12 @@ import { MagicWand } from "@phosphor-icons/react";
 export function GenerateDemoButton({
   leadId,
   hasDemo,
+  hasAnalysis,
   action,
 }: {
   leadId: string;
   hasDemo: boolean;
+  hasAnalysis: boolean;
   action: (leadId: string) => Promise<{ ok: boolean; error?: string }>;
 }) {
   const [pending, startTransition] = useTransition();
@@ -21,7 +23,7 @@ export function GenerateDemoButton({
       <Button
         size="sm"
         variant={hasDemo ? "outline" : "primary"}
-        disabled={pending}
+        disabled={pending || !hasAnalysis}
         onClick={() =>
           startTransition(async () => {
             setError(null);
@@ -33,6 +35,9 @@ export function GenerateDemoButton({
         <MagicWand size={14} aria-hidden="true" />
         {pending ? "Erstelle…" : hasDemo ? "Demo neu erstellen" : "Demo erstellen"}
       </Button>
+      {!hasAnalysis ? (
+        <p className="text-xs text-muted-foreground">Analyse wird zuerst benötigt.</p>
+      ) : null}
       {error ? <p className="text-xs text-destructive">{error}</p> : null}
     </div>
   );
