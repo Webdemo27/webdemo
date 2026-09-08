@@ -4,8 +4,8 @@ Read this file, `CLAUDE.md`, `git log --oneline -20`, and `git status` at the
 start of every new session on this project before doing anything else. Then
 go straight to NEXT ACTION — don't wait for a new task description.
 
-Last updated: 2026-09-08 (session covering the CEO quality audit +
-Cloudflare rebuild).
+Last updated: 2026-09-08 (session covering the CEO quality audit,
+Cloudflare rebuild, and the Cloudflare/Gmail Settings setup UI).
 
 ## CURRENT OBJECTIVE
 
@@ -58,37 +58,46 @@ been exercised against live credentials because none exist yet.
 
 - **Cloudflare**: `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` are not
   set in `.env`. Until they are, "Öffentlich bereitstellen" fails closed
-  with a clear message and no demo can get a real public URL. Exact values
-  needed — see NEXT ACTION.
+  with a clear message and no demo can get a real public URL. Exact steps
+  to obtain both now live in the dashboard itself (Settings page, renders
+  automatically while Cloudflare is unconfigured).
 - **Gmail**: `GMAIL_CLIENT_ID` / `GMAIL_CLIENT_SECRET` / `GMAIL_REFRESH_TOKEN`
   are not set. Until they are, "Gmail-Entwurf vorbereiten" fails closed
   (message text is still fully generated and copy-to-clipboard works as a
-  fallback). Has not been re-verified against a real account since the
-  contact-discovery work landed — worth a fresh end-to-end check once
-  Cloudflare is connected, since a real public URL changes what the
-  preflight checklist reports.
+  fallback). Exact OAuth setup steps also now live in Settings. Has not
+  been re-verified against a real account since the contact-discovery work
+  landed — worth a fresh end-to-end check once Cloudflare is connected,
+  since a real public URL changes what the preflight checklist reports.
 - Neither of these can be resolved by Claude — they require the account
   owner to create real credentials. Nothing else in the codebase is
   blocking on missing information.
 
 ## NEXT ACTION
 
-1. Hand the user the exact Cloudflare setup steps (token creation, account
-   ID location, .env variable names, required permissions) — this was in
-   progress when this state file was created; if not yet delivered in the
-   conversation, deliver it now.
-2. Once `CLOUDFLARE_API_TOKEN`/`CLOUDFLARE_ACCOUNT_ID` are real: run one
+1. Once `CLOUDFLARE_API_TOKEN`/`CLOUDFLARE_ACCOUNT_ID` are real: run one
    full E2E test on an existing real lead with a demo already generated —
    publish → verify (reachable + content matches) → confirm `Demo.publicUrl`
    is a real `https://*.pages.dev` URL → regenerate that lead's message so
    it includes the real link → Gmail draft prep → confirm the preflight
-   checklist's "Demo erreichbar" line now passes.
-3. Build the Settings page "Cloudflare" section into a real connect/status
-   UI (currently just a configured/not-configured line) — show exactly
-   which value is missing without ever displaying or logging a secret.
-4. Re-test Gmail draft creation end-to-end once real Cloudflare credentials
+   checklist's "Demo erreichbar" line now passes. This is the single test
+   that actually proves the whole pipeline sellable end-to-end; nothing
+   else meaningfully advances P1 until real credentials exist.
+2. Re-test Gmail draft creation end-to-end once real Cloudflare credentials
    make a real public URL available, since no lead has ever had both a real
    contact email AND a real public URL at the same time yet.
+3. While waiting on credentials, the highest-value P2 work (per the master
+   mission) is the Demo Engine: today there are 8 structural ConceptVariants
+   × 7 industry VisualProfiles (56 combinations) — real and tested, but the
+   mission asks for ≥30 *named* creative directions with their own
+   typography/motion systems (kinetic type, scroll-reveal, magnetic CTA,
+   etc.), which is a genuinely large, separate body of design+code work,
+   not a quick add-on. Don't start it speculatively without deciding scope
+   first — it's easy to half-build a "variant explosion" that produces 30
+   shallow reskins instead of 30 real concepts, which the mission explicitly
+   calls out as not counting ("keine Wiederholung desselben Hero-/
+   Section-Systems"). A CREATE SALES PACKAGE single-button flow and the
+   10-metric dashboard (mission sections 16-17) are smaller, well-scoped P2
+   items that don't have this risk and are reasonable next picks instead.
 
 ## KNOWN BUGS
 
@@ -130,13 +139,17 @@ address. Real Before/After comparison verified on a hairdresser lead.
 
 ## LAST COMMIT
 
-`c6c2d94` — Rebuild Cloudflare publishing on the officially-supported
-Wrangler CLI. Working tree clean, nothing pushed (per standing rule: never
-push without the user's explicit approval for that specific push, which
-overrides any goal text asking for automatic push-on-milestone).
+`537b8aa` — Add exact Cloudflare + Gmail setup instructions to Settings.
+Working tree clean, nothing pushed (per standing rule: never push without
+the user's explicit approval for that specific push, which overrides any
+mission/goal text asking for automatic push-on-milestone).
 
 ## NEXT PRIORITY
 
-P1 (per the master mission's own priority order): finish the Cloudflare
-Settings UI, then hand off the credential requirement clearly. P2 after
-that: re-verify Gmail once a real public URL exists to test against.
+P1 is now fully handed off to the account owner — everything Claude can
+do without real credentials is done (publisher rebuilt and plumbing-tested,
+Settings UI shows exact setup steps). Real next priority is whichever
+happens first: (a) the user adds real Cloudflare/Gmail credentials → run
+the E2E test in NEXT ACTION §1, or (b) no credentials yet → pick up a P2
+item (CREATE SALES PACKAGE button, dashboard metrics) that doesn't block
+on them, per the note in NEXT ACTION §3.
