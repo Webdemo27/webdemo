@@ -30,6 +30,9 @@ model Lead {
   companyName    String
   normalizedName String
   industry       String?
+  /// Extra real, source-provided classification when available (e.g.
+  /// OSM's cuisine tag for a restaurant) — never inferred/invented.
+  specialty      String?
   location       String?
   website        String?
   domain         String?
@@ -113,6 +116,18 @@ model Demo {
   /// layout/motion direction, asset plan) this demo was built from.
   visualProfile Json?
   assets        DemoAsset[]
+
+  /// Which named concept variant (Premium Editorial, Bold Conversion, …)
+  /// this build used, and every variant id used so far for this lead —
+  /// so "Demo neu erstellen" can pick a genuinely different one instead
+  /// of repeating the same structure.
+  conceptVariant String?
+  variantHistory Json?
+
+  /// Full research-driven concept breakdown (business profile, website
+  /// audit summary, opportunity map, content structure, design concept)
+  /// shown in the dashboard's demo detail area.
+  concept Json?
 
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt

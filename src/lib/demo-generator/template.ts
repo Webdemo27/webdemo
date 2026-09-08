@@ -1,4 +1,5 @@
 import type { VisualProfile } from "../visual-director/types";
+import type { ConceptVariant, HeroStyle, CtaIntensity, SectionKey } from "../visual-director/variants";
 import { pickVariant } from "../messaging/templates";
 import { toAssetView, groupByRole, type DemoAssetView } from "./asset-view";
 
@@ -69,31 +70,62 @@ const ABOUT_CLOSERS = [
   "Inhalte und Bilder werden im nächsten Schritt gemeinsam final abgestimmt.",
 ];
 
-function heroTextPosition(profile: VisualProfile): string {
+function heroTextPosition(profile: VisualProfile, heroStyle: HeroStyle): string {
+  if (heroStyle === "minimal") return "hero-center hero-minimal";
   if (profile.layoutDirection === "grid-clean") return "hero-center";
-  if (profile.layoutDirection === "bold-blocks") return "hero-center";
+  if (profile.layoutDirection === "bold-blocks" || heroStyle === "color-block") return "hero-center";
   return "hero-bottom-left";
 }
 
-function heroSection(name: string, tagline: string, hero: DemoAssetView | undefined, profile: VisualProfile): string {
-  const position = heroTextPosition(profile);
-  const visual = profile.use3d
+function heroActions(ctaIntensity: CtaIntensity): string {
+  if (ctaIntensity === "minimal") {
+    return `<a class="cta-link" href="#kontakt">Kontakt aufnehmen →</a>`;
+  }
+  if (ctaIntensity === "aggressive") {
+    return `
+      <div class="hero-actions">
+        <a class="btn-primary btn-lg" href="#kontakt">Jetzt unverbindlich anfragen</a>
+        <a class="btn-ghost" href="#leistungen">Leistungen ansehen</a>
+      </div>`;
+  }
+  return `
+    <div class="hero-actions">
+      <a class="btn-primary" href="#kontakt">Jetzt Kontakt aufnehmen</a>
+      <a class="btn-ghost" href="#leistungen">Leistungen ansehen</a>
+    </div>`;
+}
+
+function heroSection(
+  name: string,
+  tagline: string,
+  hero: DemoAssetView | undefined,
+  profile: VisualProfile,
+  heroStyle: HeroStyle,
+  ctaIntensity: CtaIntensity
+): string {
+  const position = heroTextPosition(profile, heroStyle);
+  const is3d = heroStyle === "3d";
+  const isColorBlock = heroStyle === "color-block";
+
+  const visual = is3d
     ? `<canvas id="scene3d" class="hero-canvas" aria-hidden="true"></canvas>`
+    : isColorBlock
+    ? ""
     : hero
     ? pictureTag(hero, "hero-media", true)
     : "";
 
+  const scrim = isColorBlock ? "" : `<div class="hero-scrim"></div>`;
+  const heroClass = `hero ${position}${isColorBlock ? " hero-color-block" : ""}`;
+
   return `
-  <section class="hero ${position}">
+  <section class="${heroClass}">
     <div class="hero-bg">${visual}</div>
-    <div class="hero-scrim"></div>
+    ${scrim}
     <div class="hero-content" data-reveal>
       <h1>${escapeHtml(name)}</h1>
       <p class="hero-tagline">${escapeHtml(tagline)}</p>
-      <div class="hero-actions">
-        <a class="btn-primary" href="#kontakt">Jetzt Kontakt aufnehmen</a>
-        <a class="btn-ghost" href="#leistungen">Leistungen ansehen</a>
-      </div>
+      ${heroActions(ctaIntensity)}
     </div>
   </section>`;
 }
@@ -294,7 +326,8 @@ function three3dScript(colorHex: string): string {
 export function renderDemoHtml(
   lead: DemoData,
   profile: VisualProfile,
-  rawAssets: RawAssetInput[]
+  rawAssets: RawAssetInput[],
+  variant: ConceptVariant
 ): { html: string; placeholders: DemoPlaceholders } {
   const name = escapeHtml(lead.companyName);
   const location = lead.location ?? "Ihrer Region";
@@ -321,7 +354,29 @@ export function renderDemoHtml(
     ? deriveServiceLabels(profile)
     : [];
 
-  const contactHtml = contactSection(lead);
+  const sections: Partial<Record<SectionKey, string>> = {
+    hero: heroSection(
+      lead.companyName,
+      taglineFor(lead.companyName, location, profile, seed),
+      heroAsset,
+      profile,
+      variant.heroStyle,
+      variant.ctaIntensity
+    ),
+    services: services.length > 0 ? servicesSection(services, serviceAssets) : "",
+    editorial: editorialSection(editorialAssets, lead.companyName, location),
+    detail: detailStrip(detailAssets) + environmentSection(environmentAsset),
+    location: lead.location ? locationBanner(lead.location) : "",
+    about: aboutSection(lead.companyName, location, profile.brandImpression, seed),
+    contact: contactSection(lead),
+  };
+
+  const bodySections = variant.sectionOrder.map((key) => sections[key] ?? "").join("\n");
+  const mobileCtaBar =
+    variant.ctaIntensity === "aggressive"
+      ? `<div class="mobile-cta-bar"><a class="btn-primary" href="#kontakt">Jetzt anfragen</a></div>`
+      : "";
+  const showHeaderCta = variant.heroStyle !== "minimal";
 
   const motionCss = profile.motion === "none" ? "" : `[data-reveal]{opacity:0;transform:translateY(14px);transition:opacity .5s ease,transform .5s ease;} [data-reveal].is-visible{opacity:1;transform:none;}`;
 
@@ -369,13 +424,28 @@ export function renderDemoHtml(
   .hero-content { position: relative; z-index: 1; display: flex; flex-direction: column; gap: 1.25rem; padding: 3rem clamp(1.5rem, 6vw, 5rem); max-width: 46rem; }
   .hero.hero-bottom-left { align-items: flex-start; justify-content: flex-end; }
   .hero.hero-center { align-items: center; justify-content: center; text-align: center; margin: 0 auto; }
+  .hero.hero-minimal { min-height: 60vh; }
+  .hero.hero-minimal .hero-content { max-width: 34rem; }
+  .hero.hero-minimal h1 { font-size: clamp(1.8rem, 3.5vw, 2.6rem); }
+  .hero.hero-color-block { background: linear-gradient(135deg, var(--primary), var(--primary-dark)); }
+  .hero.hero-color-block .hero-content { color: #fff; }
   .hero h1 { color: #fff; font-size: clamp(2.2rem, 5.5vw, 4rem); text-shadow: 0 2px 28px rgba(0,0,0,0.45), 0 1px 3px rgba(0,0,0,0.5); }
+  .hero.hero-color-block h1 { text-shadow: none; }
   .hero-tagline { color: rgba(255,255,255,0.95); font-size: clamp(1.05rem, 2vw, 1.35rem); max-width: 34rem; text-shadow: 0 1px 12px rgba(0,0,0,0.4); }
+  .hero.hero-color-block .hero-tagline { text-shadow: none; }
   .hero-actions { display: flex; gap: 0.9rem; flex-wrap: wrap; }
   .btn-primary { padding: 0.85rem 1.7rem; border-radius: 0.5rem; background: var(--accent); color: #fff; text-decoration: none; font-weight: 600; }
+  .btn-primary.btn-lg { padding: 1.05rem 2.1rem; font-size: 1.05rem; }
   .btn-ghost { padding: 0.85rem 1.7rem; border-radius: 0.5rem; background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.5); color: #fff; text-decoration: none; font-weight: 600; }
+  .cta-link { color: #fff; text-decoration: underline; text-underline-offset: 4px; font-weight: 600; text-shadow: 0 1px 12px rgba(0,0,0,0.4); }
+  .mobile-cta-bar { position: fixed; bottom: 0; left: 0; right: 0; z-index: 30; padding: 0.75rem 1rem; background: var(--card); border-top: 1px solid var(--border); display: none; }
+  .mobile-cta-bar .btn-primary { display: block; text-align: center; }
+  @media (max-width: 640px) {
+    .mobile-cta-bar { display: block; }
+    body { padding-bottom: 4.5rem; }
+  }
 
-  section { padding: clamp(3rem, 7vw, 6rem) clamp(1.5rem, 6vw, 5rem); }
+  section { padding: clamp(${(3 * variant.whitespaceScale).toFixed(2)}rem, ${(7 * variant.whitespaceScale).toFixed(1)}vw, ${(6 * variant.whitespaceScale).toFixed(2)}rem) clamp(1.5rem, 6vw, 5rem); }
   h2 { font-size: clamp(1.6rem, 3vw, 2.2rem); margin-bottom: 2rem; }
 
   .services-grid { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 1.1rem; }
@@ -436,23 +506,17 @@ export function renderDemoHtml(
       <span class="brand-mark">${initial}</span>
       <span>${name}</span>
     </div>
-    <a class="header-cta" href="#kontakt">Kontakt</a>
+    ${showHeaderCta ? `<a class="header-cta" href="#kontakt">Kontakt</a>` : ""}
   </header>
 
-  ${heroSection(lead.companyName, taglineFor(lead.companyName, location, profile, seed), heroAsset, profile)}
-
-  ${servicesSection(services, serviceAssets)}
-  ${editorialSection(editorialAssets, lead.companyName, location)}
-  ${detailStrip(detailAssets)}
-  ${lead.location ? locationBanner(lead.location) : ""}
-  ${environmentSection(environmentAsset)}
-  ${aboutSection(lead.companyName, location, profile.brandImpression, seed)}
-  ${contactHtml}
+  ${bodySections}
 
   <footer>
     <div>Unverbindliches Demo-Konzept — kein offizieller Auftritt von ${name}.</div>
     <span class="demo-flag">Demo-Vorschau</span>
   </footer>
+
+  ${mobileCtaBar}
 
   ${reduceMotionScript()}
   ${profile.use3d ? three3dScript(profile.colors.accent) : ""}
