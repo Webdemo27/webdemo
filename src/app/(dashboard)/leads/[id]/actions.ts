@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { prisma, logActivity, updateLeadStatus, saveWebsiteAnalysis, saveLeadScore } from "@/lib/db";
 import { analyzeWebsite } from "@/lib/analysis";
 import { scoreLead, isQualified } from "@/lib/scoring";
+import { generateDemo } from "@/lib/demo-generator";
 import { safeRecordError } from "@/lib/research";
 import type { LeadStatus } from "@/lib/types";
 
@@ -39,6 +40,20 @@ export async function analyzeLead(leadId: string): Promise<{ ok: boolean; error?
     return { ok: true };
   } catch (e) {
     const message = e instanceof Error ? e.message : "Unbekannter Fehler bei der Analyse.";
+    await safeRecordError(leadId, message);
+    refresh(leadId);
+    return { ok: false, error: message };
+  }
+}
+
+/** Manually (re)generates the static demo site for a lead. */
+export async function generateLeadDemo(leadId: string): Promise<{ ok: boolean; error?: string }> {
+  try {
+    await generateDemo(leadId);
+    refresh(leadId);
+    return { ok: true };
+  } catch (e) {
+    const message = e instanceof Error ? e.message : "Unbekannter Fehler bei der Demo-Erstellung.";
     await safeRecordError(leadId, message);
     refresh(leadId);
     return { ok: false, error: message };
