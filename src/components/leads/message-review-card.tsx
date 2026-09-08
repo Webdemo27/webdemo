@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input, Label, Textarea } from "@/components/ui/input";
-import { PencilSimple, Check, X, Sparkle } from "@phosphor-icons/react";
+import { PencilSimple, Check, X, Sparkle, Copy, PaperPlaneTilt } from "@phosphor-icons/react";
 
 interface MessageData {
   subject: string | null;
@@ -23,6 +23,7 @@ export function MessageReviewCard({
   rejectAction,
   updateAction,
   generateAction,
+  markSentAction,
 }: {
   leadId: string;
   message: MessageData | null;
@@ -31,10 +32,12 @@ export function MessageReviewCard({
   rejectAction: (leadId: string) => Promise<void>;
   updateAction: (leadId: string, formData: FormData) => Promise<void>;
   generateAction: (leadId: string) => Promise<{ ok: boolean; error?: string }>;
+  markSentAction: (leadId: string) => Promise<void>;
 }) {
   const [editing, setEditing] = useState(false);
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
 
   if (!message) {
     return (
@@ -183,12 +186,47 @@ export function MessageReviewCard({
           </div>
         ) : null}
         {error ? <p className="text-xs text-destructive">{error}</p> : null}
-        {message.approvedAt ? (
-          <p className="text-xs text-muted-foreground">
-            Freigegeben — der tatsächliche Versand erfolgt erst über eine separate,
-            manuell ausgelöste Aktion (Gmail-Integration folgt in Phase 10) und niemals
-            automatisch.
-          </p>
+
+        {message.approvedAt && !message.sentAt ? (
+          <div className="space-y-2 border-t border-border pt-3">
+            <p className="text-xs text-muted-foreground">
+              Freigegeben. Automatischer Versand ist noch nicht implementiert (Gmail-Integration
+              folgt in Phase 10) — kopieren Sie den Text und senden Sie ihn selbst, dann hier
+              als versendet markieren.
+            </p>
+            <div className="flex gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={async () => {
+                  const text = message.subject ? `${message.subject}\n\n${message.body}` : message.body;
+                  await navigator.clipboard.writeText(text);
+                  setCopied(true);
+                  setTimeout(() => setCopied(false), 2000);
+                }}
+              >
+                <Copy size={14} aria-hidden="true" />
+                {copied ? "Kopiert!" : "Text kopieren"}
+              </Button>
+              <Button
+                size="sm"
+                disabled={pending}
+                onClick={() =>
+                  startTransition(async () => {
+                    setError(null);
+                    try {
+                      await markSentAction(leadId);
+                    } catch (e) {
+                      setError(e instanceof Error ? e.message : "Fehler");
+                    }
+                  })
+                }
+              >
+                <PaperPlaneTilt size={14} aria-hidden="true" />
+                Als gesendet markieren
+              </Button>
+            </div>
+          </div>
         ) : null}
       </CardContent>
     </Card>

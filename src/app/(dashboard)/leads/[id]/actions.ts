@@ -133,6 +133,21 @@ export async function approveMessage(leadId: string) {
   refresh(leadId);
 }
 
+/** Marks an already-approved message as sent. This exists for today's
+ * reality (Gmail auto-send isn't built yet, Phase 10) — the user copies
+ * the approved text and sends it themselves, then records that here. It
+ * never sends anything itself; it only requires the message to already
+ * be approved by a human. */
+export async function markMessageSent(leadId: string) {
+  const message = await prisma.message.findUnique({ where: { leadId } });
+  if (!message) throw new Error("Kein Nachrichtenentwurf für diesen Lead vorhanden.");
+  if (!message.approvedAt) throw new Error("Nachricht muss zuerst freigegeben werden.");
+
+  await prisma.message.update({ where: { leadId }, data: { sentAt: new Date() } });
+  await updateLeadStatus(leadId, "CONTACTED", "Nachricht manuell versendet (außerhalb der App) und als gesendet markiert");
+  refresh(leadId);
+}
+
 /** Human review: reject/discard the draft. */
 export async function rejectMessage(leadId: string) {
   const message = await prisma.message.findUnique({ where: { leadId } });

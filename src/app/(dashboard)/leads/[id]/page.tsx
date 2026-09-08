@@ -21,6 +21,7 @@ import {
   analyzeLead,
   generateLeadDemo,
   generateLeadMessage,
+  markMessageSent,
 } from "./actions";
 
 export const dynamic = "force-dynamic";
@@ -117,6 +118,7 @@ export default async function LeadDetailPage({
               rejectAction={rejectMessage}
               updateAction={updateMessageDraft}
               generateAction={generateLeadMessage}
+              markSentAction={markMessageSent}
             />
           </div>
         </div>
