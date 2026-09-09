@@ -317,6 +317,25 @@ function buildMotionCss(level: MotionLevel, flavor: MotionFlavor): string {
   }
   .site-nav a:hover::after, .site-nav a.is-active::after { transform: scaleX(1); }
 
+  .nav-toggle span { transition: transform var(--dur-base) var(--ease-out), opacity var(--dur-fast) var(--ease-out); }
+  .nav-toggle[aria-expanded="true"] span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+  .nav-toggle[aria-expanded="true"] span:nth-child(2) { opacity: 0; }
+  .nav-toggle[aria-expanded="true"] span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+  @media (max-width: 640px) {
+    .site-nav {
+      opacity: 0; transform: translateY(-6px) scale(0.98); transform-origin: top;
+      transition: opacity var(--dur-base) var(--ease-out), transform var(--dur-base) var(--ease-out);
+    }
+    .site-nav.is-open { opacity: 1; transform: none; }
+    .site-nav a::after { display: none; }
+    .site-nav a { opacity: 0; transform: translateY(-4px); transition: opacity var(--dur-base) var(--ease-out), transform var(--dur-base) var(--ease-out); }
+    .site-nav.is-open a { opacity: 1; transform: none; }
+    .site-nav.is-open a:nth-child(1) { transition-delay: 40ms; }
+    .site-nav.is-open a:nth-child(2) { transition-delay: 80ms; }
+    .site-nav.is-open a:nth-child(3) { transition-delay: 120ms; }
+    .site-nav.is-open a:nth-child(4) { transition-delay: 160ms; }
+  }
+
   .btn-primary, .header-cta { position: relative; overflow: hidden; isolation: isolate; }
   .btn-primary::after, .header-cta::after {
     content: ""; position: absolute; inset: 0; pointer-events: none;
@@ -352,6 +371,22 @@ function headerScrollScript(): string {
       };
       window.addEventListener('scroll', onScroll, { passive: true });
       onScroll();
+    })();
+
+    (function () {
+      var toggle = document.querySelector('.nav-toggle');
+      var nav = document.getElementById('site-nav');
+      if (!toggle || !nav) return;
+      var setOpen = function (open) {
+        nav.classList.toggle('is-open', open);
+        toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+      };
+      toggle.addEventListener('click', function () {
+        setOpen(!nav.classList.contains('is-open'));
+      });
+      nav.querySelectorAll('a').forEach(function (a) {
+        a.addEventListener('click', function () { setOpen(false); });
+      });
     })();
   </script>`;
 }
@@ -602,9 +637,14 @@ export function renderDemoSite(
   .site-nav::-webkit-scrollbar { display: none; }
   .site-nav a { text-decoration: none; font-size: 0.88rem; font-weight: 600; color: var(--fg); opacity: 0.7; white-space: nowrap; }
   .site-nav a:hover, .site-nav a.is-active { opacity: 1; color: var(--primary); }
+  .nav-toggle { display: none; background: none; border: none; padding: 0; margin: 0; cursor: pointer; flex-shrink: 0; }
   @media (max-width: 640px) {
     .brand span:last-child { display: none; }
-    .site-nav { gap: 0.9rem; font-size: 0.8rem; }
+    .nav-toggle { display: flex; flex-direction: column; justify-content: center; align-items: stretch; gap: 5px; width: 1.5rem; height: 1.5rem; }
+    .nav-toggle span { display: block; height: 2px; width: 100%; background: var(--fg); border-radius: 2px; }
+    .site-nav { position: absolute; top: 100%; left: 0; right: 0; flex-direction: column; align-items: flex-start; gap: 0; overflow: visible; background: var(--card); border-bottom: 1px solid var(--border); padding: 0.25rem 1.75rem 1rem; box-shadow: 0 12px 24px -16px rgba(0,0,0,0.25); }
+    .site-nav:not(.is-open) { visibility: hidden; pointer-events: none; }
+    .site-nav a { width: 100%; padding: 0.7rem 0; white-space: normal; }
   }
 
   .hero { position: relative; min-height: 88vh; display: flex; overflow: hidden; background: linear-gradient(150deg, color-mix(in srgb, var(--primary) 30%, var(--bg)), var(--bg)); }
@@ -724,9 +764,12 @@ export function renderDemoSite(
       <span class="brand-mark">${initial}</span>
       <span>${name}</span>
     </div>
-    <nav class="site-nav">
+    <nav class="site-nav" id="site-nav">
       ${navHtml}
     </nav>
+    <button type="button" class="nav-toggle" aria-expanded="false" aria-controls="site-nav" aria-label="Menü öffnen">
+      <span></span><span></span><span></span>
+    </button>
     ${showHeaderCta ? `<a class="header-cta" href="${contactHref}">Kontakt</a>` : ""}
   </header>
 
