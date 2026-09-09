@@ -307,5 +307,39 @@ found nothing for "law firm"/"law" until the exact tag URL
   project already has (`scroll-scrub` motionStructure) and needs no new
   data — directly shippable.
 
-**Next industries to research**: Friseur/salon, Autowerkstatt — continue
-this section rather than starting a new file.
+### Friseur / hair salon — "Serenity Hair" (serenityhairblaxland.com.au)
+
+Note: searching "hair-salon" also surfaced "Salon Heleen Hülsmann" (an
+Honorable Mention) — but that "Salon" is French for showroom, a
+pre-loved *designer fashion* boutique, not a hairdresser. Worth
+remembering for future searches: "salon" is ambiguous in English/Dutch
+search results, filter results by what the site actually sells, not
+just the tag match.
+
+- **Colored quick-link tiles below the hero** ("VIEW OUR TEAM" / "VIEW
+  OUR SERVICES" / "SEE OUR GALLERY", three different soft pastel
+  color-block rectangles, big and clickable) instead of relying only on
+  small header nav text — a friendly, tactile "visual sitemap" moment.
+  **Directly shippable, no new data needed** — this project already has
+  real per-industry pastel/soft-toned palettes and already knows which
+  secondary pages exist for a given lead (`activeSecondary` in
+  template.ts) — this is purely a presentational upgrade over plain nav
+  links, well-suited to approachable/friendly industries (Friseur,
+  Café, Bäckerei, Blumenladen) rather than restrained/professional ones.
+- **A small handwritten-script aside** ("Hey & welcome!") layered over
+  the hero photo, separate from and above the main formal headline — a
+  cheap, warm personal touch. Directly adoptable via a script/cursive
+  Google Font already loadable the same way other fonts are.
+- **Circle-cropped editorial portrait photo**, offset over a two-tone
+  split-color background — a real transformation/hair-color photo shown
+  through a circular mask rather than a rectangle. A genuine, low-effort
+  (pure CSS `border-radius`/`clip-path`) way to make a hero photo feel
+  more editorial/beauty-industry-specific than the default rectangular
+  crop, and a natural fit for the mission's "Friseur: Transformation"
+  WOW-moment ask if paired with a real before/after pair (not invented —
+  only if real before/after photos exist for a lead).
+
+### Autowerkstatt — not yet researched this session.
+
+**Next industries to research**: Autowerkstatt — continue this section
+rather than starting a new file.
