@@ -381,12 +381,71 @@ function quickLinksSection(pages: Array<{ filename: string; label: string }>): s
   </section>`;
 }
 
+/** A real, LIVE weather reading for this exact business's real
+ * coordinates — inspired by 363 Car & Social Club
+ * (.ai/design-inspiration-playbook.md, Autowerkstatt section), verified
+ * there to be genuinely buildable: Open-Meteo is a free, keyless,
+ * CORS-open API, and this project already has real lat/lon per lead for
+ * the location map. Starts `hidden` and stays that way if the fetch
+ * ever fails (offline preview, API down) — never shows a broken/empty
+ * badge, and never blocks anything else on the page. */
+function weatherBadge(lat: number, lon: number): string {
+  return `<span class="weather-badge" data-lat="${lat}" data-lon="${lon}" hidden><span class="weather-icon"></span><span class="weather-text"></span></span>`;
+}
+
+function weatherWidgetScript(): string {
+  return `
+  <script>
+    (function () {
+      var badge = document.querySelector('.weather-badge[data-lat]');
+      if (!badge) return;
+      var lat = badge.getAttribute('data-lat');
+      var lon = badge.getAttribute('data-lon');
+      var ICONS = {
+        sun: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>',
+        cloud: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.5 19H9a5 5 0 1 1 1.3-9.8A6 6 0 0 1 22 12.5 4.5 4.5 0 0 1 17.5 19Z"/></svg>',
+        rain: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M16 13v6M8 13v6M12 15v6"/><path d="M17.5 15H9a5 5 0 1 1 1.3-9.8A6 6 0 0 1 22 8.5 4.5 4.5 0 0 1 17.5 15Z"/></svg>',
+        snow: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M8 15h.01M8 19h.01M12 17h.01M12 21h.01M16 15h.01M16 19h.01"/><path d="M17.5 13H9a5 5 0 1 1 1.3-9.8A6 6 0 0 1 22 6.5 4.5 4.5 0 0 1 17.5 13Z"/></svg>',
+        storm: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.5 13H9a5 5 0 1 1 1.3-9.8A6 6 0 0 1 22 6.5 4.5 4.5 0 0 1 17.5 13Z"/><path d="m13 13-3 5h4l-3 5"/></svg>'
+      };
+      var CODES = {
+        0: ['Klar', 'sun'], 1: ['Meist klar', 'sun'], 2: ['Bewölkt', 'cloud'], 3: ['Bedeckt', 'cloud'],
+        45: ['Nebel', 'cloud'], 48: ['Nebel', 'cloud'],
+        51: ['Nieselregen', 'rain'], 53: ['Nieselregen', 'rain'], 55: ['Nieselregen', 'rain'], 56: ['Nieselregen', 'rain'], 57: ['Nieselregen', 'rain'],
+        61: ['Regen', 'rain'], 63: ['Regen', 'rain'], 65: ['Regen', 'rain'], 66: ['Regen', 'rain'], 67: ['Regen', 'rain'],
+        71: ['Schnee', 'snow'], 73: ['Schnee', 'snow'], 75: ['Schnee', 'snow'], 77: ['Schnee', 'snow'],
+        80: ['Schauer', 'rain'], 81: ['Schauer', 'rain'], 82: ['Schauer', 'rain'],
+        85: ['Schneeschauer', 'snow'], 86: ['Schneeschauer', 'snow'],
+        95: ['Gewitter', 'storm'], 96: ['Gewitter', 'storm'], 99: ['Gewitter', 'storm']
+      };
+      fetch('https://api.open-meteo.com/v1/forecast?latitude=' + lat + '&longitude=' + lon + '&current=temperature_2m,weather_code&timezone=auto')
+        .then(function (res) { return res.ok ? res.json() : Promise.reject(); })
+        .then(function (data) {
+          var current = data && data.current;
+          if (!current) return;
+          var entry = CODES[current.weather_code] || ['', 'cloud'];
+          var icon = badge.querySelector('.weather-icon');
+          var text = badge.querySelector('.weather-text');
+          icon.innerHTML = ICONS[entry[1]];
+          text.textContent = Math.round(current.temperature_2m) + '°C' + (entry[0] ? ' · ' + entry[0] : '');
+          badge.hidden = false;
+        })
+        .catch(function () {
+          // Offline preview, API unreachable, or blocked — badge just
+          // never appears rather than showing broken/placeholder data.
+        });
+    })();
+  </script>`;
+}
+
 function locationBanner(location: string, latitude: number | null, longitude: number | null): string {
   const map = latitude != null && longitude != null ? locationMapEmbed(latitude, longitude) : "";
+  const weather = latitude != null && longitude != null ? weatherBadge(latitude, longitude) : "";
   return `
   <section class="location-banner" data-reveal>
     <span class="location-eyebrow">Vor Ort in</span>
     <span class="location-name">${escapeHtml(location)}</span>
+    ${weather}
   </section>
   ${map}`;
 }
@@ -1525,6 +1584,12 @@ export function renderDemoSite(
   .location-banner { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 0.5rem; padding-top: 2rem; padding-bottom: 2rem; }
   .location-eyebrow { text-transform: uppercase; letter-spacing: 0.18em; font-size: 0.75rem; color: color-mix(in srgb, var(--fg) 55%, transparent); }
   .location-name { font-family: var(--font-heading); font-size: clamp(2.2rem, 7vw, 4.5rem); color: var(--primary); }
+  .weather-badge {
+    display: inline-flex; align-items: center; gap: 0.4rem; margin-top: 0.25rem; padding: 0.35rem 0.85rem;
+    border-radius: 999px; background: var(--card); border: 1px solid var(--border);
+    font-size: 0.8rem; color: color-mix(in srgb, var(--fg) 75%, transparent);
+  }
+  .weather-icon { display: flex; color: var(--primary); }
   .location-map {
     max-width: 900px; margin: 0 auto clamp(2rem, 5vw, 4rem); padding: 0 clamp(1.5rem, 6vw, 5rem);
   }
@@ -1667,6 +1732,7 @@ export function renderDemoSite(
   ${variant.navigationConcept === "fullscreen-overlay" ? fullscreenMenuScript() : ""}
   ${slug === "" && profile.motion !== "none" ? magneticCtaScript() : ""}
   ${bodyHtml.includes("editorial-lightbox-trigger") ? lightboxScript() : ""}
+  ${bodyHtml.includes("weather-badge") ? weatherWidgetScript() : ""}
   ${colorPickerScript(colorwayOptions, activeColorwayIndex)}
   ${slug === "" && profile.use3d ? three3dScript(profile.colors.accent) : ""}
   ${profile.motion !== "none" && (variant.motionStructure === "scroll-scrub" || (slug === "" && variant.motionStructure === "cinematic-parallax")) ? gsapMotionScript(variant.motionStructure) : ""}
