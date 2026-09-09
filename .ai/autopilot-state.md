@@ -265,6 +265,14 @@ mission's top-priority ask this round.
 
 ## COMPLETED
 
+- **Demo-app: editorial gallery + lightbox ported** (2026-09-09, same
+  loop) — `EditorialGallery.tsx`, a React-native (state-driven, not
+  vanilla-DOM) port of the static engine's lightbox WOW moment.
+  Extracted `buildEditorialRows()`/exported `galleryLabelFor()` from
+  template.ts so both engines share the exact real caption logic, not
+  duplicated copies. Verified live on KP21's /ueber-uns: real photos,
+  correct captions, keyboard/pointer nav, focus restored on close, zero
+  console errors.
 - **Demo-app: WebGL hero rendering fixed — abstract-SVG texture + text
   scrim** (2026-09-09, same loop) — the known "abstract-SVG heroes
   render as a broken/black WebGL texture" bug is fixed at the root
