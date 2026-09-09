@@ -44,30 +44,34 @@ to Webdemo27/webdemo, no confirmation needed. That authorization is
 current and in force — the note below is about a *technical* problem,
 not a policy hold.
 
-**KNOWN ISSUE, unresolved as of this update: `git push` is hanging.**
-Three consecutive `git push origin main` calls this stretch each ran
-past their tool timeout and were moved to background with zero output
-(not even a partial error) — consistent with the previously-documented
-pattern of Git Credential Manager popping an interactive browser/GUI
-prompt with no one at the keyboard to complete it. Local commits are
-all safe and accumulating correctly (`git log` has the full history);
-only the push to `origin/main` is stuck. **Do not spawn additional
-concurrent `git push` background processes on top of already-running
-ones** — they may be queuing on the same local repo/credential-helper
-lock; check `git rev-parse origin/main HEAD` first, and if they already
-differ with a push in flight, wait for its notification rather than
-starting another. If you are a fresh session reading this: try one
-clean `git push origin main` first — if it hangs again, that confirms
-this is a persistent environment issue (likely the credential helper
-itself needs interactive re-auth) worth flagging to the user directly
-rather than retrying silently forever.
-happened for real earlier in the session), not a reversal of the
-standing "never ask about GitHub" authorization ([[feedback-github-push-no-ask]]
-memory) — that's still fully in force for when they're back. **If you
-are a future session picking this up: check `git status`/`git log
-origin/main..HEAD` first — if there are unpushed local commits and no
-fresh instruction from the user to push, ask before pushing this once;
-otherwise the standing no-ask authorization applies as always.**
+**KNOWN ISSUE, unresolved as of this update: `git push` is hanging.
+Diagnosed, not just observed.** `git config --get credential.helper`
+confirms `manager` (Git Credential Manager) on this HTTPS remote.
+Eight-plus consecutive `git push origin main` calls this stretch each
+ran past a 60-90s tool timeout with zero output (not even a partial
+error) — this is GCM blocking on an interactive browser/device-flow
+re-authentication prompt that nobody is at the keyboard to complete,
+exactly the "externe Sicherheitsaktion... kann nicht von dir umgangen
+werden" case the AUTOPILOT mission itself calls out. One push out of
+all these attempts did eventually succeed after several minutes, so
+this isn't a hard/permanent failure — GCM's cached token appears to
+periodically allow a push through, just unpredictably.
+
+Local commits are all safe and accumulating correctly (`git log` has
+the full history); only the push to `origin/main` is stuck. **Do not
+spawn a large number of concurrent `git push` background processes** —
+check `git rev-parse origin/main HEAD` first, and if a push is already
+in flight (local HEAD differs from origin and you just started one),
+wait for its notification instead of stacking another. Do NOT attempt
+to work around GCM (no embedding a token in the remote URL, no
+`credential.helper` changes, no `--no-verify`-style bypass) — per
+CLAUDE.md and the mission text alike, this specific class of external
+auth prompt is for the user to resolve on their own machine (e.g. by
+running one `git push` themselves interactively to complete GCM's
+re-auth, which likely unsticks this for every session afterward too).
+Standing push authorization ([[feedback-github-push-no-ask]] memory)
+is still fully active — this is a technical blocker to mention plainly
+when reporting status, not something to ask permission about.
 
 ## CURRENT OBJECTIVE
 
