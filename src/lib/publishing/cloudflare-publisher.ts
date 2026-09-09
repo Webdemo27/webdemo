@@ -163,17 +163,27 @@ export class CloudflarePagesPublisher implements DemoPublisher {
         };
       }
 
-      const matches = deploy.output.match(/https:\/\/[a-z0-9.-]+\.pages\.dev\S*/gi);
-      const publicUrl = matches?.[matches.length - 1];
-      if (!publicUrl) {
+      // Wrangler prints a per-deployment URL (a random hash prefixed onto
+      // the project domain, e.g. https://afa9eae2.<project>.pages.dev) —
+      // a *new* hostname on every single deploy, which needs its own DNS
+      // propagation each time (confirmed live: still not reachable after
+      // 140s of polling on more than one otherwise-successful deploy).
+      // The bare project domain (https://<project>.pages.dev) is a
+      // stable alias Cloudflare points at whatever the current
+      // production deployment is — since this deploy targeted
+      // production-branch "main" via --branch=main, that's this
+      // deployment, and the alias only needs to propagate once per
+      // project (at creation) rather than on every republish.
+      const deployedOk = /https:\/\/[a-z0-9.-]+\.pages\.dev\S*/i.test(deploy.output);
+      if (!deployedOk) {
         return {
           ok: false,
           error:
-            "Wrangler hat das Deployment ohne Fehler beendet, aber die URL konnte nicht aus der Ausgabe gelesen werden — bitte Cloudflare-Dashboard manuell prüfen.",
+            "Wrangler hat das Deployment ohne Fehler beendet, aber keine Deployment-URL in der Ausgabe gefunden — bitte Cloudflare-Dashboard manuell prüfen.",
         };
       }
 
-      return { ok: true, publicUrl };
+      return { ok: true, publicUrl: `https://${projectName}.pages.dev` };
     } catch (e) {
       return {
         ok: false,
