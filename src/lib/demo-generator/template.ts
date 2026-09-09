@@ -1047,7 +1047,7 @@ export function renderDemoSite(
   ${headerScrollScript()}
   ${colorPickerScript(colorwayOptions, activeColorwayIndex)}
   ${slug === "" && profile.use3d ? three3dScript(profile.colors.accent) : ""}
-  ${variant.motionStructure === "scroll-scrub" || (slug === "" && variant.motionStructure === "cinematic-parallax") ? gsapMotionScript(variant.motionStructure) : ""}
+  ${profile.motion !== "none" && (variant.motionStructure === "scroll-scrub" || (slug === "" && variant.motionStructure === "cinematic-parallax")) ? gsapMotionScript(variant.motionStructure) : ""}
 </body>
 </html>
 `;
