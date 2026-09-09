@@ -186,6 +186,72 @@ function heroSection(
   </section>`;
 }
 
+/** Typography-only hero — zero imagery, one huge multi-line statement.
+ * Real technique from Rezo Zero (rezo-zero.com, logged in design-
+ * inspiration-playbook.md): "confident restraint rather than needing a
+ * photo to fill the space." Reuses the same real name/tagline every
+ * other hero uses — nothing invented, just a different, bolder
+ * presentation of the same real copy for profiles wanting restrained
+ * confidence instead of a photo-led hero. */
+export function typographyHeroSection(
+  name: string,
+  tagline: string,
+  ctaIntensity: CtaIntensity,
+  contactHref: string,
+  secondaryHref: string | null,
+  secondaryLabel: string
+): string {
+  return `
+  <section class="typo-hero">
+    <div class="typo-hero-content">
+      <h1 data-reveal style="--stagger-index:0">${kineticWords(name)}</h1>
+      <p class="typo-hero-tagline" data-reveal style="--stagger-index:1">${kineticWords(tagline)}</p>
+      <div data-reveal style="--stagger-index:2">${heroActions(ctaIntensity, contactHref, secondaryHref, secondaryLabel)}</div>
+    </div>
+  </section>`;
+}
+
+/** Scalloped/capsule image-mask columns — real technique from Filmbot
+ * (filmbot.com, logged in design-inspiration-playbook.md): hero
+ * photography clipped into repeating pill-shaped columns at alternating
+ * heights, a film-strip motif, instead of one plain rectangular crop.
+ * Pure CSS (border-radius + transform), no clip-path polygon math
+ * needed since a tall narrow rect with a very large border-radius
+ * already reads as a capsule/pill. */
+export function scallopedHeroSection(items: DemoAssetView[], name: string, tagline: string): string {
+  const offsets = [0, 48, -24, 32];
+  const columns = items
+    .map((asset, i) => {
+      const offset = offsets[i % offsets.length];
+      return `<div class="scalloped-col" style="--offset:${offset}px">${pictureTag(asset, "scalloped-col-image", i === 0)}</div>`;
+    })
+    .join("");
+  return `
+  <section class="scalloped-hero">
+    <div class="scalloped-hero-text" data-reveal>
+      <h1>${kineticWords(name)}</h1>
+      <p>${escapeHtml(tagline)}</p>
+    </div>
+    <div class="scalloped-columns">${columns}</div>
+  </section>`;
+}
+
+/** Full-bleed scrolling keyword marquee — real technique from Qissa (A
+ * Tale of Food, qissa.co.uk, logged in design-inspiration-playbook.md):
+ * a rhythm-break section divider using pure text, no imagery. Real
+ * service labels only (`deriveServiceLabels`/`services[]`), never
+ * invented brand keywords. `aria-hidden` because the same labels are
+ * already announced accessibly in the real services list elsewhere —
+ * this is a decorative repeat, not the only place the content exists. */
+export function marqueeSection(words: string[]): string {
+  if (words.length === 0) return "";
+  const track = words.map((w) => `<span>${escapeHtml(w)}</span><span class="marquee-dot">✦</span>`).join("");
+  return `
+  <div class="marquee" aria-hidden="true">
+    <div class="marquee-track">${track}${track}</div>
+  </div>`;
+}
+
 /** Mouse-reactive "water-flow" decoration (mission follow-up: "schwebende
  * wasserflow (extremflüssig) einbauen ... es muss wirklich alles animiert
  * werden sogar die texte"). Two real, distinct techniques, not one relabeled
@@ -1754,6 +1820,42 @@ export function renderDemoSite(
     background: linear-gradient(155deg, rgba(0,0,0,0.05), rgba(0,0,0,0) 55%), #fff;
     color: var(--primary-dark);
     box-shadow: 0 10px 24px -10px rgba(0,0,0,0.3);
+  }
+
+  /* Typography-only hero (typographyHeroSection) — real technique from
+     Rezo Zero: zero imagery, one huge confident multi-line statement. */
+  .typo-hero { padding: clamp(4rem, 14vw, 9rem) clamp(1.5rem, 6vw, 5rem); background: var(--bg); }
+  .typo-hero-content { max-width: 56rem; display: flex; flex-direction: column; gap: 1.5rem; }
+  .typo-hero-content h1 { font-size: clamp(2.6rem, 7vw, 5.5rem); line-height: 1.02; }
+  .typo-hero-tagline { font-family: var(--font-heading); font-size: clamp(1.3rem, 3vw, 2rem); color: color-mix(in srgb, var(--fg) 78%, transparent); }
+  .typo-hero .cta-link { color: var(--primary); text-shadow: none; }
+  .typo-hero .btn-ghost { background: transparent; border-color: var(--border); color: var(--fg); }
+
+  /* Scalloped/capsule image-mask hero (scallopedHeroSection) — real
+     technique from Filmbot: photography clipped into repeating
+     pill-shaped columns at alternating heights, a film-strip motif. */
+  .scalloped-hero { padding: clamp(2.5rem, 6vw, 4rem) clamp(1.5rem, 6vw, 5rem); }
+  .scalloped-hero-text { max-width: 40rem; margin-bottom: clamp(2rem, 5vw, 3rem); }
+  .scalloped-hero-text h1 { font-size: clamp(2rem, 4.5vw, 3.2rem); margin-bottom: 0.75rem; }
+  .scalloped-hero-text p { font-size: 1.1rem; color: color-mix(in srgb, var(--fg) 75%, transparent); }
+  .scalloped-columns { display: flex; gap: clamp(0.75rem, 2vw, 1.5rem); align-items: flex-start; }
+  .scalloped-col { flex: 1; aspect-ratio: 2 / 5; border-radius: 999px; overflow: hidden; transform: translateY(var(--offset)); box-shadow: 0 20px 40px -22px rgba(0,0,0,0.3); }
+  .scalloped-col-image { width: 100%; height: 100%; object-fit: cover; display: block; }
+  @media (max-width: 720px) {
+    .scalloped-columns { flex-wrap: wrap; }
+    .scalloped-col { flex: 1 1 calc(50% - 0.5rem); aspect-ratio: 3 / 4; transform: none; }
+  }
+
+  /* Scrolling keyword marquee (marqueeSection) — real technique from
+     Qissa: a full-bleed text-only rhythm-break divider between two
+     sections, real service labels only. */
+  .marquee { overflow: hidden; white-space: nowrap; padding: clamp(1.5rem, 4vw, 2.5rem) 0; background: var(--primary); }
+  .marquee-track { display: inline-flex; width: max-content; animation: marquee-scroll 26s linear infinite; }
+  .marquee-track span { font-family: var(--font-heading); font-style: italic; font-size: clamp(1.4rem, 3.5vw, 2.4rem); color: #fff; padding: 0 0.75rem; }
+  .marquee-dot { font-style: normal !important; opacity: 0.6; }
+  @keyframes marquee-scroll { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+  @media (prefers-reduced-motion: reduce) {
+    .marquee-track { animation-play-state: paused; }
   }
 
   /* Mouse-reactive "water-flow" (fluidFlowLayer/fluidFlowScript): blurred,
