@@ -22,6 +22,7 @@ import {
   updateMessageDraft,
   analyzeLead,
   generateLeadDemo,
+  exportReactDemo,
   generateLeadMessage,
   markMessageSent,
   prepareGmailDraft,
@@ -147,6 +148,7 @@ export default async function LeadDetailPage({
               hasAnalysis={Boolean(lead.analysis)}
               generateAction={generateLeadDemo}
               publishAction={publishLeadDemo}
+              exportReactAction={exportReactDemo}
             />
             <MessageReviewCard
               leadId={lead.id}

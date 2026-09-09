@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { GenerateDemoButton } from "./generate-demo-button";
 import { PublishDemoButton } from "./publish-demo-button";
 import { CopyUrlButton } from "./copy-url-button";
+import { ExportReactDemoButton } from "./export-react-demo-button";
 import { ArrowSquareOut, Globe } from "@phosphor-icons/react/dist/ssr";
 
 interface PublishOutcome {
@@ -18,6 +19,7 @@ export function DemoPreviewCard({
   hasAnalysis,
   generateAction,
   publishAction,
+  exportReactAction,
 }: {
   leadId: string;
   demo: {
@@ -29,6 +31,7 @@ export function DemoPreviewCard({
   hasAnalysis: boolean;
   generateAction: (leadId: string) => Promise<{ ok: boolean; error?: string }>;
   publishAction: (leadId: string) => Promise<PublishOutcome>;
+  exportReactAction: (leadId: string) => Promise<{ ok: boolean; slug?: string; error?: string }>;
 }) {
   if (!demo) {
     return (
@@ -87,6 +90,12 @@ export function DemoPreviewCard({
             <PublishDemoButton leadId={leadId} action={publishAction} />
           </div>
         )}
+        <div className="flex items-center justify-between gap-2 rounded-md border border-dashed border-border px-3 py-2">
+          <p className="text-xs text-muted-foreground">
+            Experimentell: Vite + React + WebGL-Engine (eigener Dev-Server).
+          </p>
+          <ExportReactDemoButton leadId={leadId} action={exportReactAction} />
+        </div>
         {/* A demo is a full desktop landing page — a small thumbnail-height
             iframe undersells it. Sized tall enough to read as a real
             preview of the finished project, scaled down slightly so the

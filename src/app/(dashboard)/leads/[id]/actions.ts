@@ -5,6 +5,7 @@ import { prisma, logActivity, updateLeadStatus } from "@/lib/db";
 import { runAnalysisAndScoring, runDemoGeneration, runMessageGeneration, reformulateSentMessage } from "@/lib/pipeline/steps";
 import { safeRecordError } from "@/lib/research";
 import { publishDemoPublicly, type PublishDemoOutcome } from "@/lib/publishing";
+import { exportLeadDataForReactApp } from "@/lib/demo-generator/export-react-data";
 import {
   runPreflightChecklist,
   GmailSender,
@@ -89,6 +90,21 @@ export async function publishLeadDemo(leadId: string): Promise<PublishDemoOutcom
   const result = await publishDemoPublicly(leadId);
   refresh(leadId);
   return result;
+}
+
+/** Exports whatever the static-HTML engine already generated for this
+ * lead into the experimental Vite/React/WebGL demo-app (see
+ * demo-generator/export-react-data.ts) — previously only reachable via
+ * `npm run export:react-demo -- <slug>` on the command line. Pure
+ * format conversion of already-real data; never touches the static
+ * engine's own output or the lead's pipeline status. */
+export async function exportReactDemo(leadId: string): Promise<{ ok: boolean; slug?: string; error?: string }> {
+  try {
+    const result = await exportLeadDataForReactApp(leadId);
+    return { ok: true, slug: result.slug };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Unbekannter Fehler beim Export." };
+  }
 }
 
 /** Manual status override — part of dashboard status management. Does not
