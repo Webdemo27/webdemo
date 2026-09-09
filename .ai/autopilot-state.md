@@ -620,28 +620,34 @@ push via SSH) is real, configured, and verified working end-to-end.
 **Two explicit user requests currently take priority over the standing
 mission below, in this order:**
 
-0a. **Water-flow hero effect — DONE (2026-09-09), text-animation coverage
-    beyond the hero still open.** User: "wir wollen nicht standard
-    webseiten bauen wo alles langweilig wirkt, sondern auch mit
-    mausbewegung schwebende wasserflow (extremflüssig) einbauen, es muss
-    wirklich alles animiert werden sogar die texte". Shipped:
-    `fluidFlowLayer()`/`fluidFlowScript()` in template.ts — turbulence-
-    distorted, blurred color blobs behind the hero, damped/spring-like
-    toward the cursor (not 1:1 tracking, per emil-design-eng), velocity
-    spikes the SVG feDisplacementMap scale for real liquid reactivity;
+0a. **Water-flow hero effect + text-animation coverage — DONE (2026-09-09).**
+    User: "wir wollen nicht standard webseiten bauen wo alles langweilig
+    wirkt, sondern auch mit mausbewegung schwebende wasserflow
+    (extremflüssig) einbauen, es muss wirklich alles animiert werden
+    sogar die texte". Shipped in two passes:
+    (1) `fluidFlowLayer()`/`fluidFlowScript()` — turbulence-distorted,
+    blurred color blobs behind the hero, damped/spring-like toward the
+    cursor (not 1:1 tracking, per emil-design-eng), velocity spikes the
+    SVG feDisplacementMap scale for real liquid reactivity;
     `.hero-content--floating` gives the real headline/tagline/CTA their
     own smaller independent float — text responds to the cursor without
     ever being distorted (kept legible). Applied to every demo's hero
     automatically (`profile.motion !== "none"`), not gated like the
-    carousel. Verified live: 60fps during simulated continuous mouse
-    movement (16.67ms/frame avg), correctly disabled on mobile/coarse
-    pointer/reduced-motion, zero console errors. **Still open**: the
-    "sogar die Texte" ask goes beyond the hero — every other section
-    already has entrance reveals (`data-reveal` + `kineticWords`, done
-    earlier this session) but nothing continuous/ambient. `ui-ux-pro-max`
-    has not been loaded yet for this work — load it together with
-    emil-design-eng before extending further, per the user's explicit
-    "benutze emil kowalski skill und ui-ux pro max skills zusammen".
+    carousel. Verified: 60fps during simulated continuous mouse movement,
+    disabled correctly on mobile/coarse pointer/reduced-motion.
+    (2) Loaded `ui-ux-pro-max` (its GSAP domain, live CLI query) alongside
+    `emil-design-eng` as the user explicitly asked, and used its own
+    guidance to scope the rest: "reserve [split-text reveal] for short
+    headlines under ~8 words" + "animate 1-2 key elements per view max".
+    Extended the existing `kineticWords()` per-word masked-reveal (already
+    on the hero h1/section h2s) to editorial gallery h3s, the location
+    banner's city name, and the angled-carousel captions — all short real
+    headlines. Deliberately did NOT split-animate body paragraphs (they
+    keep their existing single fade-in) since that would violate the
+    same loaded guidance. Verified live: kinetic spans render and become
+    fully legible after reveal, zero console errors, on real pages.
+    **This closes 0a** — both explicit asks (water-flow + "sogar die
+    Texte") now have real, verified, skill-informed implementations.
 0b. **Awwwards GSAP/animation-flow research + 1:1 replication** (2026-09-09,
     user request): "bei awwwards beste animation flows webseiten, gsap
     webseiten recherchieren und manche demos sollen von awwwards
