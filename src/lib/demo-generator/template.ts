@@ -85,21 +85,24 @@ function heroTextPosition(profile: VisualProfile, heroStyle: HeroStyle): string 
   return "hero-bottom-left";
 }
 
-function heroActions(ctaIntensity: CtaIntensity): string {
+function heroActions(ctaIntensity: CtaIntensity, contactHref: string, secondaryHref: string | null, secondaryLabel: string): string {
   if (ctaIntensity === "minimal") {
-    return `<a class="cta-link" href="#kontakt">Kontakt aufnehmen →</a>`;
+    return `<a class="cta-link" href="${contactHref}">Kontakt aufnehmen →</a>`;
   }
+  const secondary = secondaryHref
+    ? `<a class="btn-ghost" href="${secondaryHref}">${escapeHtml(secondaryLabel)}</a>`
+    : "";
   if (ctaIntensity === "aggressive") {
     return `
       <div class="hero-actions">
-        <a class="btn-primary btn-lg" href="#kontakt">Jetzt unverbindlich anfragen</a>
-        <a class="btn-ghost" href="#leistungen">Leistungen ansehen</a>
+        <a class="btn-primary btn-lg" href="${contactHref}">Jetzt unverbindlich anfragen</a>
+        ${secondary}
       </div>`;
   }
   return `
     <div class="hero-actions">
-      <a class="btn-primary" href="#kontakt">Jetzt Kontakt aufnehmen</a>
-      <a class="btn-ghost" href="#leistungen">Leistungen ansehen</a>
+      <a class="btn-primary" href="${contactHref}">Jetzt Kontakt aufnehmen</a>
+      ${secondary}
     </div>`;
 }
 
@@ -109,7 +112,10 @@ function heroSection(
   hero: DemoAssetView | undefined,
   profile: VisualProfile,
   heroStyle: HeroStyle,
-  ctaIntensity: CtaIntensity
+  ctaIntensity: CtaIntensity,
+  contactHref: string,
+  secondaryHref: string | null,
+  secondaryLabel: string
 ): string {
   const position = heroTextPosition(profile, heroStyle);
   const is3d = heroStyle === "3d";
@@ -133,7 +139,7 @@ function heroSection(
     <div class="hero-content" data-reveal>
       <h1>${escapeHtml(name)}</h1>
       <p class="hero-tagline">${escapeHtml(tagline)}</p>
-      ${heroActions(ctaIntensity)}
+      ${heroActions(ctaIntensity, contactHref, secondaryHref, secondaryLabel)}
     </div>
   </section>`;
 }
@@ -153,13 +159,13 @@ function serviceCard(label: string, asset: DemoAssetView | undefined, featured: 
     </li>`;
 }
 
-function servicesSection(services: string[], assets: DemoAssetView[]): string {
+function servicesSection(services: string[], assets: DemoAssetView[], heading: string): string {
   const cards = services
     .map((label, i) => serviceCard(label, assets[i], i === 0 && assets.length > 0))
     .join("");
   return `
   <section id="leistungen" class="services">
-    <h2 data-reveal>Leistungen</h2>
+    <h2 data-reveal>${escapeHtml(heading)}</h2>
     <ul class="services-grid">${cards}</ul>
   </section>`;
 }
@@ -331,12 +337,59 @@ function three3dScript(colorHex: string): string {
   </script>`;
 }
 
-export function renderDemoHtml(
+/** A demo is a small multi-page site, not one scrolling document — page
+ * count and navigation come from what real content actually exists for
+ * this lead/variant, never padded out. "Leistungen" only gets its own
+ * page when there's a real services section to put there (some variants,
+ * e.g. luxury-minimal, deliberately have none); "Über uns" gathers the
+ * brand-story sections (about/editorial/detail) since they all answer
+ * the same "who are you" question a visitor has after the homepage. */
+type PageSlug = "" | "leistungen" | "ueber-uns" | "kontakt";
+
+const SECONDARY_GROUPS: Array<{ slug: PageSlug; sections: Array<Exclude<SectionKey, "hero">> }> = [
+  { slug: "leistungen", sections: ["services"] },
+  { slug: "ueber-uns", sections: ["about", "editorial", "detail"] },
+  { slug: "kontakt", sections: ["contact"] },
+];
+
+/** Every business in this dataset sells services/appointments, not
+ * dishes or rooms with real menus/rates this system has never seen —
+ * renaming the nav label is honest personalization (the industry really
+ * does call it that), unlike inventing the page's actual contents would
+ * be. */
+const SECONDARY_PAGE_LABELS: Record<string, string> = {
+  Restaurant: "Speisekarte",
+  Café: "Angebot",
+  Bäckerei: "Angebot",
+  Hotel: "Zimmer & Angebote",
+};
+
+function secondaryPageLabel(industryKey: string): string {
+  return SECONDARY_PAGE_LABELS[industryKey] ?? "Leistungen";
+}
+
+function pageFilename(slug: PageSlug): string {
+  return slug === "" ? "index.html" : `${slug}.html`;
+}
+
+function pageNavLabel(slug: PageSlug, industryKey: string): string {
+  if (slug === "") return "Home";
+  if (slug === "leistungen") return secondaryPageLabel(industryKey);
+  if (slug === "ueber-uns") return "Über uns";
+  return "Kontakt";
+}
+
+export interface DemoPage {
+  filename: string;
+  html: string;
+}
+
+export function renderDemoSite(
   lead: DemoData,
   profile: VisualProfile,
   rawAssets: RawAssetInput[],
   variant: ConceptVariant
-): { html: string; placeholders: DemoPlaceholders } {
+): { pages: DemoPage[]; placeholders: DemoPlaceholders } {
   const name = escapeHtml(lead.companyName);
   const location = lead.location ?? "Ihrer Region";
   const initial = escapeHtml(lead.companyName.trim().charAt(0).toUpperCase() || "?");
@@ -357,21 +410,16 @@ export function renderDemoHtml(
   const detailAssets = byRole.detail ?? [];
   const environmentAsset = byRole.environment?.[0];
 
-  const services = profile.assetPlan
-    .find((p) => p.role === "service")
-    ? deriveServiceLabels(profile)
-    : [];
+  // Real, industry-appropriate service labels exist independently of
+  // whether the visual profile happens to plan a "service" *image* role
+  // (professional-services profiles like Rechtsanwalt/Steuerberater
+  // never do) — serviceCard() already renders a clean icon+text card
+  // with no photo, so a Leistungen page is honest content on its own
+  // merit and shouldn't be gated on having pictures to go with it.
+  const services = deriveServiceLabels(profile);
 
-  const sections: Partial<Record<SectionKey, string>> = {
-    hero: heroSection(
-      lead.companyName,
-      taglineFor(lead.companyName, location, profile, seed),
-      heroAsset,
-      profile,
-      variant.heroStyle,
-      variant.ctaIntensity
-    ),
-    services: services.length > 0 ? servicesSection(services, serviceAssets) : "",
+  const nonHeroSections: Partial<Record<Exclude<SectionKey, "hero">, string>> = {
+    services: services.length > 0 ? servicesSection(services, serviceAssets, secondaryPageLabel(profile.industryKey)) : "",
     editorial: editorialSection(editorialAssets, lead.companyName, location),
     detail: detailStrip(detailAssets) + environmentSection(environmentAsset),
     location: lead.location ? locationBanner(lead.location) : "",
@@ -379,26 +427,54 @@ export function renderDemoHtml(
     contact: contactSection(lead),
   };
 
-  const bodySections = variant.sectionOrder.map((key) => sections[key] ?? "").join("\n");
+  const activeSecondary = SECONDARY_GROUPS.map((group) => ({
+    slug: group.slug,
+    sections: group.sections.filter((key) => variant.sectionOrder.includes(key) && nonHeroSections[key]),
+  })).filter((group) => group.sections.length > 0);
+
+  const pageSlugs: PageSlug[] = ["", ...activeSecondary.map((g) => g.slug)];
+  const navPages = pageSlugs.map((slug) => ({ slug, filename: pageFilename(slug), label: pageNavLabel(slug, profile.industryKey) }));
+
+  const hasLeistungen = activeSecondary.some((g) => g.slug === "leistungen");
+  const hasUeberUns = activeSecondary.some((g) => g.slug === "ueber-uns");
+  const hasKontakt = activeSecondary.some((g) => g.slug === "kontakt");
+  const contactHref = hasKontakt ? "kontakt.html" : "index.html";
+  const secondaryHref = hasLeistungen ? "leistungen.html" : hasUeberUns ? "ueber-uns.html" : null;
+  const secondaryLabel = hasLeistungen ? secondaryPageLabel(profile.industryKey) : "Über uns";
+
+  const heroHtml = heroSection(
+    lead.companyName,
+    taglineFor(lead.companyName, location, profile, seed),
+    heroAsset,
+    profile,
+    variant.heroStyle,
+    variant.ctaIntensity,
+    contactHref,
+    secondaryHref,
+    secondaryLabel
+  );
+
+  function bodyFor(slug: PageSlug): string {
+    if (slug === "") {
+      const homeKeys = variant.sectionOrder.filter((k) => k === "location" && nonHeroSections.location);
+      return [heroHtml, ...homeKeys.map((k) => nonHeroSections[k as Exclude<SectionKey, "hero">] ?? "")].join("\n");
+    }
+    const group = activeSecondary.find((g) => g.slug === slug);
+    if (!group) return "";
+    const keysInOrder = variant.sectionOrder.filter((k): k is Exclude<SectionKey, "hero"> =>
+      (group.sections as SectionKey[]).includes(k)
+    );
+    return keysInOrder.map((k) => nonHeroSections[k] ?? "").join("\n");
+  }
+
   const mobileCtaBar =
     variant.ctaIntensity === "aggressive"
-      ? `<div class="mobile-cta-bar"><a class="btn-primary" href="#kontakt">Jetzt anfragen</a></div>`
+      ? `<div class="mobile-cta-bar"><a class="btn-primary" href="${contactHref}">Jetzt anfragen</a></div>`
       : "";
   const showHeaderCta = variant.heroStyle !== "minimal";
-
   const motionCss = profile.motion === "none" ? "" : `[data-reveal]{opacity:0;transform:translateY(14px);transition:opacity .5s ease,transform .5s ease;} [data-reveal].is-visible{opacity:1;transform:none;}`;
 
-  const html = `<!doctype html>
-<html lang="de">
-<head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>${name}${lead.location ? ` — ${escapeHtml(lead.location)}` : ""}</title>
-<meta name="robots" content="noindex, nofollow" />
-<link rel="preconnect" href="https://fonts.googleapis.com" />
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="${profile.typography.googleFontsHref}" rel="stylesheet" />
-<style>
+  const styleBlock = `
   :root {
     --primary: ${profile.colors.primary};
     --primary-dark: ${profile.colors.primaryDark};
@@ -419,10 +495,18 @@ export function renderDemoHtml(
   img { display: block; max-width: 100%; }
   ${motionCss}
 
-  .site-header { position: sticky; top: 0; z-index: 20; display: flex; align-items: center; justify-content: space-between; padding: 1rem 1.75rem; background: color-mix(in srgb, var(--card) 92%, transparent); backdrop-filter: blur(8px); border-bottom: 1px solid var(--border); }
-  .brand { display: flex; align-items: center; gap: 0.6rem; font-family: var(--font-heading); font-weight: 700; font-size: 1.1rem; }
-  .brand-mark { display: flex; align-items: center; justify-content: center; width: 2.2rem; height: 2.2rem; border-radius: 0.5rem; background: var(--primary); color: #fff; font-weight: 700; }
-  .header-cta { padding: 0.6rem 1.2rem; border-radius: 0.4rem; background: var(--primary); color: #fff; text-decoration: none; font-size: 0.85rem; font-weight: 600; }
+  .site-header { position: sticky; top: 0; z-index: 20; display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 1rem 1.75rem; background: color-mix(in srgb, var(--card) 92%, transparent); backdrop-filter: blur(8px); border-bottom: 1px solid var(--border); }
+  .brand { display: flex; align-items: center; gap: 0.6rem; font-family: var(--font-heading); font-weight: 700; font-size: 1.1rem; flex-shrink: 0; }
+  .brand-mark { display: flex; align-items: center; justify-content: center; width: 2.2rem; height: 2.2rem; border-radius: 0.5rem; background: var(--primary); color: #fff; font-weight: 700; flex-shrink: 0; }
+  .header-cta { padding: 0.6rem 1.2rem; border-radius: 0.4rem; background: var(--primary); color: #fff; text-decoration: none; font-size: 0.85rem; font-weight: 600; flex-shrink: 0; }
+  .site-nav { display: flex; gap: 1.4rem; align-items: center; overflow-x: auto; scrollbar-width: none; }
+  .site-nav::-webkit-scrollbar { display: none; }
+  .site-nav a { text-decoration: none; font-size: 0.88rem; font-weight: 600; color: var(--fg); opacity: 0.7; white-space: nowrap; }
+  .site-nav a:hover, .site-nav a.is-active { opacity: 1; color: var(--primary); }
+  @media (max-width: 640px) {
+    .brand span:last-child { display: none; }
+    .site-nav { gap: 0.9rem; font-size: 0.8rem; }
+  }
 
   .hero { position: relative; min-height: 88vh; display: flex; overflow: hidden; background: linear-gradient(150deg, color-mix(in srgb, var(--primary) 30%, var(--bg)), var(--bg)); }
   .hero-bg { position: absolute; inset: 0; }
@@ -507,7 +591,28 @@ export function renderDemoHtml(
     .service-card--featured { grid-row: auto; }
     .service-card--featured .service-media { aspect-ratio: 4 / 3; height: auto; }
     .detail-item { width: min(200px, 42vw); }
-  }
+  }`;
+
+  function renderPage(slug: PageSlug): DemoPage {
+    const title = slug === "" ? `${name}${lead.location ? ` — ${escapeHtml(lead.location)}` : ""}` : `${pageNavLabel(slug, profile.industryKey)} — ${name}`;
+    const navHtml = navPages
+      .map(
+        (p) =>
+          `<a href="${p.filename}"${p.slug === slug ? ' class="is-active" aria-current="page"' : ""}>${escapeHtml(p.label)}</a>`
+      )
+      .join("\n      ");
+
+    const html = `<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>${title}</title>
+<meta name="robots" content="noindex, nofollow" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="${profile.typography.googleFontsHref}" rel="stylesheet" />
+<style>${styleBlock}
 </style>
 </head>
 <body>
@@ -516,10 +621,13 @@ export function renderDemoHtml(
       <span class="brand-mark">${initial}</span>
       <span>${name}</span>
     </div>
-    ${showHeaderCta ? `<a class="header-cta" href="#kontakt">Kontakt</a>` : ""}
+    <nav class="site-nav">
+      ${navHtml}
+    </nav>
+    ${showHeaderCta ? `<a class="header-cta" href="${contactHref}">Kontakt</a>` : ""}
   </header>
 
-  ${bodySections}
+  ${bodyFor(slug)}
 
   <footer>
     <div>Unverbindliches Demo-Konzept — kein offizieller Auftritt von ${name}.</div>
@@ -529,12 +637,15 @@ export function renderDemoHtml(
   ${mobileCtaBar}
 
   ${reduceMotionScript()}
-  ${profile.use3d ? three3dScript(profile.colors.accent) : ""}
+  ${slug === "" && profile.use3d ? three3dScript(profile.colors.accent) : ""}
 </body>
 </html>
 `;
 
-  return { html, placeholders };
+    return { filename: pageFilename(slug), html };
+  }
+
+  return { pages: pageSlugs.map(renderPage), placeholders };
 }
 
 function taglineFor(company: string, location: string, profile: VisualProfile, seed: string): string {

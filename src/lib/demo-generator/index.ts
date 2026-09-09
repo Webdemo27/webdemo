@@ -2,7 +2,7 @@ import { promises as fs } from "fs";
 import path from "path";
 import { prisma, logActivity, advancePipelineStatus } from "../db";
 import { toJson, fromJson } from "../db/json";
-import { renderDemoHtml, type DemoData } from "./template";
+import { renderDemoSite, type DemoData } from "./template";
 import { slugify } from "./slug";
 import { buildVisualProfile, pickNextVariant } from "../visual-director";
 import { reviewDemo } from "../visual-director/review";
@@ -128,8 +128,19 @@ export async function generateDemo(leadId: string): Promise<GenerateDemoResult> 
     contactEmail: lead.contactEmail,
   };
 
-  const { html, placeholders } = renderDemoHtml(demoData, profile, assetRows, variant);
-  await fs.writeFile(path.join(outputDir, "index.html"), html, "utf8");
+  const { pages, placeholders } = renderDemoSite(demoData, profile, assetRows, variant);
+  // A regenerated demo can end up with fewer pages than a previous
+  // variant (e.g. switching from one with a Leistungen page to
+  // luxury-minimal, which has none) — clear stale .html files first so
+  // an old page never lingers as dead, unlinked content.
+  const existingFiles = await fs.readdir(outputDir).catch(() => [] as string[]);
+  await Promise.all(
+    existingFiles
+      .filter((f) => f.endsWith(".html") && !pages.some((p) => p.filename === f))
+      .map((f) => fs.rm(path.join(outputDir, f), { force: true }))
+  );
+  await Promise.all(pages.map((p) => fs.writeFile(path.join(outputDir, p.filename), p.html, "utf8")));
+  const html = pages.find((p) => p.filename === "index.html")?.html ?? pages[0].html;
 
   // Real screenshots of the just-rendered demo, straight off disk — the
   // "Nachher" half of the Before/After comparison shown next to the
