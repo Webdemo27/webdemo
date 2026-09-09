@@ -648,19 +648,31 @@ mission below, in this order:**
     fully legible after reveal, zero console errors, on real pages.
     **This closes 0a** — both explicit asks (water-flow + "sogar die
     Texte") now have real, verified, skill-informed implementations.
-0b. **Awwwards GSAP/animation-flow research + 1:1 replication** (2026-09-09,
-    user request): "bei awwwards beste animation flows webseiten, gsap
-    webseiten recherchieren und manche demos sollen von awwwards
-    replicat werden 1:1". Distinct from the existing per-industry
-    Awwwards research already logged in `.ai/design-inspiration-
-    playbook.md` (which extracts techniques only, never full replicas) —
-    this asks for actual GSAP-specific award sites and SOME demos to be
-    rebuilt 1:1 (structure/motion, not stolen branding/copy/images —
-    still bound by "never invent business facts", so a 1:1 replica means
-    matching the real site's *animation choreography and layout system*
-    applied to a real lead's real content, not copying their content).
-    Log findings in the same playbook file under a new "GSAP / Awwwards
-    animation flows" section. Not started.
+0b. **Awwwards GSAP/animation-flow research + 1:1 replication — DONE
+    (2026-09-09).** User: "bei awwwards beste animation flows webseiten,
+    gsap webseiten recherchieren und manche demos sollen von awwwards
+    replicat werden 1:1". Fetched the real
+    `awwwards.com/websites/gsap/` tag page (20 real sites, not a guessed
+    URL) and visited three live: **dsgn Interior** (dsgninterior.se —
+    strongest candidate: a pinned hero that crossfades through a real
+    project sequence on scroll), **The Nest** (thenest.pl — revisited
+    specifically for motion this time: numbered stacked feature list,
+    staggered pin-marker label reveal), **ALTITUDE 101** (altitude101.com
+    — abstract VR/WebGL product, logged as inspiration-only for
+    `demo-app`'s WebGLHero, no real-lead transfer). Findings logged in
+    `.ai/design-inspiration-playbook.md`'s new "GSAP / Awwwards animation
+    flows" section. **Built the 1:1 replica**: `projectReelSection()`/
+    `projectReelScript()` in template.ts — genuine pin+scrub crossfade
+    through a lead's own real editorial photos/captions (not invented),
+    falls back to a plain stacked list if GSAP fails. Verified live on a
+    real lead (standalone preview, same pattern as the angled carousel):
+    active layer advances 0→1→2 correctly in sync with scroll, 60fps
+    during a simulated scroll, fallback renders correctly, zero console
+    errors. **Not yet wired into the live ConceptVariant/SectionKey
+    system** — same "prototype → verify → let it be reviewed before wide
+    rollout" discipline as the carousel; the two other researched
+    techniques (numbered feature list, pin-marker labels) are logged as
+    directly-shippable/data-gated respectively but not yet built.
 0c. **Loop cadence changed 2026-09-09**: user asked for 10-minute
     check-ins instead of the previous ~25-minute self-paced cadence —
     use `delaySeconds` around 600 (not 1500-1800) for ScheduleWakeup
