@@ -78,6 +78,7 @@ export function ResearchPanel({
         <p className="mt-3 text-xs text-muted-foreground">
           {summary.found} gefunden · <span className="text-success font-medium">{summary.created} neu angelegt</span> ·{" "}
           {summary.duplicates} bereits vorhanden
+          {summary.excludedChains > 0 ? ` · ${summary.excludedChains} Filialketten ausgeschlossen` : ""}
           {summary.errors.length > 0 ? ` · ${summary.errors.length} Fehler` : ""}
         </p>
       ) : null}

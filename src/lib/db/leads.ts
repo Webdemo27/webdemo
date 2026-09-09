@@ -316,3 +316,14 @@ export async function saveLeadScore(
     reasons,
   });
 }
+
+/** Permanently removes leads and everything attached to them (analysis,
+ * demo, messages, activity log — all `onDelete: Cascade` in the schema).
+ * A generated demo's static files on disk and any live Cloudflare Pages
+ * deployment are untouched — this only clears the dashboard record, not
+ * external resources. Returns how many rows were actually deleted. */
+export async function deleteLeads(leadIds: string[]): Promise<number> {
+  if (leadIds.length === 0) return 0;
+  const result = await prisma.lead.deleteMany({ where: { id: { in: leadIds } } });
+  return result.count;
+}

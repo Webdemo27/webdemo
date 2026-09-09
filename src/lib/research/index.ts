@@ -1,5 +1,6 @@
 import { createLeadIfNew, updateLeadStatus, recordLeadError } from "../db";
 import type { LeadSource, ResearchParams } from "./types";
+import { isLikelyChain } from "./chain-filter";
 
 export * from "./types";
 export * from "./osm-categories";
@@ -10,6 +11,9 @@ export interface ResearchSummary {
   found: number;
   created: number;
   duplicates: number;
+  /** Candidates recognized as a branch of a larger chain/franchise and
+   * skipped before ever becoming a lead — see chain-filter.ts. */
+  excludedChains: number;
   errors: Array<{ companyName: string; error: string }>;
 }
 
@@ -20,9 +24,15 @@ export async function runResearch(
   source: LeadSource,
   params: ResearchParams
 ): Promise<ResearchSummary> {
-  const candidates = await source.discover(params);
+  const allCandidates = await source.discover(params);
 
-  const summary: ResearchSummary = { found: candidates.length, created: 0, duplicates: 0, errors: [] };
+  // Overpass already filters chain branches using real OSM tags (the
+  // stronger signal); this name-only check is a shared safety net for
+  // every source, including ones without tags (e.g. manual imports).
+  const candidates = allCandidates.filter((c) => !isLikelyChain({ companyName: c.companyName }));
+  const excludedChains = allCandidates.length - candidates.length;
+
+  const summary: ResearchSummary = { found: candidates.length, created: 0, duplicates: 0, excludedChains, errors: [] };
 
   for (const candidate of candidates) {
     try {

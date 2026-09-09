@@ -5,13 +5,10 @@ import { STATUS_META } from "@/lib/status";
 import { PageHeader } from "@/components/layout/page-header";
 import { Input, Select } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { StatusBadge } from "@/components/ui/status-badge";
-import { ScoreBadge } from "@/components/ui/score-badge";
-import { PriorityBadge } from "@/components/ui/priority-badge";
-import { Table, Thead, Tbody, Tr, Th, Td } from "@/components/ui/table";
-import { SortableTh } from "@/components/leads/sortable-th";
 import { ResearchPanel } from "@/components/leads/research-panel";
+import { LeadsTable } from "@/components/leads/leads-table";
 import { runResearchAction } from "./research-actions";
+import { deleteLeadsAction } from "./bulk-actions";
 import { MagnifyingGlass, Buildings } from "@phosphor-icons/react/dist/ssr";
 
 export const dynamic = "force-dynamic";
@@ -42,14 +39,6 @@ export default async function LeadsPage({
     sortDir,
   });
 
-  function buildHref(nextSort: string, nextDir: "asc" | "desc") {
-    const qs = new URLSearchParams();
-    if (search) qs.set("q", search);
-    if (statusFilter) qs.set("status", statusFilter);
-    qs.set("sort", nextSort);
-    qs.set("dir", nextDir);
-    return `/leads?${qs.toString()}`;
-  }
 
   return (
     <>
@@ -108,56 +97,25 @@ export default async function LeadsPage({
             </p>
           </div>
         ) : (
-          <Table>
-            <Thead>
-              <Tr>
-                <SortableTh field="companyName" label="Unternehmen" currentSort={sortBy} currentDir={sortDir} buildHref={buildHref} />
-                <Th>Branche / Ort</Th>
-                <Th>Priorität</Th>
-                <Th>Status</Th>
-                <SortableTh field="websiteScore" label="Website" currentSort={sortBy} currentDir={sortDir} buildHref={buildHref} />
-                <SortableTh field="leadScore" label="Lead-Score" currentSort={sortBy} currentDir={sortDir} buildHref={buildHref} />
-                <SortableTh field="updatedAt" label="Aktualisiert" currentSort={sortBy} currentDir={sortDir} buildHref={buildHref} />
-              </Tr>
-            </Thead>
-            <Tbody>
-              {leads.map((lead) => (
-                <Tr key={lead.id}>
-                  <Td>
-                    <Link
-                      href={`/leads/${lead.id}`}
-                      className="font-medium text-foreground hover:text-primary"
-                    >
-                      {lead.companyName}
-                    </Link>
-                    {lead.domain ? (
-                      <div className="text-xs text-muted-foreground">{lead.domain}</div>
-                    ) : null}
-                  </Td>
-                  <Td className="text-xs text-muted-foreground">
-                    {[lead.industry, lead.location].filter(Boolean).join(" · ") || "—"}
-                  </Td>
-                  <Td>
-                    <PriorityBadge tier={deriveLeadTier(lead.demo?.concept)} />
-                  </Td>
-                  <Td>
-                    <StatusBadge status={lead.status} />
-                  </Td>
-                  <Td>
-                    <ScoreBadge score={lead.websiteScore} />
-                  </Td>
-                  <Td>
-                    <ScoreBadge score={lead.leadScore} />
-                  </Td>
-                  <Td className="text-xs text-muted-foreground">
-                    {new Intl.DateTimeFormat("de-DE", { dateStyle: "medium" }).format(
-                      lead.updatedAt
-                    )}
-                  </Td>
-                </Tr>
-              ))}
-            </Tbody>
-          </Table>
+          <LeadsTable
+            leads={leads.map((lead) => ({
+              id: lead.id,
+              companyName: lead.companyName,
+              domain: lead.domain,
+              industry: lead.industry,
+              location: lead.location,
+              status: lead.status,
+              websiteScore: lead.websiteScore,
+              leadScore: lead.leadScore,
+              updatedAt: lead.updatedAt,
+              tier: deriveLeadTier(lead.demo?.concept),
+            }))}
+            sortBy={sortBy}
+            sortDir={sortDir}
+            search={search}
+            statusFilter={statusFilter}
+            deleteAction={deleteLeadsAction}
+          />
         )}
       </div>
     </>

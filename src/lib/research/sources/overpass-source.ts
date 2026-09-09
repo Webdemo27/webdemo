@@ -1,6 +1,7 @@
 import type { LeadCandidate, LeadSource, ResearchParams } from "../types";
 import { geocodePlace } from "../nominatim";
 import { findCategory } from "../osm-categories";
+import { isLikelyChain } from "../chain-filter";
 
 const OVERPASS_ENDPOINT = "https://overpass-api.de/api/interpreter";
 const USER_AGENT = "webdemo-lead-platform/0.1 (local dev tool, manual use)";
@@ -40,8 +41,13 @@ function toCandidate(el: OverpassElement, industryLabel: string): LeadCandidate 
   const tags = el.tags ?? {};
   const companyName = tags.name;
   if (!companyName) return null;
+  if (isLikelyChain({ companyName, tags })) return null;
 
   const website = tags.website ?? tags["contact:website"] ?? tags.url;
+  // The whole pipeline audits an *existing* website (analysis needs a URL
+  // to fetch) — a business with none can never leave RESEARCHED status,
+  // so it's excluded here rather than becoming a permanently stuck lead.
+  if (!website) return null;
 
   return {
     companyName,
@@ -55,9 +61,10 @@ function toCandidate(el: OverpassElement, industryLabel: string): LeadCandidate 
 }
 
 /** Finds real local businesses via the public OpenStreetMap Overpass API.
- * No API key required. Only returns what OSM actually has tagged — most
- * candidates will need a website analysis pass before they're useful,
- * and many will have no website tag at all (a strong signal on its own). */
+ * No API key required. Skips candidates with no name, no website (the
+ * pipeline audits an existing site, so there's nothing to analyze), or
+ * that look like a branch of a larger chain (see chain-filter.ts) —
+ * none of those can ever become a usable lead here. */
 export const overpassSource: LeadSource = {
   name: "openstreetmap-overpass",
 
