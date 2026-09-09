@@ -265,6 +265,24 @@ mission's top-priority ask this round.
 
 ## COMPLETED
 
+- **Angled/tilted GSAP carousel prototype for Tobias Grünert** (2026-09-09)
+  — explicit user request, scoped to ONE lead only, gated behind review:
+  "wenn ich damit zufrieden bin werden bei immobilienmakler branche diese
+  motiv benutzt". Built `angledCarouselSection()`/`angledCarouselScript()`
+  in `template.ts` (pin + scrub via GSAP ScrollTrigger, one card per real
+  editorial asset, tilt via `--tilt` CSS var, caption below each image,
+  straightens on hover using emil-design-eng's easing tokens —
+  `var(--ease-out)` / 260ms, not a bare `all` transition). Rendered as a
+  **standalone preview file** (`public/demos/tobias-gruenert/karussell-
+  preview.html`, via disposable `scripts/generate-carousel-preview.ts`
+  which pulls his real DB assets/captions) rather than touching his real
+  `ueber-uns.html` — his lead stays untouched in WAITING_FOR_REVIEW.
+  **Verified live**: ScrollTrigger pin/scrub confirmed correct (progress
+  tracks scroll 1:1, `position:fixed` + `pin-spacer` present), frame
+  timing sampled during an actual scroll drive averaged 16.67ms/frame
+  (60fps, max 16.9ms), hover-straighten confirmed visually. **NOT** wired
+  into the live Immobilienmakler ConceptVariant/SectionKey system — only
+  ships broadly once the user confirms satisfaction with this preview.
 - **Demo-app: editorial gallery + lightbox ported** (2026-09-09, same
   loop) — `EditorialGallery.tsx`, a React-native (state-driven, not
   vanilla-DOM) port of the static engine's lightbox WOW moment.
@@ -598,6 +616,40 @@ Nothing. Every external integration (Cloudflare, Gmail, OpenRouter, git
 push via SSH) is real, configured, and verified working end-to-end.
 
 ## NEXT ACTION
+
+**Two explicit user requests currently take priority over the standing
+mission below, in this order:**
+
+0a. **"Danach weiterarbeiten" — genuinely fluid, mouse-reactive water-flow
+    everywhere, ALL text animated too** (2026-09-09, user request,
+    immediately after the carousel): "wir wollen nicht standard
+    webseiten bauen wo alles langweilig wirkt, sondern auch mit
+    mausbewegung schwebende wasserflow (extremflüssig) einbauen, es muss
+    wirklich alles animiert werden sogar die texte". Explicitly: use
+    `emil-design-eng` (loaded this session) AND `ui-ux-pro-max` (not yet
+    loaded — load it before starting this) TOGETHER. Likely approach:
+    a mouse-tracked SVG/WebGL fluid-distortion or blob-morph layer
+    (`useSpring` from Motion for the mouse-follow lag per emil-design-eng,
+    not raw 1:1 mouse position), plus a real text-animation pass (word/
+    char-level reveal or scroll-scrub, not just fade-in) applied
+    consistently across sections that don't have it yet. Not started.
+0b. **Awwwards GSAP/animation-flow research + 1:1 replication** (2026-09-09,
+    user request): "bei awwwards beste animation flows webseiten, gsap
+    webseiten recherchieren und manche demos sollen von awwwards
+    replicat werden 1:1". Distinct from the existing per-industry
+    Awwwards research already logged in `.ai/design-inspiration-
+    playbook.md` (which extracts techniques only, never full replicas) —
+    this asks for actual GSAP-specific award sites and SOME demos to be
+    rebuilt 1:1 (structure/motion, not stolen branding/copy/images —
+    still bound by "never invent business facts", so a 1:1 replica means
+    matching the real site's *animation choreography and layout system*
+    applied to a real lead's real content, not copying their content).
+    Log findings in the same playbook file under a new "GSAP / Awwwards
+    animation flows" section. Not started.
+0c. **Loop cadence changed 2026-09-09**: user asked for 10-minute
+    check-ins instead of the previous ~25-minute self-paced cadence —
+    use `delaySeconds` around 600 (not 1500-1800) for ScheduleWakeup
+    going forward in this mission.
 
 Per the active "AUTOPILOT — DEMO CREATIVE LAB" mission (standing
 authorization, keep working without waiting for prompts):
