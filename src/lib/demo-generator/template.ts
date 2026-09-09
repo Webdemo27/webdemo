@@ -1561,7 +1561,7 @@ export function renderDemoSite(
   return { pages: pageSlugs.map(renderPage), placeholders };
 }
 
-function taglineFor(company: string, location: string, profile: VisualProfile, seed: string): string {
+export function taglineFor(company: string, location: string, profile: VisualProfile, seed: string): string {
   const mood = formatMoodList(profile.brandImpression);
   const templates = [
     `${mood[0].toUpperCase()}${mood.slice(1)} in ${location}`,
@@ -1571,7 +1571,7 @@ function taglineFor(company: string, location: string, profile: VisualProfile, s
   return pickVariant(templates, seed + ":tagline");
 }
 
-function deriveServiceLabels(profile: VisualProfile): string[] {
+export function deriveServiceLabels(profile: VisualProfile): string[] {
   // Neutral, industry-generic category labels (never invented specifics
   // about the actual business) — matches the count planned for the
   // "service" asset role so every image slot has a caption.

@@ -1,0 +1,37 @@
+{
+  "slug": "cafe-klingelhoefer",
+  "companyName": "Café Klingelhöfer",
+  "industry": "Café",
+  "location": "Marburg",
+  "address": "",
+  "contactEmail": "info@konditorei-klingelhoefer.de",
+  "tagline": "Café mit Haltung — mitten in Marburg",
+  "colors": {
+    "primary": "#928f0e",
+    "primaryDark": "#78740f",
+    "secondary": "#aeb409",
+    "accent": "#78740f",
+    "background": "#FDF8F0",
+    "foreground": "#57310C"
+  },
+  "typography": {
+    "heading": "Playfair Display SC",
+    "body": "Karla",
+    "googleFontsHref": "https://fonts.googleapis.com/css2?family=Karla:wght@300;400;500;600;700&family=Playfair+Display+SC:wght@400;700&display=swap"
+  },
+  "heroImage": "/data/cafe-klingelhoefer/hero.webp",
+  "services": [
+    {
+      "label": "Kaffeespezialitäten",
+      "image": "/data/cafe-klingelhoefer/service-1.webp"
+    },
+    {
+      "label": "Frühstück",
+      "image": "/data/cafe-klingelhoefer/service-2.webp"
+    },
+    {
+      "label": "Kuchenauswahl",
+      "image": "/data/cafe-klingelhoefer/service-3.webp"
+    }
+  ]
+}
