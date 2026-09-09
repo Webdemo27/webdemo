@@ -323,6 +323,12 @@ function buildMotionCss(level: MotionLevel, flavor: MotionFlavor): string {
     background: linear-gradient(115deg, transparent 30%, rgba(255,255,255,0.4) 48%, rgba(255,255,255,0.4) 54%, transparent 72%);
     transform: translateX(-130%);
   }
+  /* hero-color-block flips .btn-primary to a white background (see its
+   * rule further up) — a white sweep is invisible there, so it needs a
+   * dark tint instead of the default light one. */
+  .hero.hero-color-block .btn-primary::after {
+    background: linear-gradient(115deg, transparent 30%, rgba(0,0,0,0.12) 48%, rgba(0,0,0,0.12) 54%, transparent 72%);
+  }
   @media (hover: hover) and (pointer: fine) {
     .btn-primary:hover::after, .header-cta:hover::after { transform: translateX(130%); transition: transform 700ms var(--ease-in-out); }
   }
