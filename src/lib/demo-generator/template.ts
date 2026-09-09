@@ -346,6 +346,97 @@ function lightboxScript(): string {
   </script>`;
 }
 
+export interface AngledCarouselItem {
+  asset: DemoAssetView;
+  headline: string;
+  body: string;
+}
+
+/** A "schräger Karussell" (tilted carousel) — prototype built for live
+ * review on one real lead (Tobias Grünert, Immobilienmakler) before any
+ * decision on rolling it out as a real ConceptVariant/NavigationConcept
+ * option; not yet wired into the variant-selection system on purpose.
+ * Each card sits at a slight alternating tilt (a scattered, editorial
+ * feel) and straightens on hover; the row scrolls horizontally as the
+ * visitor scrolls the page vertically via GSAP's standard "pin the
+ * section + scrub the track's translateX" pattern — a single
+ * GPU-composited transform per frame, the only way to hold 60fps
+ * through a section this size (no layout-triggering properties
+ * anywhere in the animation). Falls back to a plain native
+ * horizontally-scrollable row if GSAP fails to load. Real captions
+ * only — same real copy pattern as buildEditorialRows(), nothing
+ * invented for this prototype. */
+export function angledCarouselSection(items: AngledCarouselItem[], label: string): string {
+  if (items.length === 0) return "";
+  const tilts = [-4, 3, -2, 5, -3, 2];
+  const cards = items
+    .map((item, i) => {
+      const tilt = tilts[i % tilts.length];
+      return `
+      <div class="angled-card" style="--tilt:${tilt}deg">
+        <div class="angled-card-media">${pictureTag(item.asset, "angled-card-image")}</div>
+        <div class="angled-card-caption">
+          <h3>${escapeHtml(item.headline)}</h3>
+          <p>${escapeHtml(item.body)}</p>
+        </div>
+      </div>`;
+    })
+    .join("");
+  return `
+  <section class="angled-carousel" data-reveal>
+    <span class="editorial-eyebrow">${escapeHtml(label)}</span>
+    <div class="angled-carousel-viewport">
+      <div class="angled-carousel-track">${cards}</div>
+    </div>
+  </section>`;
+}
+
+export function angledCarouselScript(): string {
+  return `
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/${GSAP_VERSION}/gsap.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/${GSAP_VERSION}/ScrollTrigger.min.js"></script>
+  <script>
+    (function () {
+      if (typeof gsap === 'undefined' || typeof ScrollTrigger === 'undefined') return;
+      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+      try {
+        gsap.registerPlugin(ScrollTrigger);
+        var wrap = document.querySelector('.angled-carousel-viewport');
+        var track = document.querySelector('.angled-carousel-track');
+        if (!wrap || !track) return;
+        var tween = null;
+        function build() {
+          var distance = track.scrollWidth - wrap.clientWidth;
+          if (distance <= 0) return null;
+          return gsap.to(track, {
+            x: -distance,
+            ease: 'none',
+            scrollTrigger: {
+              trigger: wrap,
+              start: 'top top',
+              end: '+=' + distance,
+              scrub: 0.5,
+              pin: true,
+              anticipatePin: 1,
+              invalidateOnRefresh: true,
+            },
+          });
+        }
+        tween = build();
+        window.addEventListener('resize', function () {
+          if (tween && tween.scrollTrigger) { tween.scrollTrigger.kill(); tween.kill(); }
+          gsap.set(track, { x: 0 });
+          tween = build();
+        });
+      } catch (e) {
+        // GSAP unavailable/blocked — .angled-carousel-viewport's own
+        // overflow-x:auto keeps the cards reachable as a plain
+        // horizontally-scrollable row instead of a scroll-pinned track.
+      }
+    })();
+  </script>`;
+}
+
 /** A real embedded map — OpenStreetMap's own free export/embed, no API
  * key needed — centered on this exact business's real coordinates
  * (never a geocoded guess, see DemoData.latitude/longitude). This is
@@ -1575,6 +1666,35 @@ export function renderDemoSite(
     .lightbox, .lightbox-zoom-hint { transition-duration: 1ms !important; }
   }
 
+  /* Angled/tilted horizontal carousel — pinned + scrubbed by GSAP ScrollTrigger
+     (angledCarouselSection/angledCarouselScript). Prototype for Tobias Grünert;
+     only .angled-card-media rotates (var(--tilt) per card) so the caption below
+     stays level and readable. Straightens on hover per emil-design-eng guidance:
+     transform-only, custom ease-out, no bare "all" transition. */
+  .angled-carousel { padding-top: clamp(2rem, 5vw, 3.5rem); }
+  .angled-carousel-viewport {
+    overflow-x: auto; overflow-y: visible; -webkit-overflow-scrolling: touch;
+    scrollbar-width: none; padding: 1rem clamp(1.5rem, 6vw, 5rem) 2.5rem;
+  }
+  .angled-carousel-viewport::-webkit-scrollbar { display: none; }
+  .angled-carousel-track {
+    display: flex; gap: clamp(1.5rem, 4vw, 3rem); width: max-content; will-change: transform;
+  }
+  .angled-card { width: min(340px, 72vw); flex-shrink: 0; }
+  .angled-card-media {
+    position: relative; border-radius: 1rem; overflow: hidden; aspect-ratio: 3 / 4;
+    transform: rotate(var(--tilt)); box-shadow: 0 22px 44px -22px rgba(0,0,0,0.35);
+    transition: transform 260ms var(--ease-out), box-shadow 260ms var(--ease-out);
+  }
+  .angled-card-media:hover { transform: rotate(0deg) scale(1.03); box-shadow: 0 28px 54px -20px rgba(0,0,0,0.4); }
+  .angled-card-image { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .angled-card-caption { padding-top: 1.1rem; max-width: 30rem; }
+  .angled-card-caption h3 { font-size: clamp(1.05rem, 2vw, 1.3rem); margin-bottom: 0.4rem; }
+  .angled-card-caption p { color: color-mix(in srgb, var(--fg) 75%, transparent); font-size: 0.92rem; }
+  @media (prefers-reduced-motion: reduce) {
+    .angled-card-media { transition-duration: 1ms !important; }
+  }
+
   .quick-links {
     display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem;
     padding: clamp(1.5rem, 4vw, 2.5rem) clamp(1.5rem, 6vw, 5rem) 0;
@@ -1742,6 +1862,7 @@ export function renderDemoSite(
   ${slug === "" && profile.motion !== "none" ? magneticCtaScript() : ""}
   ${bodyHtml.includes("editorial-lightbox-trigger") ? lightboxScript() : ""}
   ${bodyHtml.includes("weather-badge") ? weatherWidgetScript() : ""}
+  ${bodyHtml.includes("angled-carousel") ? angledCarouselScript() : ""}
   ${colorPickerScript(colorwayOptions, activeColorwayIndex)}
   ${slug === "" && profile.use3d ? three3dScript(profile.colors.accent) : ""}
   ${profile.motion !== "none" && (variant.motionStructure === "scroll-scrub" || (slug === "" && variant.motionStructure === "cinematic-parallax")) ? gsapMotionScript(variant.motionStructure) : ""}
