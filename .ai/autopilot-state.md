@@ -31,19 +31,24 @@ Cloudflare project-limit problem is permanently behind us just because
 failing with 8000027 again, check whether it's unconditionally calling
 `project create` the same way, rather than re-diagnosing from scratch.
 
-**UPDATE (2026-09-09, new session, first action taken):** the git-push
-hang below is now RESOLVED for this stretch — `git fetch origin --quiet`
-showed `origin/main` still at `c7e7b01` (8 commits behind local `HEAD`);
-a single fresh `git push origin main` succeeded immediately with normal
-non-blocking output (`c7e7b01..b985c68  main -> main`), no hang, no
-GCM prompt observed. Consistent with the KNOWN ISSUE note's own
-observation that GCM's cached token "periodically allows a push through,
-just unpredictably" — this was one of the unpredictable successes, not a
-fix to GCM itself. **Still don't assume every future push will be
-instant** — keep checking `git rev-parse origin/main HEAD` before/after
-and backing off to one attempt at a time per the guidance below, since
-the underlying GCM behavior hasn't changed, only this particular
-instance's luck.
+**GIT PUSH HANG — PERMANENTLY FIXED (2026-09-09, same session), not
+just worked around.** The recurring `git push` hang documented at length
+below (GCM blocking on an interactive browser account-picker with nobody
+at the keyboard) is now solved at the root: switched this repo's remote
+from HTTPS to SSH. Generated a dedicated ed25519 key
+(`~/.ssh/id_ed25519_webdemo27`, `~/.ssh/config` pins it to `github.com`),
+the user added the public key to the **Webdemo27** GitHub account, `ssh
+-T git@github.com` confirmed authentication as Webdemo27, and
+`git remote set-url origin git@github.com:Webdemo27/webdemo.git` was
+applied. Verified live: `git push origin main` completed in under 2
+seconds with zero prompts, after this had been the single biggest
+recurring friction point in the session. **Every
+push from here on should be instant and silent** — if the GCM-style hang
+or an account-picker dialog ever reappears, something has regressed
+(e.g. the remote got reset to HTTPS, or the SSH key was removed from the
+GitHub account) — re-diagnose from there rather than assuming this is
+"just GCM being unpredictable" again. The rest of this section (below)
+is kept as historical record of the diagnosis, not current guidance.
 
 Last updated: 2026-09-09, very late in an extremely long single session
 covering (in order): the CEO quality audit, Cloudflare rebuild, first
@@ -66,15 +71,26 @@ cross-lead variant-repetition bug, and kinetic per-word typography on
 the hero headline. See git log for the full, detailed commit-by-commit
 story — each commit message is deliberately thorough.
 
-**"React Vite... WEB3GL" question — resolved, not pivoted.** The user
-clarified later in the session that the specific tech doesn't matter
-("egal ob web3gl oder next threejs... aber ALLES lebendig") — the actual
-ask was for genuinely alive, GSAP/ScrollTrigger-level motion, not a
-React/Vite rewrite. Built that within the existing static-HTML
-architecture (CDN-loaded GSAP, same pattern as Three.js/use3d) rather
-than the framework rewrite — correctly avoided a huge, unrequested
-architecture change. **Do not revisit the React/Vite rewrite question
-speculatively** — it was asked and answered.
+**"React Vite... WEB3GL" question — superseded by a real, deliberate
+architecture migration. Do not treat this as still just a "static HTML
+engine" project.** Earlier in the session the user clarified the specific
+tech didn't matter, just that motion should feel genuinely alive — built
+that within the existing static-HTML architecture (CDN-loaded GSAP).
+**Later, in a fresh continuation of this same session, the user
+explicitly asked again for a real Vite+React+WebGL rewrite**, was shown
+the tradeoffs (breaks the "static HTML, no framework" rule in CLAUDE.md,
+large migration) via AskUserQuestion, and chose the full rewrite anyway.
+See `demo-app/` (a new, separate Vite+React+Three.js/R3F+GSAP project)
+and the "Vite/React/WebGL demo engine" entries in COMPLETED below for
+what's built so far. **The two engines now coexist deliberately**: the
+static-HTML engine (`src/lib/demo-generator/template.ts`) is still what
+every "Demo erstellen"/"Demo neu erstellen" button in the dashboard
+produces and what gets published to Cloudflare; `demo-app/` is a real,
+growing parallel engine, fed by `exportLeadDataForReactApp()`, not yet
+wired into the dashboard's own buttons or the Cloudflare publish step.
+Continuing to build out `demo-app/` (more sections, more ConceptVariants
+ported over, dashboard/publish integration) is real, current, standing
+work — not a settled-and-closed question.
 
 **Standing push authorization is ACTIVE, not paused.** An earlier note
 here said the user asked to hold pushes while they slept — they have
@@ -455,35 +471,44 @@ mission's top-priority ask this round.
 
 ## IN PROGRESS
 
-Nothing mid-implementation. All work above is complete, type-checked,
-linted, verified live (except the shared-element transition, which is a
-small, low-risk CSS-only addition confirmed by build/lint only — not
-independently observed mid-transition in the browser), and building
-cleanly (`npm run build`).
+**The Vite/React/WebGL demo-app migration** (see `demo-app/`) — real,
+standing, multi-phase work, not close to done. Shipped so far: hero
+(WebGL/R3F photo texture + shader displacement), nav, services (GSAP
+reveal), about, contact, all fed by real per-lead data via
+`exportLeadDataForReactApp()`. Verified across 3 industries (Restaurant,
+Café, Zahnarzt). **Not yet done**: the other 11 ConceptVariants' layouts,
+the 3 NavigationConcepts, the 6 MotionStructures, the editorial/lightbox
+gallery, the location map, multi-page routing (currently one single
+page per lead, not the static engine's real index/leistungen/ueber-uns/
+kontakt split) — and, critically, **no dashboard button or Cloudflare
+publish integration yet**: exporting to demo-app is only reachable via
+`npm run export:react-demo -- <slug>` on the command line. The static
+HTML engine remains what "Demo erstellen"/"Öffentlich bereitstellen"
+actually do in the dashboard today.
 
-**What's actually blocked is pushing to GitHub** — see the KNOWN ISSUE
-note near the top of this file (a technical git-push hang, not a policy
-hold — standing push authorization is active). This has now happened on
-essentially every push attempt this stretch (5+ consecutive hangs, one
-of which eventually succeeded after several minutes). If you're a fresh
-session: there are likely several commits ahead of `origin/main` by the
-time you read this — check `git rev-parse origin/main HEAD` and push
-once; if it hangs, let it run in the background rather than stacking
-more attempts, and keep building in the meantime.
+Everything else in this file is complete, type-checked, linted, and
+verified live.
 
 ## BLOCKED
 
-Nothing. This is the first point in the project's history where every
-external integration is real and verified.
+Nothing. Every external integration (Cloudflare, Gmail, OpenRouter, git
+push via SSH) is real, configured, and verified working end-to-end.
 
 ## NEXT ACTION
 
 Per the active "AUTOPILOT — DEMO CREATIVE LAB" mission (standing
 authorization, keep working without waiting for prompts):
 
-1. **Resolve/retry the git push hang** — see the KNOWN ISSUE note near
-   the top. Check `git rev-parse origin/main HEAD` first; if a push is
-   already in flight, wait rather than stacking another.
+1. **Continue the demo-app migration** (see IN PROGRESS) — natural next
+   slices, roughly in order of value: (a) multi-page routing (React
+   Router nested routes reading the same per-slug JSON, matching the
+   static engine's real index/leistungen/ueber-uns/kontakt split —
+   right now everything is one long page); (b) wire a real dashboard
+   button/action that calls `exportLeadDataForReactApp()` instead of
+   requiring the CLI script; (c) port at least one more ConceptVariant's
+   layout/nav treatment so it's not visually identical for every lead;
+   (d) the editorial/lightbox gallery and the real location map, both
+   already proven in the static engine, ported into React components.
 2. ~~Interaction moments~~ **Done**: magnetic CTA on the hero's primary
    button (mission section 11) — see COMPLETED. Could still add a
    second, more industry-specific interaction (e.g. an interactive
@@ -643,24 +668,23 @@ Checked on both desktop and a 375px mobile viewport.
 
 ## LAST COMMIT
 
-`ca41d9c` — Fix: GSAP motion structures ignored the profile.motion=none
-business flag. **NOT pushed** — local HEAD is several commits ahead of
-`origin/main` (last pushed: `1b038a4`, the 20-color picker). See the
-PENDING note near the top of this file for why (user asked to hold
-pushes until they're back awake) and the standing
-`feedback-github-push-no-ask` authorization that still applies once they
-are. Run `git log origin/main..HEAD --oneline` to see exactly what's
-waiting.
+`c31d82a` — Fix: color picker showed 20 identical-looking black swatches
+on dark profiles. **Pushed successfully** — `origin/main` is caught up
+(verified via SSH push, ~2s, no hang). Git push authentication is now
+via SSH (see the top-of-file note), not the old HTTPS+GCM setup, so
+future pushes should be instant and silent going forward.
 
 ## NEXT PRIORITY
 
-**All P1 items are done**: Cloudflare, GitHub, and Gmail are all real,
-configured, and proven working end-to-end, and approved messages now
-pick up their real link automatically after publish. Demo Engine now
-has genuine motion (P2, this session). Next priority is P3: the formal
-variant registry with similarity detection, and/or continuing to
-publish real links and QA more industries as new leads come in — see
-NEXT ACTION.
+**All P1 items are done**: Cloudflare (shared-project architecture,
+survived a real regression), GitHub (SSH auth, push friction solved for
+good), Gmail, and OpenRouter AI image generation are all real,
+configured, and proven working end-to-end. The Demo Engine now has
+genuine motion, real photorealistic imagery (no more abstract-SVG
+fallback in practice once OpenRouter is configured), and a working
+20-color picker. **Current priority is P2**: the Vite/React/WebGL
+demo-app migration (see IN PROGRESS / NEXT ACTION) — a real, large,
+user-directed architecture initiative, not optional polish.
 
 ## CONCURRENT SESSION NOTE
 
