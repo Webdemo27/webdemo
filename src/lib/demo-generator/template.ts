@@ -347,8 +347,14 @@ function buildMotionCss(level: MotionLevel, flavor: MotionFlavor, structure: Mot
   /* Free cross-page fade in browsers that support the View Transitions
    * API (Chrome/Edge as of writing); everywhere else this rule is
    * simply ignored and navigation is instant, same as before — no
-   * feature detection needed, no JS. */
+   * feature detection needed, no JS. Naming the brand mark upgrades the
+   * plain crossfade into a real "shared element" transition (mission
+   * section 9) in those same browsers: the logo visually morphs to its
+   * new position/page instead of fading out and back in as a separate
+   * element — every page has exactly one .brand-mark, so the name is
+   * always unique within a document as the spec requires. */
   @view-transition { navigation: auto; }
+  .brand-mark { view-transition-name: demo-brand-mark; }
   ${revealRule}
 
   /* Kinetic typography: each hero headline word masks and slides up on
