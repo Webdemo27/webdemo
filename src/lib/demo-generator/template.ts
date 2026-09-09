@@ -273,23 +273,23 @@ function contactSection(lead: DemoData): string {
 const MOTION_FLAVORS = ["fade-up", "fade-scale", "fade-blur"] as const;
 type MotionFlavor = (typeof MOTION_FLAVORS)[number];
 
-function revealTransformCss(flavor: MotionFlavor): { hidden: string; filterTransition: string; filterReset: string } {
+function revealTransformCss(flavor: MotionFlavor): { hidden: string; hasFilter: boolean; filterReset: string } {
   if (flavor === "fade-scale") {
-    return { hidden: "transform: translateY(10px) scale(0.97);", filterTransition: "", filterReset: "" };
+    return { hidden: "transform: translateY(10px) scale(0.97);", hasFilter: false, filterReset: "" };
   }
   if (flavor === "fade-blur") {
     return {
       hidden: "transform: translateY(10px); filter: blur(6px);",
-      filterTransition: "filter var(--dur-reveal) var(--ease-out), ",
+      hasFilter: true,
       filterReset: "filter: blur(0);",
     };
   }
-  return { hidden: "transform: translateY(16px);", filterTransition: "", filterReset: "" };
+  return { hidden: "transform: translateY(16px);", hasFilter: false, filterReset: "" };
 }
 
 function buildMotionCss(level: MotionLevel, flavor: MotionFlavor, structure: MotionStructure): string {
   if (level === "none" || structure === "none") return "";
-  const { hidden, filterTransition, filterReset } = revealTransformCss(flavor);
+  const { hidden, hasFilter, filterReset } = revealTransformCss(flavor);
 
   // Same reveal mechanism throughout (opacity/transform on [data-reveal],
   // driven by the IntersectionObserver in reduceMotionScript), but three
@@ -304,6 +304,7 @@ function buildMotionCss(level: MotionLevel, flavor: MotionFlavor, structure: Mot
   const isEditorial = structure === "editorial-fade";
   const revealDuration = isEditorial ? "780ms" : isPunch ? "420ms" : "var(--dur-reveal)";
   const revealEasing = isPunch ? "var(--ease-out)" : "var(--ease-out)";
+  const filterTransition = hasFilter ? `filter ${revealDuration} ${revealEasing}, ` : "";
 
   const revealRule = isPunch
     ? `
