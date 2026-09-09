@@ -265,6 +265,23 @@ mission's top-priority ask this round.
 
 ## COMPLETED
 
+- **Demo-app: WebGL hero rendering fixed — abstract-SVG texture + text
+  scrim** (2026-09-09, same loop) — the known "abstract-SVG heroes
+  render as a broken/black WebGL texture" bug is fixed at the root
+  (`generateAbstractSvg()` now sets width/height attributes, not just
+  viewBox — required for `THREE.TextureLoader` loading it standalone via
+  `new Image()`, unlike the static engine's plain `<img>` usage which
+  never needed this). Also ported the static engine's `.hero-scrim` dark
+  gradient into demo-app, which never had one — white hero text was
+  illegible over light images/gradients. **Debugging note for future
+  sessions**: verifying this hit a false alarm from WebGL context
+  exhaustion (too many accumulated browser tabs across a long testing
+  session → "Context Lost", producing a misleading blank render) and a
+  red herring from `gl.readPixels()` (unreliable with
+  `preserveDrawingBuffer: false` — the buffer clears before a separate
+  readback call runs). If a canvas looks wrong mid-session, close stale
+  tabs and re-test with a fresh navigation before assuming a code bug;
+  trust screenshots over `readPixels` for this canvas config.
 - **Demo-app: real location map + live weather ported** (2026-09-09,
   same loop) — `LocationSection.tsx` brings the static engine's real
   OSM map embed and the live Open-Meteo weather badge into the React
