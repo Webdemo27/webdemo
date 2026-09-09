@@ -1,11 +1,7 @@
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
-import { Nav } from "./components/Nav";
-import { WebGLHero } from "./components/WebGLHero";
-import { ServicesSection } from "./components/ServicesSection";
-import { AboutSection } from "./components/AboutSection";
-import { ContactSection } from "./components/ContactSection";
-import type { LeadData } from "./types";
+import { Outlet, useParams } from "react-router-dom";
+import { Nav } from "../components/Nav";
+import type { LeadData } from "../types";
 
 /** Sets CSS custom properties from the lead's real color palette (same
  * variables the existing static-HTML engine uses) so every component
@@ -33,7 +29,13 @@ function applyTheme(data: LeadData) {
   document.title = `${data.companyName} — ${data.location}`;
 }
 
-export function App() {
+/** Fetches the lead's data once per slug and hands it down to whichever
+ * page route is active via <Outlet context={...}> (see routes/*.tsx,
+ * each reading it back with useOutletContext<LeadData>()) — real
+ * multi-page navigation (index/leistungen/ueber-uns/kontakt, matching
+ * the static-HTML engine's page split) instead of one long single
+ * page, without re-fetching data on every navigation. */
+export function Layout() {
   const { slug } = useParams();
   const [data, setData] = useState<LeadData | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -65,19 +67,7 @@ export function App() {
   return (
     <>
       <Nav data={data} />
-      <section id="home" className="hero">
-        <WebGLHero imageUrl={data.heroImage} />
-        <div className="hero-content">
-          <h1>{data.companyName}</h1>
-          <p className="hero-tagline">{data.tagline}</p>
-          <a className="btn-primary" href="#leistungen">
-            {data.servicesLabel} ansehen
-          </a>
-        </div>
-      </section>
-      <ServicesSection services={data.services} label={data.servicesLabel} />
-      <AboutSection text={data.aboutText} />
-      <ContactSection data={data} />
+      <Outlet context={data} />
       <footer className="site-footer">
         <div>Unverbindliches Demo-Konzept — kein offizieller Auftritt von {data.companyName}.</div>
         <span className="demo-flag">Demo-Vorschau · Vite + React + WebGL</span>
