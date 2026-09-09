@@ -1,5 +1,5 @@
 import type { VisualProfile, MotionLevel, ColorWorld } from "../visual-director/types";
-import type { ConceptVariant, HeroStyle, CtaIntensity, SectionKey } from "../visual-director/variants";
+import type { ConceptVariant, HeroStyle, CtaIntensity, SectionKey, MotionStructure } from "../visual-director/variants";
 import { pickVariant } from "../messaging/templates";
 import { toAssetView, groupByRole, type DemoAssetView } from "./asset-view";
 
@@ -287,24 +287,50 @@ function revealTransformCss(flavor: MotionFlavor): { hidden: string; filterTrans
   return { hidden: "transform: translateY(16px);", filterTransition: "", filterReset: "" };
 }
 
-function buildMotionCss(level: MotionLevel, flavor: MotionFlavor): string {
-  if (level === "none") return "";
+function buildMotionCss(level: MotionLevel, flavor: MotionFlavor, structure: MotionStructure): string {
+  if (level === "none" || structure === "none") return "";
   const { hidden, filterTransition, filterReset } = revealTransformCss(flavor);
+
+  // Same reveal mechanism throughout (opacity/transform on [data-reveal],
+  // driven by the IntersectionObserver in reduceMotionScript), but three
+  // genuinely different feels layered on top of it:
+  // - editorial-fade: slower, quieter — a plain transition, longer duration.
+  // - energetic-punch: a keyframe with a small scale overshoot instead of
+  //   a plain transition — snappier duration, real punch (never scale(0),
+  //   starts at 0.92 same as the animate skill's floor).
+  // - everything else (kinetic-stagger and the two GSAP structures, which
+  //   still use this for their non-hero sections): the existing baseline.
+  const isPunch = structure === "energetic-punch";
+  const isEditorial = structure === "editorial-fade";
+  const revealDuration = isEditorial ? "780ms" : isPunch ? "420ms" : "var(--dur-reveal)";
+  const revealEasing = isPunch ? "var(--ease-out)" : "var(--ease-out)";
+
+  const revealRule = isPunch
+    ? `
+  [data-reveal] { --stagger-index: 0; opacity: 0; animation-duration: ${revealDuration}; animation-timing-function: ${revealEasing}; animation-delay: calc(min(var(--stagger-index), 6) * 70ms); animation-fill-mode: forwards; }
+  [data-reveal].is-visible { animation-name: demoRevealPunch; }
+  @keyframes demoRevealPunch {
+    0% { opacity: 0; transform: translateY(16px) scale(0.92); }
+    65% { opacity: 1; transform: translateY(-3px) scale(1.03); }
+    100% { opacity: 1; transform: none; }
+  }`
+    : `
+  [data-reveal] {
+    --stagger-index: 0;
+    opacity: 0;
+    ${hidden}
+    transition: opacity ${revealDuration} ${revealEasing}, ${filterTransition}transform ${revealDuration} ${revealEasing};
+    transition-delay: calc(min(var(--stagger-index), 6) * 70ms);
+  }
+  [data-reveal].is-visible { opacity: 1; transform: none; ${filterReset} }`;
+
   return `
   /* Free cross-page fade in browsers that support the View Transitions
    * API (Chrome/Edge as of writing); everywhere else this rule is
    * simply ignored and navigation is instant, same as before — no
    * feature detection needed, no JS. */
   @view-transition { navigation: auto; }
-
-  [data-reveal] {
-    --stagger-index: 0;
-    opacity: 0;
-    ${hidden}
-    transition: opacity var(--dur-reveal) var(--ease-out), ${filterTransition}transform var(--dur-reveal) var(--ease-out);
-    transition-delay: calc(min(var(--stagger-index), 6) * 70ms);
-  }
-  [data-reveal].is-visible { opacity: 1; transform: none; ${filterReset} }
+  ${revealRule}
 
   [data-reveal] .editorial-image, [data-reveal] .service-media, [data-reveal] .detail-image, [data-reveal] .environment-image {
     clip-path: inset(0 0 100% 0);
@@ -355,7 +381,7 @@ function buildMotionCss(level: MotionLevel, flavor: MotionFlavor): string {
 
   @media (prefers-reduced-motion: reduce) {
     [data-reveal], [data-reveal] .editorial-image, [data-reveal] .service-media, [data-reveal] .detail-image, [data-reveal] .environment-image {
-      transition: none !important; transform: none !important; filter: none !important; clip-path: none !important; opacity: 1 !important;
+      transition: none !important; animation: none !important; transform: none !important; filter: none !important; clip-path: none !important; opacity: 1 !important;
     }
     .btn-primary::after, .header-cta::after { display: none; }
   }`;
@@ -554,6 +580,59 @@ function three3dScript(colorHex: string): string {
   </script>`;
 }
 
+const GSAP_VERSION = "3.12.5";
+
+/** GSAP + ScrollTrigger, loaded via CDN only for the two motion
+ * structures that actually use it — same "load it only where it earns
+ * its weight" rule as Three.js/use3d. Deliberately purely additive on
+ * top of the vanilla [data-reveal] system, never load-bearing for basic
+ * visibility: cinematic-parallax nudges the hero visual's own position
+ * (still fully visible either way), scroll-scrub adds a slow zoom to
+ * images that the vanilla clip-path reveal already made visible on its
+ * own. If GSAP fails to load or throws, the page still works exactly as
+ * it would without this script. */
+function gsapMotionScript(structure: MotionStructure): string {
+  if (structure !== "cinematic-parallax" && structure !== "scroll-scrub") return "";
+
+  const effect =
+    structure === "cinematic-parallax"
+      ? `
+        var heroBg = document.querySelector('.hero-bg');
+        var hero = document.querySelector('.hero');
+        if (heroBg && hero) {
+          gsap.to(heroBg, {
+            yPercent: 14,
+            ease: 'none',
+            scrollTrigger: { trigger: hero, start: 'top top', end: 'bottom top', scrub: true },
+          });
+        }`
+      : `
+        gsap.utils.toArray('.editorial-image, .detail-image, .service-media, .environment-image').forEach(function (img) {
+          gsap.fromTo(
+            img,
+            { scale: 1.12 },
+            { scale: 1, ease: 'none', scrollTrigger: { trigger: img, start: 'top 95%', end: 'top 35%', scrub: true } }
+          );
+        });`;
+
+  return `
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/${GSAP_VERSION}/gsap.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/${GSAP_VERSION}/ScrollTrigger.min.js"></script>
+  <script>
+    (function () {
+      if (typeof gsap === 'undefined' || typeof ScrollTrigger === 'undefined') return;
+      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+      try {
+        gsap.registerPlugin(ScrollTrigger);
+        ${effect}
+      } catch (e) {
+        // GSAP unavailable/blocked — the vanilla reveal system already
+        // made every element visible on its own, so nothing breaks.
+      }
+    })();
+  </script>`;
+}
+
 /** A demo is a small multi-page site, not one scrolling document — page
  * count and navigation come from what real content actually exists for
  * this lead/variant, never padded out. "Leistungen" only gets its own
@@ -696,7 +775,7 @@ export function renderDemoSite(
       : "";
   const showHeaderCta = variant.heroStyle !== "minimal";
   const motionFlavor = pickVariant([...MOTION_FLAVORS], seed + ":motionFlavor");
-  const motionCss = buildMotionCss(profile.motion, motionFlavor);
+  const motionCss = buildMotionCss(profile.motion, motionFlavor, variant.motionStructure);
 
   const styleBlock = `
   :root {
@@ -968,6 +1047,7 @@ export function renderDemoSite(
   ${headerScrollScript()}
   ${colorPickerScript(colorwayOptions, activeColorwayIndex)}
   ${slug === "" && profile.use3d ? three3dScript(profile.colors.accent) : ""}
+  ${variant.motionStructure === "scroll-scrub" || (slug === "" && variant.motionStructure === "cinematic-parallax") ? gsapMotionScript(variant.motionStructure) : ""}
 </body>
 </html>
 `;
