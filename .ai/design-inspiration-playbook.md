@@ -256,5 +256,56 @@ brokerage, but the property-presentation techniques still transfer:
   worth treating as a genuinely reusable, industry-agnostic pattern
   rather than a one-off.
 
-**Next industries to research**: Anwalt/law firm, Friseur/salon,
-Autowerkstatt — continue this section rather than starting a new file.
+### Anwalt / law firm — "ARIO" (ario.law, Awwwards honorable mention)
+
+Same thin-coverage issue as real estate — Awwwards' free-text search
+found nothing for "law firm"/"law" until the exact tag URL
+(`/websites/law/`) was used directly.
+
+- **Scattered-letters-assemble-on-click hero**: the firm's wordmark
+  ("ARIO") starts as its individual giant letters scattered across
+  the far corners of the viewport over a plain gradient background;
+  the visitor's first click snaps them into their correct reading
+  position as the header slides in. A genuine, memorable first
+  interaction tied directly to the brand name — same *category* of
+  idea as Zero University's "draw a zero" gesture (see the six-site
+  playbook above) but far more restrained: one click, not a traced
+  gesture, and it doesn't block any real content behind it (the letters
+  are already legible, just not yet assembled) — a much safer version
+  of "interaction embodies the brand name" for this project's own
+  no-gratuitous-friction rule.
+- **Deliberately casual, human copy breaking the stiff-lawyer
+  stereotype**: "We enjoy the law, adore the drive, crisis situations
+  motivate and changes inspire us. Our team is more than freaking
+  awesome lawyers." — a real content/tone lesson more than a visual
+  technique: this project's own Rechtsanwalt profile
+  (`brandImpression: "seriös, autoritär, vertrauenswürdig"`) is
+  deliberately the opposite (serious/formal), which is a legitimate,
+  different brand choice — but confirms "serious" isn't the only valid
+  tone for this industry if a specific lead's own real personality
+  warrants something warmer (not to invent a warmer tone by default).
+- **A real named-partner video intro** ("OLEKSII VORONKO, MANAGING
+  PARTNER") — exactly the mission's own "Anwalt: Autorität/Case Story"
+  WOW-moment ask, done for real. Not currently buildable honestly in
+  this project: would need a real video of a real named partner, which
+  research doesn't currently capture — logged here as the concrete
+  target to aim for if/when a lead's own site or Impressum ever
+  surfaces one, rather than inventing a stand-in.
+- **Bold real-number stat cards** ("4+ years in the legal market", "5+
+  lawyers in the team") — large numeral, thin divider tick above,
+  one-line label below. Honest and simple, but **currently blocked by
+  data availability**: this project's research pipeline (OSM Overpass)
+  doesn't capture company age or team size, so building this now would
+  mean inventing numbers — exactly what "nicht erfinden" forbids. Keep
+  this pattern in mind if a future research source ever provides real
+  values for these.
+- **Scroll-scrubbed two-tone heading** ("Rock the *Future with the Rule
+  of Law*" — the first few words solid white, the rest dimmer gray,
+  the split point tied to scroll position rather than fixed) — a
+  genuine scroll-scrub technique, distinct from Qissa's *static* inline
+  accent word. Cheap to build with the GSAP/ScrollTrigger plumbing this
+  project already has (`scroll-scrub` motionStructure) and needs no new
+  data — directly shippable.
+
+**Next industries to research**: Friseur/salon, Autowerkstatt — continue
+this section rather than starting a new file.
