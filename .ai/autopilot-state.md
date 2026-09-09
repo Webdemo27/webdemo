@@ -265,6 +265,21 @@ mission's top-priority ask this round.
 
 ## COMPLETED
 
+- **Numbered stacked feature list for professionalProfile leads**
+  (2026-09-09) — one of the two directly-shippable techniques logged in
+  the GSAP/Awwwards research (The Nest, thenest.pl) now actually built:
+  `numberedFeatureList()` in template.ts, gated on the exact
+  `brandImpression` string `professionalProfile()` gives Rechtsanwalt/
+  Steuerberater ("seriös, autoritär, vertrauenswürdig"). No cards, no
+  icons — em-dash numbered eyebrow + heading + divider line, real
+  service labels only (deliberately omits the per-item description/link
+  The Nest's real version has, since this project has no real per-service
+  paragraph or destination to show honestly). Every other industry's
+  card-grid `servicesSection` is untouched. Verified live on a real lead
+  (Wille Rechtsanwälte): renders correctly, zero console errors.
+  **Still open from that research**: the pin-marker/floor-label reveal
+  technique — blocked by needing real per-floor/per-room data a lead
+  would have to supply, not buildable honestly without it.
 - **Angled/tilted GSAP carousel prototype for Tobias Grünert** (2026-09-09)
   — explicit user request, scoped to ONE lead only, gated behind review:
   "wenn ich damit zufrieden bin werden bei immobilienmakler branche diese
@@ -670,9 +685,12 @@ mission below, in this order:**
     during a simulated scroll, fallback renders correctly, zero console
     errors. **Not yet wired into the live ConceptVariant/SectionKey
     system** — same "prototype → verify → let it be reviewed before wide
-    rollout" discipline as the carousel; the two other researched
-    techniques (numbered feature list, pin-marker labels) are logged as
-    directly-shippable/data-gated respectively but not yet built.
+    rollout" discipline as the carousel. Of the two other researched
+    techniques: the numbered feature list is now built and shipped live
+    (see COMPLETED) since it needed no gating (it's a real, direct
+    services[] rendering, not a new unreviewed motion prototype); the
+    pin-marker/floor-label reveal remains data-gated (needs real
+    per-floor facts a lead would have to supply).
 0c. **Loop cadence changed 2026-09-09**: user asked for 10-minute
     check-ins instead of the previous ~25-minute self-paced cadence —
     use `delaySeconds` around 600 (not 1500-1800) for ScheduleWakeup
