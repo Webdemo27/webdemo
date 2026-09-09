@@ -4,161 +4,171 @@ Read this file, `CLAUDE.md`, `git log --oneline -20`, and `git status` at the
 start of every new session on this project before doing anything else. Then
 go straight to NEXT ACTION — don't wait for a new task description.
 
-Last updated: 2026-09-08 (session covering the CEO quality audit,
-Cloudflare rebuild, and the first real Cloudflare publish).
+Last updated: 2026-09-09 (session covering the CEO quality audit,
+Cloudflare rebuild, first real Cloudflare publish, first GitHub push, and
+the multi-page Demo Engine rebuild).
 
 ## CURRENT OBJECTIVE
 
 Make the full pipeline (research → contact discovery → analysis → demo →
-visuals → before/after → offer → deploy → verify → hand-off for sending)
-genuinely sellable — not just architecturally complete. Owner: Hacibekir
-Cayir.
+visuals → before/after → offer → deploy → verify → Gmail draft / manual
+send) genuinely sellable — not just architecturally complete. Owner:
+Hacibekir Cayir.
 
 ## CURRENT PHASE
 
-**Cloudflare is live and proven end-to-end.** Real credentials were added
-this session; the first real publish succeeded (see LAST SUCCESSFUL TEST).
-**Plan change from the user: Gmail OAuth is dropped.** Hacibekir couldn't
-create a Gmail API token and will send outreach emails manually himself.
-Don't push Gmail setup further — the job now is making sure the approved
-message text (with the real public link) is always correct and easy to
-copy, not getting a Gmail draft created. The Settings page's Gmail
-setup section can stay (harmless, might get used later) but isn't a
-priority to revisit.
+**Cloudflare is live and proven end-to-end** (real publish + verify
+succeeded). **GitHub is connected and pushed** — `origin/main` exists and
+matches local `main`. **Gmail is back in progress**: the user un-dropped
+it and is working through real OAuth setup live with Claude's help —
+hit and fixed a real setup bug (Desktop-app OAuth clients can't be used
+with the OAuth Playground's redirect flow; needs a Web-application-type
+client with `https://developers.google.com/oauthplayground` as an
+authorized redirect URI). Client ID/secret regenerated correctly as a
+Web app and saved to `.env`; still waiting on the final
+`GMAIL_REFRESH_TOKEN` from the Playground's Step 2. **Demo Engine now
+builds real multi-page sites** (see COMPLETED) — this was the master
+mission's top-priority ask this round.
 
 ## COMPLETED
 
-- Full pipeline: research (OSM Overpass, with retry on transient 502/503/504)
-  → analysis (cheerio audit + real Playwright before-screenshots) → contact
-  discovery (crawls Impressum/Kontakt/Datenschutz, ranked by domain-match +
-  source authority, verified against real sites) → scoring → X-ray →
-  concept/variant selection (8 structural variants × 7 industry visual
-  profiles) → demo generation (real/abstract asset pipeline, real
-  after-screenshot capture) → pricing (3 sourced market anchors, documented,
-  −€100 rule) → messaging → Gmail draft prep (real signature, preflight
-  checklist) → Cloudflare publish (rewritten on Wrangler CLI this session).
-- Dashboard: premium redesign (editorial hero, pipeline-value panel,
-  shimmer CTAs, correct button-priority hierarchy), HOT/WARM/COLD priority
-  column in the leads table, Before/After screenshot card, enlarged demo
-  preview with copy-URL feedback.
+- Full pipeline: research (OSM Overpass, retries on transient
+  502/503/504) → analysis (cheerio audit + real Playwright
+  before-screenshots) → contact discovery (crawls Impressum/Kontakt/
+  Datenschutz, ranked by domain-match + source authority) → scoring →
+  X-ray → concept/variant selection → demo generation (now multi-page,
+  see below) → pricing (3 sourced market anchors, −€100 rule) →
+  messaging → Cloudflare publish (Wrangler CLI) → Gmail draft prep
+  (real signature, preflight checklist) or manual copy-to-clipboard.
+- **First real Cloudflare publish, verified live**: lead "Meisterschnitt"
+  → https://dc2f5187.meisterschnitt.pages.dev, reachable, content-matched,
+  saved. Fixed the two bugs this exposed (DNS-propagation poll window
+  too short; approved messages couldn't be edited to add the link once
+  one existed).
+- **First GitHub push**: `origin/main` created from a previously-empty
+  remote. Scanned full history for secrets before pushing (none found).
+  Verified `origin/main` == local `HEAD` after push.
+- **Demo Engine: real multi-page sites**, not one scrolling page.
+  `renderDemoSite()` emits index.html / leistungen.html / ueber-uns.html
+  / kontakt.html (only the pages that have real content for that
+  variant+industry — e.g. luxury-minimal correctly gets a 3-page site,
+  no Leistungen page, since it has no services section at all). Real
+  nav with active-state per page. Industry-real secondary-page labels
+  (Speisekarte/Angebot/Zimmer & Angebote/Leistungen). Two bugs found
+  and fixed while verifying live across two industries: (1)
+  deriveServiceLabels() was wrongly gated on having a "service" image
+  asset role, so Rechtsanwalt/Steuerberater never got a Leistungen page
+  despite having real service labels; (2) the services section's <h2>
+  was hardcoded "Leistungen" regardless of the resolved nav label,
+  so a restaurant's page said "Speisekarte" in nav but "Leistungen" in
+  its own heading.
+- Dashboard: premium redesign, HOT/WARM/COLD priority column, Before/
+  After screenshot card (later upgraded by the concurrent session into
+  an interactive drag slider), enlarged demo preview, copy-URL feedback.
 - Fixed a critical bug where re-analyzing an already-approved lead could
-  silently rewind its status and let /loop overwrite an approved message —
-  now guarded by `advancePipelineStatus` (forward-only) plus a hard refusal
-  in `runMessageGeneration` if the message is already approved/rejected/sent.
-- Cloudflare publisher rewritten from a broken hand-rolled single-file API
-  call to `wrangler pages deploy <dir>` (uploads the whole directory,
-  images included).
-- **First real Cloudflare publish succeeded** (lead "Meisterschnitt" →
-  https://dc2f5187.meisterschnitt.pages.dev, real, reachable, verified).
-  Two bugs this exposed, both fixed: (1) verify.ts's ~48s poll budget was
-  too short for a brand-new *.pages.dev subdomain's first DNS propagation
-  — increased to ~140s; (2) message-review-card.tsx hid the "Bearbeiten"
-  button once a message was approved, so a message approved *before* a
-  public URL existed had no UI path to get the real link added — changed
-  the condition from `!decided` to `!sentAt`.
-- Used the now-editable approved message to add Meisterschnitt's real
-  link, replacing the "I'll send the link separately" placeholder
-  sentence — this exact text is what would go to a real customer.
+  silently rewind its status and let /loop overwrite an approved
+  message — guarded by `advancePipelineStatus` (forward-only) plus a
+  hard refusal in `runMessageGeneration`.
 
 ## IN PROGRESS
 
-- Nothing mid-edit. Working tree is clean as of the last commit below.
+- **Gmail OAuth, live with the user**: waiting on them to redo Step 1
+  authorization in the OAuth Playground with the new Web-app credentials
+  (already saved to `.env`) and send back the resulting
+  `GMAIL_REFRESH_TOKEN` from Step 2. Nothing to do here until that
+  arrives — don't re-attempt or guess at it.
 
 ## BLOCKED
 
-Nothing. Cloudflare is fully configured and proven working. Gmail is
-intentionally not being pursued (see CURRENT PHASE) — not a blocker, a
-dropped requirement.
+- Only the Gmail refresh token, and only on the user completing the
+  Playground flow (interactive Google login — Claude cannot do this
+  step). Cloudflare and GitHub are both fully working, nothing blocked
+  there.
 
 ## NEXT ACTION
 
-1. The end-to-end mechanism is proven. The real next lever is *volume and
-   quality across many leads*, not more infrastructure: for each lead
-   that reaches an approved message, actually click "Öffentlich
-   bereitstellen" so it gets a real link before Hacibekir copies the text
-   to send — this doesn't happen automatically, someone (a session or
-   Hacibekir) has to trigger it per lead.
-2. Consider whether "Demo erstellen"/regeneration should auto-publish once
-   Cloudflare is configured, vs. staying a manual per-lead click — a
-   product decision, not obviously a bugfix, so don't just wire it
-   without thinking about project-limit/rate implications (every publish
-   creates a real Cloudflare Pages project).
-3. The highest-value P2 work (per the master mission) is the Demo Engine:
-   today there are 8 structural ConceptVariants × 7 industry
-   VisualProfiles (56 combinations) — real and tested, but the mission
-   asks for ≥30 *named* creative directions with their own typography/
-   motion systems (kinetic type, scroll-reveal, magnetic CTA, etc.),
-   which is a genuinely large, separate body of design+code work, not a
-   quick add-on. Don't start it speculatively without deciding scope
-   first — it's easy to half-build a "variant explosion" that produces 30
-   shallow reskins instead of 30 real concepts, which the mission
-   explicitly calls out as not counting. A CREATE SALES PACKAGE
-   single-button flow and the 10-metric dashboard (mission sections
-   16-17) are smaller, well-scoped P2 items without this risk.
+1. **When `GMAIL_REFRESH_TOKEN` arrives**: save it to `.env`, restart
+   the dev server, then run one real end-to-end test — approve a
+   message for a lead with both a real contact email AND a real
+   Cloudflare public URL (e.g. re-verify Meisterschnitt, which has
+   both already), click "Gmail-Entwurf vorbereiten", confirm the
+   preflight checklist is all-green and a real Gmail draft appears in
+   hacibekircayir@gmail.com's Drafts folder (draft only — never call
+   `.send()`).
+2. **Demo Engine QA pass**: the multi-page rebuild has been verified on
+   2 industries (law firm, restaurant) plus one 4-page and implicitly
+   the 3-page (luxury-minimal) case by code inspection but not yet
+   visually confirmed live — spot-check a lead that lands on
+   luxury-minimal or corporate (both have thin/no-services
+   sectionOrders) to visually confirm a clean 2-3 page site, and check
+   the Hotel/Immobilienmakler "Zimmer & Angebote" label live (not yet
+   screenshotted).
+3. **Publish real links for more approved leads** — Cloudflare works
+   but only Meisterschnitt has actually been published; every other
+   approved-or-approvable lead is still sitting on a local-only demo.
+4. Per the master mission's Demo Engine ask (≥30 named creative
+   directions, typography/motion systems, variant registry with
+   similarity detection): the multi-page work above is the structural
+   piece; the registry/typography/motion expansion is bigger, separate
+   design work — don't start it speculatively mid-session. If picked
+   up, scope it deliberately (which named directions, what they change
+   beyond color/font) rather than generating filler variants.
 
 ## KNOWN BUGS
 
-- Two pre-existing test leads ("Dr. Ortwin Schuchardt", "Haarstudio Bahar")
-  are permanently stuck in `DEMO_CREATED` with a stale pre-fix error — from
-  before `generateDemo()` required an analysis to exist. Local dev data
-  only, not a live defect; safe to ignore or delete via the dashboard.
+- Two pre-existing test leads ("Dr. Ortwin Schuchardt", "Haarstudio
+  Bahar") are permanently stuck in `DEMO_CREATED` with a stale pre-fix
+  error. Local dev data only, safe to ignore or delete.
 
 ## KNOWN LIMITATIONS
 
-- Contact discovery only crawls pages linked from the homepage nav/footer
-  (Impressum/Kontakt/Datenschutz/Team/Über uns) — a site that buries its
-  contact page differently, or has no crawlable link to it at all, will
-  correctly report "nothing found" rather than guessing.
-- The abstract-art asset fallback (used when a lead's site has no usable
-  real photos and no image-generation provider is configured) covers two
-  layout families well (grid-clean panel motif, gradient-mesh blobs);
-  `duotoneBlocks` (bold-blocks layout) hasn't had the same level of
-  scrutiny — worth a look if a bold-conversion demo ever looks off.
-- No image-generation provider is configured (by design — optional,
-  fails closed) — every demo without real photos currently uses the
-  deterministic abstract-SVG fallback, never a generated photo.
+- Contact discovery only crawls pages linked from the homepage
+  nav/footer — a site burying its contact page elsewhere correctly
+  reports "nothing found" rather than guessing.
+- No image-generation provider configured (by design, optional, fails
+  closed) — every demo without real photos uses the deterministic
+  abstract-SVG fallback.
+- Multi-page detail pages (per-project/per-property/per-team-member,
+  e.g. `/leistungen/[slug]`) are deliberately NOT built — there's no
+  real underlying per-item data model yet (just category labels), and
+  inventing per-item descriptions would violate "nicht erfinden". Would
+  need real structured content (research findings per service/project)
+  before this is honest to build.
 
 ## LAST SUCCESSFUL TEST
 
-**Real Cloudflare publish, full end-to-end (2026-09-08):** lead
-"Meisterschnitt" → `wrangler pages project create` + `pages deploy` →
-real deployment at a *.pages.dev subdomain → verified reachable (after
-fixing the DNS-propagation poll window) and content-matched →
-`Demo.publicUrl` saved → approved message edited (using the now-fixed
-Bearbeiten button) to include the real link in place of the
-no-link-yet placeholder sentence. This is the complete HAUPTZIEL path
-proven with real infrastructure, for the first time this project has
-existed. Full `tsc`/`lint`/`next build` clean at HEAD.
+**Multi-page demo generation, verified live (2026-09-09):** regenerated
+Rechtsanwalt Bocionek (4 pages: services page appeared correctly after
+the deriveServiceLabels fix) and Ristorante Classico Da Gigi's (4 pages,
+"Speisekarte" label correct in both nav and heading after the second
+fix). Nav active-state, page titles, mobile nav layout all confirmed via
+screenshot. Full `tsc`/`lint`/`next build` clean at HEAD.
 
-Earlier in the session: real end-to-end contact discovery +
-before-screenshot capture verified on real leads (bakery, law firm,
-hotel, hairdresser) via the standard `/loop` path, including a genuine
-domain-match ranking fix and rejection of a legally-mandated-but-
-irrelevant dispute-resolution-board address. Real Before/After
-comparison verified on a hairdresser lead.
+Just before that: real Cloudflare publish end-to-end (Meisterschnitt →
+live, verified, reachable `*.pages.dev` URL; approved message edited to
+include the real link).
 
 ## LAST COMMIT
 
-`52415d8` — First real Cloudflare publish succeeded — fix the two bugs
-it found. Working tree clean, nothing pushed (per standing rule: never
-push without the user's explicit approval for that specific push, which
-overrides any mission/goal text asking for automatic push-on-milestone).
+`29ff617` — Demo Engine: real multi-page sites instead of one-page
+scrolling demos. Pushed to `origin/main` (confirmed in sync). Two
+commits pushed this session total (`a27b6c8` first, then `29ff617`).
 
 ## NEXT PRIORITY
 
-P1 (Cloudflare) is done and proven. Gmail is dropped per user decision.
-Next priority is P2: pick between (a) publishing real links for more
-approved leads so there's a growing set of ready-to-send messages, or
-(b) the CREATE SALES PACKAGE button / dashboard metrics from the master
-mission (sections 16-17) — both are well-scoped and don't carry the
-"30 shallow reskins" risk the Demo Engine expansion does.
+P1 items (Cloudflare, GitHub) are done and proven. Gmail is back
+in-progress with the user, one step from done — that's the most
+immediate next priority once the refresh token arrives. In parallel,
+P2 Demo Engine QA (item 2 above) and publishing more real links (item 3)
+are good next steps that don't require waiting on anything.
 
 ## CONCURRENT SESSION NOTE
 
-Another Claude Code session has been active on this same working
-directory (not an isolated worktree) during this session — it committed
-`81537be` and `89cf5b5` (the interactive Before/After slider) while this
-session was working. Always check `git status`/`git log` for changes
-made outside this session before assuming the tree matches what you last
-read, and stage files explicitly (never a blanket `git add -A`) to avoid
-committing another session's in-progress, unreviewed work.
+Another Claude Code session was active on this same working directory
+(not an isolated worktree) earlier in this session — it committed
+`81537be` and `89cf5b5` (the interactive Before/After slider). Always
+check `git status`/`git log` for changes made outside this session
+before assuming the tree matches what you last read, and stage files
+explicitly (never a blanket `git add -A`) to avoid committing another
+session's in-progress, unreviewed work. Not observed active in the most
+recent part of this session, but assume it could resume.
