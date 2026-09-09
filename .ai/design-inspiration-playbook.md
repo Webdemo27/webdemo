@@ -339,7 +339,38 @@ just the tag match.
   WOW-moment ask if paired with a real before/after pair (not invented —
   only if real before/after photos exist for a lead).
 
-### Autowerkstatt — not yet researched this session.
+### Autowerkstatt — "363 Car & Social Club" (363sudbury.com, Awwwards HM)
 
-**Next industries to research**: Autowerkstatt — continue this section
-rather than starting a new file.
+Note: "car-repair"/"car repair shop" tags on Awwwards mostly surface
+unrelated results (a car-diagnostics software product, an injury law
+firm, a car wash) — this one is a car enthusiasts' club (secure storage
++ concierge car care), not a repair shop either, but the technique
+below is genuinely industry-agnostic and the standout find of this
+whole research thread.
+
+- **A real, live weather widget for the business's actual city**
+  ("Greater Sudbury, ON — Patchy rain 21°C", top-right of the hero,
+  updating in real time) — not decoration, genuinely live current data
+  for the real location. **Directly and broadly buildable, verified
+  live**: [Open-Meteo](https://api.open-meteo.com) is a completely
+  free, keyless, CORS-open weather API — confirmed with a real
+  cross-origin fetch from this project's own dashboard origin. This
+  project already captures real lat/lon per lead for the location map
+  (`Lead.latitude`/`longitude`), so a weather badge needs no new data
+  source at all. Arguably a *better* "real, live, honest" WOW moment
+  than anything currently in the demo engine (even the location map is
+  static once rendered) — not automotive-specific, applicable to any
+  industry with coordinates. Highest-value single finding from the
+  whole Awwwards research thread; shipping this next.
+- Bold dark hero (real high-end car in a moody garage photo), a
+  boxed monogram logo mark, and a full-bleed neon-yellow bottom bar for
+  primary nav ("Explore") — strong, simple high-contrast color-blocking
+  against the otherwise dark/desaturated palette. Good reference for a
+  bold accent-color-as-navigation-bar treatment for `energetic-punch`
+  motionStructure profiles.
+
+Per-industry Awwwards research thread complete for now (Restaurant,
+Real Estate, Anwalt, Friseur, Autowerkstatt) — revisit for more
+industries (Café, Bäckerei, Immobilienmakler-specific brokerages,
+Zahnarzt/Arztpraxis, Fahrradladen) in a future session rather than
+re-researching these five.
