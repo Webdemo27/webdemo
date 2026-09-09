@@ -4,6 +4,8 @@ import { PageHeader } from "@/components/layout/page-header";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Table, Thead, Tbody, Tr, Th, Td } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
+import { DeleteDemoButton } from "@/components/demos/delete-demo-button";
+import { deleteDemoAction } from "./actions";
 import { Browser, ArrowSquareOut } from "@phosphor-icons/react/dist/ssr";
 
 export const dynamic = "force-dynamic";
@@ -56,12 +58,20 @@ export default async function DemosPage() {
                     {new Intl.DateTimeFormat("de-DE", { dateStyle: "medium" }).format(demo.createdAt)}
                   </Td>
                   <Td className="text-right">
-                    <a href={`/demos/${demo.slug}/index.html`} target="_blank" rel="noopener noreferrer">
-                      <Button variant="outline" size="sm">
-                        <ArrowSquareOut size={14} aria-hidden="true" />
-                        Ansehen
-                      </Button>
-                    </a>
+                    <div className="flex justify-end gap-2">
+                      <a href={`/demos/${demo.slug}/index.html`} target="_blank" rel="noopener noreferrer">
+                        <Button variant="outline" size="sm">
+                          <ArrowSquareOut size={14} aria-hidden="true" />
+                          Ansehen
+                        </Button>
+                      </a>
+                      <DeleteDemoButton
+                        demoId={demo.id}
+                        companyName={demo.lead.companyName}
+                        wasPublished={Boolean(demo.publicUrl)}
+                        action={deleteDemoAction}
+                      />
+                    </div>
                   </Td>
                 </Tr>
               ))}

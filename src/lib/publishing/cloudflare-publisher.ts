@@ -191,4 +191,32 @@ export class CloudflarePagesPublisher implements DemoPublisher {
       };
     }
   }
+
+  /** Tears down the whole Cloudflare Pages project (all its deployments,
+   * the `<project>.pages.dev` domain) — the counterpart to publish(),
+   * for cleaning up a demo that's no longer wanted. `--yes` is required:
+   * this command normally prompts for confirmation, and stdin is closed
+   * immediately on every wrangler call (see runWrangler), so an
+   * unconfirmed prompt would otherwise just fail on EOF instead of
+   * actually deleting anything. A project that's already gone (or never
+   * existed on Cloudflare — e.g. a demo that was never published) is
+   * treated as success, same "already exists" tolerance as create(). */
+  async deleteProject(slug: string): Promise<{ ok: boolean; error?: string }> {
+    if (!isCloudflareConfigured()) {
+      return { ok: false, error: "Cloudflare ist nicht konfiguriert (CLOUDFLARE_API_TOKEN/CLOUDFLARE_ACCOUNT_ID fehlen in .env)." };
+    }
+    try {
+      const projectName = toProjectName(slug);
+      const result = await runWrangler(["pages", "project", "delete", projectName, "--yes"]);
+      if (result.code !== 0 && !/not found|does not exist|couldn.?t find/i.test(result.output)) {
+        return { ok: false, error: `Cloudflare-Projekt konnte nicht gelöscht werden: ${result.output.slice(0, 500)}` };
+      }
+      return { ok: true };
+    } catch (e) {
+      return {
+        ok: false,
+        error: e instanceof Error ? e.message : "Unbekannter Fehler beim Löschen des Cloudflare-Projekts.",
+      };
+    }
+  }
 }
