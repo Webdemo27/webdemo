@@ -265,6 +265,36 @@ mission's top-priority ask this round.
 
 ## COMPLETED
 
+- **Neutral showcase demos for playbook techniques + reusable generator**
+  (2026-09-09) — explicit user request: "generiere die webseiten die du
+  playbook erstellt hast von awwwwards als demos". Asked via
+  AskUserQuestion whether to apply techniques to real leads or build
+  neutral standalone showcases; user chose **neutral showcases**
+  (placeholder company "Musterfirma", not a real lead — an internal
+  technique catalog independent of the real lead pipeline). Built three
+  more real section functions in template.ts: `typographyHeroSection()`
+  (Rezo Zero — zero imagery, confident statement), `scallopedHeroSection()`
+  (Filmbot — pill-shaped image-mask columns, film-strip motif),
+  `marqueeSection()` (Qissa — scrolling keyword ticker, real service
+  labels only). `scripts/generate-showcase.ts` is a **reusable** (not
+  disposable) generator — real `renderDemoSite()` pipeline + neutral
+  profile + abstract-SVG placeholder assets (same no-invented-photo
+  fallback the real pipeline already uses, zero OpenRouter cost) — rerun
+  it any time to add more as more playbook techniques get built. Output
+  under `public/demos/_showcase/` (git-ignored like all demo output).
+  **Bug caught and fixed during verification**: the typography hero's
+  CTA link inherited the real hero's white/photo-scrim text color,
+  illegible on its own light background — fixed with scoped
+  `.typo-hero .cta-link`/`.btn-ghost` overrides. Verified live (fresh
+  tab, clean console) on both showcases.
+  **Still queued from the playbook** (not yet built as showcases):
+  Podium, Gionatan Nese, United Carriers' neon accent nav bar, Zero
+  University's "draw a zero" gesture, ARIO's scattered-letters-assemble
+  hero, Serenity Hair, 363 Car & Social Club's neon bar, and the two
+  GSAP-research items already logged (pin-marker/floor-label reveal —
+  data-gated; the project reel and numbered list are already shipped as
+  real gated/live features, not showcase-only). Continue adding to
+  `generate-showcase.ts` in future iterations rather than re-researching.
 - **Numbered stacked feature list for professionalProfile leads**
   (2026-09-09) — one of the two directly-shippable techniques logged in
   the GSAP/Awwwards research (The Nest, thenest.pl) now actually built:
