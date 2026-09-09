@@ -44,6 +44,8 @@ export async function runResearch(
         address: candidate.address,
         contactPhone: candidate.contactPhone,
         contactEmail: candidate.contactEmail,
+        latitude: candidate.latitude,
+        longitude: candidate.longitude,
         source: source.name,
         sourceRef: candidate.sourceRef,
       });

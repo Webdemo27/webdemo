@@ -143,6 +143,8 @@ export async function generateDemo(leadId: string): Promise<GenerateDemoResult> 
     address: lead.address,
     contactPhone: lead.contactPhone,
     contactEmail: lead.contactEmail,
+    latitude: lead.latitude,
+    longitude: lead.longitude,
   };
 
   const { pages, placeholders } = renderDemoSite(demoData, profile, assetRows, variant);

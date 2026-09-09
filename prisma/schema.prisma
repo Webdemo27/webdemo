@@ -36,6 +36,15 @@ model Lead {
   location       String?
   website        String?
   domain         String?
+  /// Real coordinates of this exact business, straight off the OSM
+  /// element (a node's own lat/lon, or a way's `center` from Overpass's
+  /// `out center`) — never geocoded/guessed separately, and distinct
+  /// from Nominatim's city-level place lookup used only for the search
+  /// radius. Null for leads researched before this field existed, or
+  /// any future source that doesn't provide coordinates. Powers the
+  /// real embedded location map in the demo (see demo-generator).
+  latitude       Float?
+  longitude      Float?
 
   contactName    String?
   /// Denormalized primary contact email, always mirrored from the

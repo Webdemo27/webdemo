@@ -7,6 +7,11 @@ export interface LeadCandidate {
   address?: string;
   contactPhone?: string;
   contactEmail?: string;
+  /** This exact business's real coordinates, when the source provides
+   * them (e.g. Overpass's node lat/lon or way centroid) — never a
+   * geocoded guess. Powers the real embedded location map in the demo. */
+  latitude?: number;
+  longitude?: number;
   sourceRef?: string;
 }
 

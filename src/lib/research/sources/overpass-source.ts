@@ -23,6 +23,23 @@ interface OverpassElement {
   type: "node" | "way" | "relation";
   id: number;
   tags?: Record<string, string>;
+  /// A node's own coordinates.
+  lat?: number;
+  lon?: number;
+  /// A way/relation's centroid — present because the query uses
+  /// `out center tags` (see discover() below); ways have no single
+  /// lat/lon of their own.
+  center?: { lat: number; lon: number };
+}
+
+/** This exact business's real coordinates — a node's own lat/lon, or a
+ * way's centroid — never a fallback/guessed value. Undefined only if
+ * Overpass genuinely returned neither (shouldn't happen given `out
+ * center`, but the type doesn't guarantee it). */
+function coordinatesOf(el: OverpassElement): { lat: number; lon: number } | undefined {
+  if (typeof el.lat === "number" && typeof el.lon === "number") return { lat: el.lat, lon: el.lon };
+  if (el.center) return el.center;
+  return undefined;
 }
 
 interface OverpassResponse {
@@ -49,6 +66,8 @@ function toCandidate(el: OverpassElement, industryLabel: string): LeadCandidate 
   // so it's excluded here rather than becoming a permanently stuck lead.
   if (!website) return null;
 
+  const coords = coordinatesOf(el);
+
   return {
     companyName,
     industry: industryLabel,
@@ -56,6 +75,8 @@ function toCandidate(el: OverpassElement, industryLabel: string): LeadCandidate 
     address: buildAddress(tags),
     contactPhone: tags.phone ?? tags["contact:phone"],
     contactEmail: tags.email ?? tags["contact:email"],
+    latitude: coords?.lat,
+    longitude: coords?.lon,
     sourceRef: `osm:${el.type}/${el.id}`,
   };
 }

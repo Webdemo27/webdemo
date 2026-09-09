@@ -10,6 +10,12 @@ export interface DemoData {
   address: string | null;
   contactPhone: string | null;
   contactEmail: string | null;
+  /** This exact business's real coordinates (OSM node/way, never
+   * geocoded/guessed) — powers the real embedded location map. Null
+   * when unavailable (leads researched before this field existed, or
+   * any source that doesn't provide coordinates). */
+  latitude: number | null;
+  longitude: number | null;
 }
 
 export interface DemoPlaceholders {
@@ -214,12 +220,33 @@ function editorialSection(assets: DemoAssetView[], name: string, location: strin
   return `<section class="editorial">${rows}</section>`;
 }
 
-function locationBanner(location: string): string {
+/** A real embedded map — OpenStreetMap's own free export/embed, no API
+ * key needed — centered on this exact business's real coordinates
+ * (never a geocoded guess, see DemoData.latitude/longitude). This is
+ * the "Lage" WOW moment the creative-lab mission calls out specifically
+ * for real estate, but genuinely any local business benefits from
+ * showing where it actually is — so it renders whenever coordinates
+ * are available, not gated to one industry. */
+function locationMapEmbed(lat: number, lon: number): string {
+  const dLat = 0.004;
+  const dLon = 0.007;
+  const bbox = [lon - dLon, lat - dLat, lon + dLon, lat + dLat].map((n) => n.toFixed(5)).join("%2C");
+  const marker = `${lat.toFixed(5)}%2C${lon.toFixed(5)}`;
+  const src = `https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&layer=mapnik&marker=${marker}`;
+  return `
+  <div class="location-map" data-reveal>
+    <iframe src="${src}" loading="lazy" title="Standort auf der Karte" referrerpolicy="no-referrer-when-downgrade"></iframe>
+  </div>`;
+}
+
+function locationBanner(location: string, latitude: number | null, longitude: number | null): string {
+  const map = latitude != null && longitude != null ? locationMapEmbed(latitude, longitude) : "";
   return `
   <section class="location-banner" data-reveal>
     <span class="location-eyebrow">Vor Ort in</span>
     <span class="location-name">${escapeHtml(location)}</span>
-  </section>`;
+  </section>
+  ${map}`;
 }
 
 function detailStrip(assets: DemoAssetView[]): string {
@@ -935,7 +962,7 @@ export function renderDemoSite(
     services: services.length > 0 ? servicesSection(services, serviceAssets, secondaryPageLabel(profile.industryKey)) : "",
     editorial: editorialSection(editorialAssets, lead.companyName, location),
     detail: detailStrip(detailAssets) + environmentSection(environmentAsset),
-    location: lead.location ? locationBanner(lead.location) : "",
+    location: lead.location ? locationBanner(lead.location, lead.latitude, lead.longitude) : "",
     about: aboutSection(lead.companyName, location, profile.brandImpression, seed),
     contact: contactSection(lead),
   };
@@ -1203,6 +1230,14 @@ export function renderDemoSite(
   .location-banner { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 0.5rem; padding-top: 2rem; padding-bottom: 2rem; }
   .location-eyebrow { text-transform: uppercase; letter-spacing: 0.18em; font-size: 0.75rem; color: color-mix(in srgb, var(--fg) 55%, transparent); }
   .location-name { font-family: var(--font-heading); font-size: clamp(2.2rem, 7vw, 4.5rem); color: var(--primary); }
+  .location-map {
+    max-width: 900px; margin: 0 auto clamp(2rem, 5vw, 4rem); padding: 0 clamp(1.5rem, 6vw, 5rem);
+  }
+  .location-map iframe {
+    width: 100%; height: 320px; border: 0; display: block; border-radius: 1rem;
+    box-shadow: 0 16px 36px -18px rgba(0,0,0,0.3);
+  }
+  @media (max-width: 640px) { .location-map iframe { height: 220px; } }
 
   .detail-strip { display: flex; justify-content: center; flex-wrap: wrap; gap: 1.25rem; padding-top: 0; }
   .detail-item { width: min(280px, 40vw); }

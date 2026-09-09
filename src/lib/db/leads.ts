@@ -59,6 +59,8 @@ export async function createLeadIfNew(input: LeadInput) {
       contactEmail: input.contactEmail ?? null,
       contactPhone: input.contactPhone ?? null,
       address: input.address ?? null,
+      latitude: input.latitude ?? null,
+      longitude: input.longitude ?? null,
       source: input.source,
       sourceRef: input.sourceRef ?? null,
       status: "NEW",
