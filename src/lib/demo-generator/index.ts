@@ -15,6 +15,23 @@ export { slugify } from "./slug";
 
 const DEMOS_ROOT = path.join(process.cwd(), "public", "demos");
 
+/** Real counts of how often each variant has actually been used, across
+ * every lead's demo — Demo.conceptVariant already persists this, so no
+ * separate registry table is needed. Used to break ties toward whatever
+ * is genuinely rarest site-wide when a lead has no per-lead history and
+ * no X-ray-driven preference (see pickNextVariant's doc comment). */
+async function globalVariantUsageCounts(): Promise<Record<string, number>> {
+  const rows = await prisma.demo.groupBy({
+    by: ["conceptVariant"],
+    _count: { conceptVariant: true },
+  });
+  const counts: Record<string, number> = {};
+  for (const row of rows) {
+    if (row.conceptVariant) counts[row.conceptVariant] = row._count.conceptVariant;
+  }
+  return counts;
+}
+
 async function uniqueSlug(base: string, leadId: string): Promise<string> {
   const candidate = base || `lead-${leadId.slice(0, 8)}`;
   const existing = await prisma.demo.findUnique({ where: { slug: candidate } });
@@ -80,7 +97,7 @@ export async function generateDemo(leadId: string): Promise<GenerateDemoResult> 
   if (analysisData) {
     preferredVariantId = preferredVariantFor(buildXray(analysisData).biggestProblemCategory);
   }
-  const variant = pickNextVariant(history, preferredVariantId);
+  const variant = pickNextVariant(history, preferredVariantId, await globalVariantUsageCounts());
   const profile = buildVisualProfile({ industry: lead.industry }, variant);
 
   const baseSlug = existingDemo?.slug ?? slugify(lead.companyName);

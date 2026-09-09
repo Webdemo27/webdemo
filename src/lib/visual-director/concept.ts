@@ -154,12 +154,20 @@ function buildMoneyImpact(): { moneyImpact: MoneyImpactScenario[]; disclaimer: s
   };
 }
 
+// Each category maps to a genuinely distinct variant — these used to
+// collapse trust/ux/technical all onto "premium-editorial", meaning most
+// leads (these three categories are the most common X-ray findings) got
+// the exact same concept. Matched semantically instead: a weak-trust
+// site gets the variant literally built to be "vertrauensbildend"
+// (corporate), a confusing-UX site gets the one with the shortest path
+// from hero to offer (product-focused), a weak-performance/technical
+// site gets the precise, structured one (architectural-grid).
 const CATEGORY_PREFERRED_VARIANT: Record<ProblemCategory, string> = {
   conversion: "bold-conversion",
   brand: "immersive-visual",
-  trust: "premium-editorial",
-  ux: "premium-editorial",
-  technical: "premium-editorial",
+  trust: "corporate",
+  ux: "product-focused",
+  technical: "architectural-grid",
 };
 
 export function preferredVariantFor(category: ProblemCategory | null): string | null {

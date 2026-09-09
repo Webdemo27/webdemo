@@ -234,16 +234,35 @@ export const CONCEPT_VARIANTS: ConceptVariant[] = [
  * preferredVariantFor in concept.ts) and hasn't been used yet, it wins:
  * this is what makes the demo genuinely react to the research instead
  * of only cycling for variety's sake. Otherwise prefers any variant
- * never used for this lead before; once every variant has been tried
- * at least once, cycles back to whichever has been used least. */
-export function pickNextVariant(usedVariantIds: string[], preferredId?: string | null): ConceptVariant {
+ * never used for this lead before — among those, `globalUsageCounts`
+ * (real counts read off every Demo.conceptVariant in the database, see
+ * demo-generator/index.ts) breaks the tie toward whichever is rarest
+ * *across every lead*, not just array order. Without this, every
+ * brand-new lead with no X-ray preference landed on the same first
+ * entry (Premium Editorial) every time — a real, if invisible,
+ * repetition problem across the whole lead list, not just within one
+ * lead's own regenerations. Once every variant has been tried at least
+ * once for this lead, cycles back to whichever has been used least
+ * *for this lead specifically*. */
+export function pickNextVariant(
+  usedVariantIds: string[],
+  preferredId?: string | null,
+  globalUsageCounts?: Record<string, number>
+): ConceptVariant {
   if (preferredId && !usedVariantIds.includes(preferredId)) {
     const preferred = CONCEPT_VARIANTS.find((v) => v.id === preferredId);
     if (preferred) return preferred;
   }
 
   const unused = CONCEPT_VARIANTS.filter((v) => !usedVariantIds.includes(v.id));
-  if (unused.length > 0) return unused[0];
+  if (unused.length > 0) {
+    if (!globalUsageCounts) return unused[0];
+    return unused.reduce((rarest, v) => {
+      const rarestCount = globalUsageCounts[rarest.id] ?? 0;
+      const vCount = globalUsageCounts[v.id] ?? 0;
+      return vCount < rarestCount ? v : rarest;
+    }, unused[0]);
+  }
 
   const counts = new Map<string, number>();
   for (const id of usedVariantIds) counts.set(id, (counts.get(id) ?? 0) + 1);
