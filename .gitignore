@@ -60,3 +60,11 @@ next-env.d.ts
 # editor
 .vscode/*
 !.vscode/extensions.json
+
+# locally-installed Claude Code skills (npx skills add) — .agents/skills
+# holds the real files, .claude/skills symlinks into it using absolute
+# paths, so neither is portable across machines. skills-lock.json (not
+# ignored) is the portable manifest; run `npx skills add <source>` to
+# regenerate these locally.
+/.agents/
+/.claude/skills/
