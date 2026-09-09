@@ -172,17 +172,105 @@ function heroSection(
 
   const scrim = isColorBlock ? "" : `<div class="hero-scrim"></div>`;
   const heroClass = `hero ${position}${isColorBlock ? " hero-color-block" : ""}`;
+  const fluid = profile.motion !== "none" ? fluidFlowLayer() : "";
 
   return `
   <section class="${heroClass}">
-    <div class="hero-bg">${visual}</div>
+    <div class="hero-bg">${visual}${fluid}</div>
     ${scrim}
-    <div class="hero-content">
+    <div class="hero-content${fluid ? " hero-content--floating" : ""}">
       <h1 data-reveal style="--stagger-index:0">${kineticWords(name)}</h1>
       <p class="hero-tagline" data-reveal style="--stagger-index:1">${escapeHtml(tagline)}</p>
       <div data-reveal style="--stagger-index:2">${heroActions(ctaIntensity, contactHref, secondaryHref, secondaryLabel)}</div>
     </div>
   </section>`;
+}
+
+/** Mouse-reactive "water-flow" decoration (mission follow-up: "schwebende
+ * wasserflow (extremflüssig) einbauen ... es muss wirklich alles animiert
+ * werden sogar die texte"). Two real, distinct techniques, not one relabeled
+ * as two: (1) blurred color blobs distorted by an animated SVG turbulence/
+ * displacement filter, mouse-position drives them via damped (spring-like)
+ * lerping in fluidFlowScript rather than 1:1 tracking — see emil-design-eng's
+ * "spring-based mouse interactions" (raw tracking "feels artificial"); (2)
+ * .hero-content--floating gets its own, much smaller, independently-damped
+ * parallax offset so the real headline/tagline genuinely float with the
+ * cursor too, without ever running the distortion filter over legible text
+ * (that would hurt readability — ui-ux-pro-max color-contrast/readability). */
+function fluidFlowLayer(): string {
+  return `
+    <svg class="fluid-flow-defs" aria-hidden="true" focusable="false">
+      <filter id="fluid-distort" x="-20%" y="-20%" width="140%" height="140%">
+        <feTurbulence type="fractalNoise" baseFrequency="0.008 0.014" numOctaves="2" seed="7" result="noise">
+          <animate attributeName="baseFrequency" dur="22s" values="0.008 0.014;0.016 0.022;0.008 0.014" repeatCount="indefinite" />
+        </feTurbulence>
+        <feDisplacementMap in="SourceGraphic" in2="noise" scale="0" xChannelSelector="R" yChannelSelector="G" />
+      </filter>
+    </svg>
+    <div class="fluid-flow" aria-hidden="true">
+      <span class="fluid-blob fluid-blob--a"></span>
+      <span class="fluid-blob fluid-blob--b"></span>
+      <span class="fluid-blob fluid-blob--c"></span>
+    </div>`;
+}
+
+function fluidFlowScript(): string {
+  return `
+  <script>
+    (function () {
+      if (!window.matchMedia('(hover: hover) and (pointer: fine)').matches) return;
+      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+      var hero = document.querySelector('.hero');
+      var blobs = document.querySelectorAll('.fluid-blob');
+      var floatEl = document.querySelector('.hero-content--floating');
+      var displacement = document.querySelector('#fluid-distort feDisplacementMap');
+      if (!hero || blobs.length === 0) return;
+
+      var targetX = 0.5, targetY = 0.5;
+      var blobDamped = [{x:0.5,y:0.5},{x:0.5,y:0.5},{x:0.5,y:0.5}];
+      var floatDamped = { x: 0, y: 0 };
+      var velocity = 0;
+      var lastMoveAt = performance.now();
+
+      hero.addEventListener('mousemove', function (e) {
+        var rect = hero.getBoundingClientRect();
+        var nx = (e.clientX - rect.left) / rect.width;
+        var ny = (e.clientY - rect.top) / rect.height;
+        velocity = Math.min(1, Math.hypot(nx - targetX, ny - targetY) * 14);
+        targetX = nx;
+        targetY = ny;
+        lastMoveAt = performance.now();
+      }, { passive: true });
+
+      var damping = [0.05, 0.035, 0.02];
+      var reach = [26, 40, 58];
+
+      function tick() {
+        var idleFor = performance.now() - lastMoveAt;
+        var settle = idleFor > 1200 ? 0.4 : 0;
+        for (var i = 0; i < blobs.length; i++) {
+          var d = blobDamped[i];
+          d.x += (targetX - d.x) * damping[i];
+          d.y += (targetY - d.y) * damping[i];
+          var dx = (d.x - 0.5) * reach[i];
+          var dy = (d.y - 0.5) * reach[i];
+          blobs[i].style.transform = 'translate(' + dx.toFixed(1) + 'px, ' + dy.toFixed(1) + 'px)';
+        }
+        if (floatEl) {
+          floatDamped.x += ((targetX - 0.5) * 14 - floatDamped.x) * 0.045;
+          floatDamped.y += ((targetY - 0.5) * 10 - floatDamped.y) * 0.045;
+          floatEl.style.transform = 'translate(' + floatDamped.x.toFixed(2) + 'px, ' + floatDamped.y.toFixed(2) + 'px)';
+        }
+        if (displacement) {
+          var restingScale = 16 + settle * 6;
+          var scale = restingScale + velocity * 42;
+          displacement.setAttribute('scale', scale.toFixed(1));
+        }
+        requestAnimationFrame(tick);
+      }
+      requestAnimationFrame(tick);
+    })();
+  </script>`;
 }
 
 function serviceCard(label: string, asset: DemoAssetView | undefined, featured: boolean, index: number): string {
@@ -1563,6 +1651,26 @@ export function renderDemoSite(
     color: var(--primary-dark);
     box-shadow: 0 10px 24px -10px rgba(0,0,0,0.3);
   }
+
+  /* Mouse-reactive "water-flow" (fluidFlowLayer/fluidFlowScript): blurred,
+     turbulence-distorted color blobs behind the hero content, damped
+     toward the cursor rather than following it 1:1. .hero-content--floating
+     gets its own separate, much smaller float so real text stays sharp —
+     never run the distortion filter over legible type. */
+  .fluid-flow-defs { position: absolute; width: 0; height: 0; overflow: hidden; }
+  .fluid-flow { position: absolute; inset: -10%; z-index: 0; overflow: hidden; mix-blend-mode: screen; opacity: 0.72; pointer-events: none; }
+  .hero.hero-color-block .fluid-flow { mix-blend-mode: soft-light; opacity: 0.85; }
+  .fluid-blob {
+    position: absolute; border-radius: 50%; filter: blur(60px) url(#fluid-distort);
+    will-change: transform;
+  }
+  .fluid-blob--a { top: 8%; left: 12%; width: 42vw; height: 42vw; background: color-mix(in srgb, var(--accent) 75%, transparent); }
+  .fluid-blob--b { bottom: 4%; right: 10%; width: 36vw; height: 36vw; background: color-mix(in srgb, var(--primary) 70%, transparent); }
+  .fluid-blob--c { top: 40%; left: 45%; width: 26vw; height: 26vw; background: color-mix(in srgb, var(--secondary) 65%, transparent); }
+  .hero-content--floating { will-change: transform; }
+  @media (max-width: 640px), (prefers-reduced-motion: reduce), (hover: none), (pointer: coarse) {
+    .fluid-flow { display: none; }
+  }
   .hero.hero-color-block .btn-ghost { background: transparent; border-color: rgba(255,255,255,0.7); }
   .hero h1 { color: #fff; font-size: clamp(2.2rem, 5.5vw, 4rem); text-shadow: 0 2px 28px rgba(0,0,0,0.45), 0 1px 3px rgba(0,0,0,0.5); }
   .hero.hero-color-block h1 { text-shadow: none; }
@@ -1863,6 +1971,7 @@ export function renderDemoSite(
   ${bodyHtml.includes("editorial-lightbox-trigger") ? lightboxScript() : ""}
   ${bodyHtml.includes("weather-badge") ? weatherWidgetScript() : ""}
   ${bodyHtml.includes("angled-carousel") ? angledCarouselScript() : ""}
+  ${bodyHtml.includes("fluid-flow") ? fluidFlowScript() : ""}
   ${colorPickerScript(colorwayOptions, activeColorwayIndex)}
   ${slug === "" && profile.use3d ? three3dScript(profile.colors.accent) : ""}
   ${profile.motion !== "none" && (variant.motionStructure === "scroll-scrub" || (slug === "" && variant.motionStructure === "cinematic-parallax")) ? gsapMotionScript(variant.motionStructure) : ""}
