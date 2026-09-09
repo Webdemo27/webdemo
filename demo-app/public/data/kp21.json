@@ -10,6 +10,21 @@
   "aboutText": "KP21 tritt in Frankfurt am Main einladend, appetitlich und gastfreundlich auf, mit viel Aufmerksamkeit für die Beratung im Detail. Inhalte und Bilder werden im nächsten Schritt gemeinsam final abgestimmt.",
   "brandPromise": "KP21 steht für einladend, appetitlich und gastfreundlich — in jedem Detail, bei jedem Besuch.",
   "servicesLabel": "Speisekarte",
+  "galleryLabel": "Atmosphäre",
+  "editorial": [
+    {
+      "headline": "Ein Ort mit Charakter",
+      "body": "KP21 legt Wert auf Atmosphäre und Sorgfalt – spürbar in jedem Detail vor Ort in Frankfurt am Main.",
+      "image": "/data/kp21/editorial-1.webp"
+    },
+    {
+      "headline": "Erfahrung, die man sieht",
+      "body": "Wer KP21 besucht, merkt schnell: hier steckt echte Erfahrung und Aufmerksamkeit dahinter.",
+      "image": "/data/kp21/editorial-2.webp"
+    }
+  ],
+  "latitude": null,
+  "longitude": null,
   "colors": {
     "primary": "#920e2b",
     "primaryDark": "#780f28",

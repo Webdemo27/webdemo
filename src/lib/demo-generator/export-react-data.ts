@@ -3,7 +3,15 @@ import path from "path";
 import { prisma } from "../db";
 import { fromJson } from "../db/json";
 import type { VisualProfile } from "../visual-director/types";
-import { taglineFor, deriveServiceLabels, buildAboutText, buildBrandPromise, secondaryPageLabel } from "./template";
+import {
+  taglineFor,
+  deriveServiceLabels,
+  buildAboutText,
+  buildBrandPromise,
+  buildEditorialRows,
+  galleryLabelFor,
+  secondaryPageLabel,
+} from "./template";
 import { toAssetView, groupByRole } from "./asset-view";
 
 const REACT_APP_DATA_DIR = path.join(process.cwd(), "demo-app", "public", "data");
@@ -76,6 +84,14 @@ export async function exportLeadDataForReactApp(leadId: string): Promise<{ slug:
   const location = lead.location ?? "Ihrer Region";
   const seed = lead.companyName + (lead.location ?? "");
 
+  const editorialAssets = byRole.editorial ?? [];
+  const editorialCaptions = buildEditorialRows(lead.companyName, location, editorialAssets.length);
+  const editorial: Array<{ headline: string; body: string; image: string }> = [];
+  for (let i = 0; i < editorialAssets.length; i++) {
+    const image = await copyAsset(editorialAssets[i]?.src, `editorial-${i + 1}`);
+    if (image) editorial.push({ headline: editorialCaptions[i].headline, body: editorialCaptions[i].body, image });
+  }
+
   const data = {
     slug,
     companyName: lead.companyName,
@@ -88,6 +104,8 @@ export async function exportLeadDataForReactApp(leadId: string): Promise<{ slug:
     aboutText: buildAboutText(lead.companyName, location, profile.brandImpression, seed),
     brandPromise: buildBrandPromise(lead.companyName, profile.brandImpression, seed),
     servicesLabel: secondaryPageLabel(profile.industryKey),
+    galleryLabel: galleryLabelFor(profile.industryKey),
+    editorial,
     latitude: lead.latitude,
     longitude: lead.longitude,
     colors: {

@@ -18,6 +18,12 @@ export interface LeadService {
   image: string;
 }
 
+export interface LeadEditorialItem {
+  headline: string;
+  body: string;
+  image: string;
+}
+
 /** One lead's real content, produced by the existing Next.js pipeline
  * (research → analysis → visual profile) — this app never invents
  * anything, it only renders whatever this JSON says. Served from
@@ -35,6 +41,8 @@ export interface LeadData {
   aboutText: string;
   brandPromise: string;
   servicesLabel: string;
+  galleryLabel: string;
+  editorial: LeadEditorialItem[];
   latitude: number | null;
   longitude: number | null;
   colors: LeadColors;

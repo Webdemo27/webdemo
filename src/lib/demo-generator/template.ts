@@ -234,17 +234,26 @@ function editorialRow(asset: DemoAssetView, index: number, headline: string, bod
  * page. `galleryLabel` gives the gallery an industry-honest name —
  * "Atmosphäre" for hospitality, "Galerie" for elegant trades, etc. (see
  * galleryLabelFor) — instead of one generic label for every business. */
-function editorialSection(assets: DemoAssetView[], name: string, location: string, galleryLabel: string): string {
-  if (assets.length === 0) return "";
+/** The same headline/body pairs editorialSection cycles through,
+ * extracted so the React demo engine's export (export-react-data.ts)
+ * can reuse the exact real copy instead of duplicating it. */
+export function buildEditorialRows(name: string, location: string, count: number): Array<{ headline: string; body: string }> {
   const headlines = ["Ein Ort mit Charakter", "Erfahrung, die man sieht", "Details, die zählen"];
   const bodies = [
     `${name} legt Wert auf Atmosphäre und Sorgfalt – spürbar in jedem Detail vor Ort in ${location}.`,
     `Wer ${name} besucht, merkt schnell: hier steckt echte Erfahrung und Aufmerksamkeit dahinter.`,
     `Kleine Details machen den Unterschied – genau die, die ${name} täglich im Blick hat.`,
   ];
-  const rows = assets
-    .map((asset, i) => editorialRow(asset, i, headlines[i % headlines.length], bodies[i % bodies.length]))
-    .join("");
+  return Array.from({ length: count }, (_, i) => ({
+    headline: headlines[i % headlines.length],
+    body: bodies[i % bodies.length],
+  }));
+}
+
+function editorialSection(assets: DemoAssetView[], name: string, location: string, galleryLabel: string): string {
+  if (assets.length === 0) return "";
+  const captions = buildEditorialRows(name, location, assets.length);
+  const rows = assets.map((asset, i) => editorialRow(asset, i, captions[i].headline, captions[i].body)).join("");
   return `<section class="editorial">
     <span class="editorial-eyebrow" data-reveal>${escapeHtml(galleryLabel)}</span>
     ${rows}
@@ -1174,7 +1183,7 @@ const GALLERY_LABELS: Record<string, string> = {
   Autowerkstatt: "Werkstatt-Einblicke",
 };
 
-function galleryLabelFor(industryKey: string): string {
+export function galleryLabelFor(industryKey: string): string {
   return GALLERY_LABELS[industryKey] ?? "Einblicke";
 }
 
