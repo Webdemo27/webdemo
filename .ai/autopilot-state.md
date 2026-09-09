@@ -185,6 +185,38 @@ external integration is real and verified.
   Bahar") are permanently stuck in `DEMO_CREATED` with a stale pre-fix
   error. Local dev data only, safe to ignore or delete.
 
+## KNOWN RISK — pages.dev links can get silently blocked by recipients
+
+**Real, observed incident (2026-09-09):** a real outreach email (Basic
+Coffee, sent for real via a prepared Gmail draft) bounced. Google's own
+bounce text: `Die Antwort vom Remoteserver ist: 550 5.7.1 Recipients
+have complained about included content (B-URL)` — a rejection from the
+*recipient's* mail security gateway (not Gmail's outbound side),
+`(B-URL)` being that gateway's own tag for "message contains a
+blocklisted URL." The link was a `*.pages.dev` address — Cloudflare's
+shared free-tier domain used by millions of Pages projects. Because it's
+shared, abuse by unrelated Cloudflare Pages users elsewhere can get the
+whole `pages.dev` suffix wholesale-blocklisted by corporate mail-security
+gateways (Barracuda/Proofpoint/Mimecast-style products commonly do
+exactly this), completely independent of this project's own content.
+Every published demo currently uses this same shared domain, so this
+risk applies to any future recipient whose mail provider has made the
+same call — not just this one lead.
+
+**The real fix**: a custom domain on the Cloudflare Pages projects
+(e.g. `demos.<user's domain>`) instead of `*.pages.dev` — then the
+domain's reputation is exclusively the user's own. Asked the user
+directly (2026-09-09); they don't have a domain yet, so this is
+unresolved for now, not silently worked around. When they get one:
+Cloudflare Pages → the project → Custom domains → add it, point a CNAME
+at `<project>.pages.dev` per Cloudflare's own instructions, done per
+project (or one wildcard/apex setup reused if Cloudflare's plan
+supports it — check at the time). A cheap domain (~€10-15/year from any
+registrar) is enough; it doesn't need to be on Cloudflare's own
+registrar. Until then, treat any bounce mentioning a blocked/flagged URL
+as this same root cause, not a one-off — don't spend time debugging the
+specific email's content.
+
 ## KNOWN LIMITATIONS
 
 - Contact discovery only crawls pages linked from the homepage
