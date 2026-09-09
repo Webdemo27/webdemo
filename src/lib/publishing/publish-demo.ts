@@ -3,6 +3,7 @@ import path from "path";
 import { prisma, logActivity } from "../db";
 import { CloudflarePagesPublisher, isCloudflareConfigured } from "./cloudflare-publisher";
 import { verifyPublicUrl } from "./verify";
+import { insertDemoLink } from "../messaging";
 
 export interface PublishDemoOutcome {
   ok: boolean;
@@ -29,7 +30,7 @@ export async function publishDemoPublicly(leadId: string): Promise<PublishDemoOu
     };
   }
 
-  const lead = await prisma.lead.findUnique({ where: { id: leadId }, include: { demo: true } });
+  const lead = await prisma.lead.findUnique({ where: { id: leadId }, include: { demo: true, message: true } });
   if (!lead) return { ok: false, configured, error: "Lead nicht gefunden." };
   if (!lead.demo) return { ok: false, configured, error: "Für diesen Lead wurde noch keine Demo erstellt." };
 
@@ -78,6 +79,14 @@ export async function publishDemoPublicly(leadId: string): Promise<PublishDemoOu
     data: { publicUrl: result.publicUrl, publishedAt: new Date() },
   });
   await logActivity(leadId, "PUBLISHED", `Demo öffentlich unter ${result.publicUrl} verifiziert und veröffentlicht`);
+
+  if (lead.message) {
+    const updatedBody = insertDemoLink(lead.message.body, result.publicUrl);
+    if (updatedBody !== lead.message.body) {
+      await prisma.message.update({ where: { leadId }, data: { body: updatedBody } });
+      await logActivity(leadId, "MESSAGE_LINK_INSERTED", "Nachricht automatisch mit dem echten Demo-Link aktualisiert.");
+    }
+  }
 
   return { ok: true, configured, publicUrl: result.publicUrl };
 }

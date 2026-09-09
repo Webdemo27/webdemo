@@ -9,6 +9,8 @@ import {
   pickVariant,
 } from "./templates";
 
+export { BRIDGES_NO_LINK, BRIDGES_WITH_LINK };
+
 const OBSERVATION_CANDIDATES: Array<keyof WebsiteAnalysisData> = [
   "mobileUx",
   "cta",
@@ -94,4 +96,32 @@ export function generateMessage(
   ].filter((line): line is string => line !== null);
 
   return { subject, body: lines.join("\n") };
+}
+
+/**
+ * Swaps a message's "I'll send you the link separately" promise for the
+ * real link, once one exists — used right after a successful Cloudflare
+ * publish so an already-approved message (approved before any public
+ * URL existed, which is the normal order of events) doesn't sit there
+ * with a broken promise. Deliberately a targeted text substitution, not
+ * a call to generateMessage(): it preserves everything the human
+ * actually reviewed and approved (the specific observation, the exact
+ * wording) and only ever changes the one sentence that promised a link,
+ * never resets approval/rejection/sent state. Returns the original body
+ * unchanged if the link is already present or no matching "no link"
+ * phrase is found (e.g. the message was hand-edited into something
+ * unrecognizable) — appends a clearly-separated fallback line in that
+ * last case rather than silently doing nothing, since a human should
+ * still get the link somehow.
+ */
+export function insertDemoLink(body: string, url: string): string {
+  if (body.includes(url)) return body;
+
+  for (let i = 0; i < BRIDGES_NO_LINK.length; i++) {
+    if (body.includes(BRIDGES_NO_LINK[i])) {
+      return body.replace(BRIDGES_NO_LINK[i], `${BRIDGES_WITH_LINK[i]} ${url}`);
+    }
+  }
+
+  return `${body}\n\nDen Link zur Demo reiche ich hiermit nach: ${url}`;
 }
