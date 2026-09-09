@@ -89,6 +89,18 @@ const ABOUT_CLOSERS = [
   "Inhalte und Bilder werden im nächsten Schritt gemeinsam final abgestimmt.",
 ];
 
+/* A short pull-quote below the about text — inspired by real
+ * hospitality-site "brand promise" callouts (see
+ * .ai/design-inspiration-playbook.md, Qissa). Built only from
+ * profile.brandImpression, the same curated mood string aboutSection
+ * already uses — never a new invented claim about the business, just a
+ * more editorial presentation of a fact already in the visual profile. */
+const BRAND_PROMISE_TEMPLATES = [
+  "{company} steht für {mood} — in jedem Detail, bei jedem Besuch.",
+  "Das Versprechen von {company}: {mood}, ohne Kompromisse.",
+  "{moodCap} — dafür steht {company}, jeden Tag aufs Neue.",
+];
+
 function heroTextPosition(profile: VisualProfile, heroStyle: HeroStyle): string {
   if (heroStyle === "minimal") return "hero-center hero-minimal";
   if (profile.layoutDirection === "grid-clean") return "hero-center";
@@ -385,12 +397,26 @@ export function buildAboutText(name: string, location: string, mood: string, see
   return `${opener} ${closer}`;
 }
 
+export function buildBrandPromise(name: string, mood: string, seed: string): string {
+  const moodList = formatMoodList(mood);
+  const moodCap = moodList.charAt(0).toUpperCase() + moodList.slice(1);
+  return pickVariant(BRAND_PROMISE_TEMPLATES, seed + ":brand-promise")
+    .replace("{company}", name)
+    .replace("{moodCap}", moodCap)
+    .replace("{mood}", moodList);
+}
+
 function aboutSection(name: string, location: string, mood: string, seed: string): string {
   const text = buildAboutText(name, location, mood, seed);
+  const promise = buildBrandPromise(name, mood, seed);
   return `
   <section id="ueber-uns" class="about" data-reveal>
     <h2>${kineticWords("Über uns")}</h2>
     <p class="about-text">${escapeHtml(text)}</p>
+    <blockquote class="about-promise">
+      <p>${escapeHtml(promise)}</p>
+      <cite>— ${escapeHtml(name)}</cite>
+    </blockquote>
   </section>`;
 }
 
@@ -1442,6 +1468,13 @@ export function renderDemoSite(
   .environment-image { width: 100%; height: auto; aspect-ratio: 21 / 9; object-fit: cover; border-radius: 1rem; }
 
   .about-text { max-width: 42rem; margin: 0 auto; text-align: center; color: color-mix(in srgb, var(--fg) 75%, transparent); font-size: 1.05rem; }
+
+  .about-promise {
+    max-width: 34rem; margin: clamp(2rem, 5vw, 3rem) auto 0; padding: 0 0 0 clamp(1rem, 3vw, 1.5rem);
+    border-left: 3px solid var(--accent); text-align: left;
+  }
+  .about-promise p { margin: 0; font-family: var(--font-heading); font-style: italic; font-size: clamp(1.1rem, 2.2vw, 1.35rem); color: var(--fg); }
+  .about-promise cite { display: block; margin-top: 0.6rem; font-style: normal; font-size: 0.8rem; letter-spacing: 0.06em; text-transform: uppercase; color: color-mix(in srgb, var(--fg) 60%, transparent); }
 
   .contact-wrap { display: grid; gap: 1.5rem; grid-template-columns: 1fr; max-width: 32rem; margin: 0 auto; }
   .contact-details { display: flex; flex-direction: column; gap: 0.9rem; padding: 1.5rem; background: var(--card); border: 1px solid var(--border); border-radius: 0.9rem; }
