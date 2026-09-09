@@ -9,10 +9,22 @@ import { pickVariant } from "../messaging/templates";
  * button text, card backgrounds, etc. stays exactly as tuned — while the
  * hue itself shifts to a visibly different, still-harmonious color. */
 
-// Modest shifts on purpose: enough to read as a different colorway, not
-// so large that a industry's authentic tone (e.g. a bakery's warm
-// browns) drifts into an unrelated hue family.
-const HUE_SHIFTS = [0, 16, -16, 30, -30] as const;
+// The full picker offer: 20 hues evenly spaced around the whole wheel
+// (18° apart), so a lead can preview genuinely any brand color, not
+// just a variation close to the industry's default. Index 0 is always
+// "no shift" (the industry's authentic original).
+const PICKER_HUE_COUNT = 20;
+const PICKER_HUE_STEP = 360 / PICKER_HUE_COUNT;
+const PICKER_SHIFTS: number[] = Array.from({ length: PICKER_HUE_COUNT }, (_, i) => i * PICKER_HUE_STEP);
+
+// The tool's own automatic pick (what a demo actually renders/pitches
+// before anyone touches the picker) stays deliberately modest — close
+// enough to the industry's authentic tone that it never needs the
+// customer to "fix" it via the picker first. Restricted to a subset of
+// the same 20 picker indices (not a separate shift set) so the
+// auto-picked color is always byte-identical to one of the 20 swatches
+// — no separate "21st" color the picker can't also show as selected.
+const DEFAULT_PICK_INDICES = [0, 1, 2, 18, 19];
 
 // The generic "AI-purple-gradient" look is explicitly called out as
 // something to avoid across several industry profiles (profiles.ts) —
@@ -69,8 +81,13 @@ function hslToHex(h: number, s: number, l: number): string {
 
 function safeShift(hue: number, shift: number): number {
   const next = (hue + shift + 360) % 360;
-  if (next >= FORBIDDEN_HUE_MIN && next <= FORBIDDEN_HUE_MAX) return hue;
-  return next;
+  if (next < FORBIDDEN_HUE_MIN || next > FORBIDDEN_HUE_MAX) return next;
+  // Nudge to whichever edge of the forbidden band is closer, rather than
+  // collapsing back to the unshifted hue — with 20 options several would
+  // otherwise land in this band and all bail to the same duplicate color.
+  const distToMin = Math.abs(next - FORBIDDEN_HUE_MIN);
+  const distToMax = Math.abs(next - FORBIDDEN_HUE_MAX);
+  return distToMin <= distToMax ? (FORBIDDEN_HUE_MIN - 1 + 360) % 360 : (FORBIDDEN_HUE_MAX + 1) % 360;
 }
 
 function rotate(hex: string, shift: number): string {
@@ -93,20 +110,23 @@ function buildPalette(colors: ColorWorld, shift: number): ColorWorld {
   };
 }
 
-/** Applies a seed-deterministic hue shift to the brand colors only —
- * background/foreground/card/muted/border stay exactly as the industry
- * profile defined them, so page-wide readability is never affected. */
+/** Applies a seed-deterministic, modest hue shift to the brand colors
+ * only — background/foreground/card/muted/border stay exactly as the
+ * industry profile defined them, so page-wide readability is never
+ * affected. Always one of colorwayOptions()'s 20 entries (see
+ * DEFAULT_PICK_INDICES), so the demo's initial render always matches
+ * one of the picker's own swatches exactly — no separate, unreachable
+ * "21st" color. */
 export function applyColorway(colors: ColorWorld, seed: string): ColorWorld {
-  const shift = pickVariant([...HUE_SHIFTS], `${seed}:colorway`);
-  return buildPalette(colors, shift);
+  const index = pickVariant(DEFAULT_PICK_INDICES, `${seed}:colorway`);
+  return buildPalette(colors, PICKER_SHIFTS[index]);
 }
 
-/** Every colorway this industry's base colors can appear in — used to
- * offer the lead a live color picker on the demo itself ("what would
- * this look like in a different color") rather than only ever showing
- * the one applyColorway happened to pick. Same hue-rotation rule (see
- * buildPalette), so every option is exactly as industry-authentic and
- * contrast-safe as the one actually rendered. */
+/** All 20 colorways a lead can preview via the on-demo color picker —
+ * the full hue wheel, not just the modest range applyColorway() picks
+ * from. Same hue-rotation rule (see buildPalette): saturation/lightness
+ * stay exactly as tuned, so every option is exactly as contrast-safe as
+ * the one actually rendered. */
 export function colorwayOptions(colors: ColorWorld): ColorWorld[] {
-  return HUE_SHIFTS.map((shift) => buildPalette(colors, shift));
+  return PICKER_SHIFTS.map((shift) => buildPalette(colors, shift));
 }

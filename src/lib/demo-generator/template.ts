@@ -361,11 +361,12 @@ function buildMotionCss(level: MotionLevel, flavor: MotionFlavor): string {
   }`;
 }
 
-/** A small floating swatch picker so a lead can preview the demo in a
- * different (still industry-authentic — see colorway.ts) color mood
- * themselves, right on the page, instead of only ever seeing the one
- * colorway the generator happened to pick. Rendered on every page;
- * the choice persists across pages via localStorage. */
+/** A small floating swatch picker so a lead can preview the demo in any
+ * of 20 colorways (see colorway.ts) themselves, right on the page,
+ * instead of only ever seeing the one the generator happened to pick.
+ * A compact trigger (today's color) expands into a swatch grid rather
+ * than showing all 20 inline — rendered on every page; the choice
+ * persists across pages via localStorage. */
 function colorPickerWidget(options: ColorWorld[], activeIndex: number): string {
   if (options.length <= 1) return "";
   const swatches = options
@@ -375,9 +376,12 @@ function colorPickerWidget(options: ColorWorld[], activeIndex: number): string {
     )
     .join("");
   return `
-  <div class="color-picker" role="group" aria-label="Farbe der Demo wählen">
-    <span class="color-picker-label">Farbe</span>
-    ${swatches}
+  <div class="color-picker">
+    <button type="button" class="color-picker-trigger" aria-expanded="false" aria-haspopup="true" aria-label="Farbe der Demo wählen" style="--swatch-color:${options[activeIndex].primary}"></button>
+    <div class="color-picker-panel" role="group" aria-label="Farbe der Demo wählen">
+      <span class="color-picker-label">Farbe wählen</span>
+      <div class="color-picker-grid">${swatches}</div>
+    </div>
   </div>`;
 }
 
@@ -394,6 +398,8 @@ function colorPickerScript(options: ColorWorld[], activeIndex: number): string {
       var palettes = ${JSON.stringify(palettes)};
       var root = document.documentElement;
       var STORAGE_KEY = 'demoColorway';
+      var picker = document.querySelector('.color-picker');
+      var trigger = document.querySelector('.color-picker-trigger');
 
       function apply(index) {
         var palette = palettes[index];
@@ -409,14 +415,30 @@ function colorPickerScript(options: ColorWorld[], activeIndex: number): string {
         document.querySelectorAll('.color-swatch').forEach(function (btn, i) {
           btn.classList.toggle('is-active', i === index);
         });
+        if (trigger) trigger.style.setProperty('--swatch-color', palette.primary);
         try { localStorage.setItem(STORAGE_KEY, String(index)); } catch (e) {}
       }
 
       document.querySelectorAll('.color-swatch').forEach(function (btn) {
         btn.addEventListener('click', function () {
           apply(parseInt(btn.getAttribute('data-index'), 10));
+          if (picker) picker.classList.remove('is-open');
+          if (trigger) trigger.setAttribute('aria-expanded', 'false');
         });
       });
+
+      if (trigger && picker) {
+        trigger.addEventListener('click', function () {
+          var open = picker.classList.toggle('is-open');
+          trigger.setAttribute('aria-expanded', open ? 'true' : 'false');
+        });
+        document.addEventListener('click', function (e) {
+          if (!picker.contains(e.target)) {
+            picker.classList.remove('is-open');
+            trigger.setAttribute('aria-expanded', 'false');
+          }
+        });
+      }
 
       var stored = null;
       try { stored = localStorage.getItem(STORAGE_KEY); } catch (e) {}
@@ -706,7 +728,12 @@ export function renderDemoSite(
   .site-header.is-scrolled { box-shadow: 0 8px 24px -16px rgba(0,0,0,0.35); background: color-mix(in srgb, var(--card) 97%, transparent); }
   .brand { display: flex; align-items: center; gap: 0.6rem; font-family: var(--font-heading); font-weight: 700; font-size: 1.1rem; flex-shrink: 0; }
   .brand-mark { display: flex; align-items: center; justify-content: center; width: 2.2rem; height: 2.2rem; border-radius: 0.5rem; background: var(--primary); color: #fff; font-weight: 700; flex-shrink: 0; }
-  .header-cta { padding: 0.6rem 1.2rem; border-radius: 0.4rem; background: var(--primary); color: #fff; text-decoration: none; font-size: 0.85rem; font-weight: 600; flex-shrink: 0; }
+  .header-cta {
+    padding: 0.6rem 1.2rem; border-radius: 0.4rem;
+    background: linear-gradient(155deg, rgba(255,255,255,0.24), rgba(255,255,255,0) 55%), var(--primary);
+    color: #fff; text-decoration: none; font-size: 0.85rem; font-weight: 600; flex-shrink: 0;
+    box-shadow: 0 6px 16px -8px color-mix(in srgb, var(--primary) 55%, transparent);
+  }
   /* A rounded "capsule" nav — a pill-shaped track holding pill-shaped
    * links, the active one lifted onto a solid card-colored pill. Reads
    * as one modern navigation unit rather than a row of plain text
@@ -754,7 +781,11 @@ export function renderDemoSite(
   .hero.hero-minimal h1 { font-size: clamp(1.8rem, 3.5vw, 2.6rem); }
   .hero.hero-color-block { background: linear-gradient(135deg, var(--primary), var(--primary-dark)); }
   .hero.hero-color-block .hero-content { color: #fff; }
-  .hero.hero-color-block .btn-primary { background: #fff; color: var(--primary-dark); }
+  .hero.hero-color-block .btn-primary {
+    background: linear-gradient(155deg, rgba(0,0,0,0.05), rgba(0,0,0,0) 55%), #fff;
+    color: var(--primary-dark);
+    box-shadow: 0 10px 24px -10px rgba(0,0,0,0.3);
+  }
   .hero.hero-color-block .btn-ghost { background: transparent; border-color: rgba(255,255,255,0.7); }
   .hero h1 { color: #fff; font-size: clamp(2.2rem, 5.5vw, 4rem); text-shadow: 0 2px 28px rgba(0,0,0,0.45), 0 1px 3px rgba(0,0,0,0.5); }
   .hero.hero-color-block h1 { text-shadow: none; }
@@ -765,7 +796,12 @@ export function renderDemoSite(
   .btn-primary:active, .btn-ghost:active, .header-cta:active { transform: scale(0.97); }
   .cta-link { transition: opacity var(--dur-fast) var(--ease-out); }
   .cta-link:active { opacity: 0.75; }
-  .btn-primary { padding: 0.85rem 1.7rem; border-radius: 0.5rem; background: var(--accent); color: #fff; text-decoration: none; font-weight: 600; }
+  .btn-primary {
+    padding: 0.85rem 1.7rem; border-radius: 0.5rem;
+    background: linear-gradient(155deg, rgba(255,255,255,0.22), rgba(255,255,255,0) 55%), var(--accent);
+    color: #fff; text-decoration: none; font-weight: 600;
+    box-shadow: 0 10px 26px -12px color-mix(in srgb, var(--accent) 60%, transparent);
+  }
   .btn-primary.btn-lg { padding: 1.05rem 2.1rem; font-size: 1.05rem; }
   .btn-ghost { padding: 0.85rem 1.7rem; border-radius: 0.5rem; background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.5); color: #fff; text-decoration: none; font-weight: 600; }
   .cta-link { color: #fff; text-decoration: underline; text-underline-offset: 4px; font-weight: 600; text-shadow: 0 1px 12px rgba(0,0,0,0.4); }
@@ -822,28 +858,46 @@ export function renderDemoSite(
   footer { padding: 2rem 1.5rem 3rem; text-align: center; color: color-mix(in srgb, var(--fg) 65%, transparent); font-size: 0.8rem; }
   .demo-flag { display: inline-block; margin-top: 0.5rem; padding: 0.3rem 0.7rem; border-radius: 999px; background: color-mix(in srgb, var(--primary) 15%, white); color: var(--primary-dark); font-weight: 600; }
 
-  .color-picker {
-    position: fixed; bottom: 1.25rem; right: 1.25rem; z-index: 40;
-    display: flex; align-items: center; gap: 0.5rem;
-    padding: 0.5rem 0.75rem; border-radius: 999px;
-    background: color-mix(in srgb, var(--card) 92%, transparent);
-    backdrop-filter: blur(8px);
-    border: 1px solid var(--border);
-    box-shadow: 0 8px 24px -12px rgba(0,0,0,0.3);
+  .color-picker { position: fixed; bottom: 1.25rem; right: 1.25rem; z-index: 40; }
+  .color-picker-trigger {
+    width: 2.75rem; height: 2.75rem; border-radius: 999px; padding: 0; cursor: pointer;
+    background:
+      linear-gradient(155deg, rgba(255,255,255,0.55), rgba(255,255,255,0) 55%),
+      var(--swatch-color);
+    border: 2px solid color-mix(in srgb, var(--card) 85%, transparent);
+    box-shadow: 0 8px 22px -8px color-mix(in srgb, var(--swatch-color) 70%, transparent), 0 2px 6px rgba(0,0,0,0.15);
+    transition: transform var(--dur-fast) var(--ease-out);
   }
-  .color-picker-label { font-size: 0.72rem; font-weight: 600; color: color-mix(in srgb, var(--fg) 65%, transparent); white-space: nowrap; }
+  .color-picker-trigger:hover { transform: scale(1.08); }
+  .color-picker-panel {
+    position: absolute; bottom: calc(100% + 0.75rem); right: 0;
+    display: flex; flex-direction: column; gap: 0.6rem;
+    padding: 0.9rem; border-radius: 1.1rem; width: 13rem;
+    background: color-mix(in srgb, var(--card) 96%, transparent);
+    backdrop-filter: blur(10px);
+    border: 1px solid var(--border);
+    box-shadow: 0 20px 45px -20px rgba(0,0,0,0.4);
+    opacity: 0; transform: translateY(6px) scale(0.96); transform-origin: bottom right;
+    pointer-events: none;
+    transition: opacity var(--dur-base) var(--ease-out), transform var(--dur-base) var(--ease-out);
+  }
+  .color-picker.is-open .color-picker-panel { opacity: 1; transform: none; pointer-events: auto; }
+  .color-picker-label { font-size: 0.72rem; font-weight: 600; color: color-mix(in srgb, var(--fg) 65%, transparent); }
+  .color-picker-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 0.5rem; }
   .color-swatch {
-    width: 1.35rem; height: 1.35rem; flex-shrink: 0; border-radius: 999px;
+    width: 1.6rem; height: 1.6rem; flex-shrink: 0; border-radius: 999px;
     border: 2px solid color-mix(in srgb, var(--card) 80%, transparent);
-    background: var(--swatch-color); cursor: pointer; padding: 0;
+    background:
+      linear-gradient(155deg, rgba(255,255,255,0.5), rgba(255,255,255,0) 55%),
+      var(--swatch-color);
+    cursor: pointer; padding: 0;
     box-shadow: 0 0 0 1px rgba(0,0,0,0.1);
     transition: transform var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out);
   }
   .color-swatch:hover { transform: scale(1.15); }
   .color-swatch.is-active { box-shadow: 0 0 0 2px var(--card), 0 0 0 4px var(--swatch-color); }
   @media (max-width: 640px) {
-    .color-picker { bottom: calc(4.5rem + 0.75rem); right: 0.75rem; padding: 0.4rem 0.55rem; }
-    .color-picker-label { display: none; }
+    .color-picker { bottom: calc(4.5rem + 0.75rem); right: 0.75rem; }
   }
   /* The picker's own click-to-preview crossfade is a deliberate,
    * user-initiated response (occasional, not ambient) — it plays
