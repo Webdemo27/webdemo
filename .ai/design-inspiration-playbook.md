@@ -186,3 +186,75 @@ local business, is a better fit than reinventing something generic.
    photo dominating — worth considering as a 13th ConceptVariant or a
    new heroStyle value alongside the existing "minimal"/"full-bleed"/
    "color-block" set.
+
+## Per-industry Awwwards research (ongoing, started 2026-09-09)
+
+Same rule as above: techniques only, never content/branding. Awwwards
+has no clean per-industry taxonomy (its "Category" filter is broad —
+E-commerce, Business services, etc. — not "Restaurant" or "Real
+Estate"), so finding real examples means searching by keyword and
+filtering out marketing-agency portfolios that merely mention the
+industry. This section grows one industry at a time across sessions —
+check here before starting a fresh industry search from scratch.
+
+### Restaurant — "Qissa, A Tale of Food" (qissa.co.uk, Awwwards nominee)
+
+- **Inline color-accent words inside a heading**, not the whole heading:
+  "A word that means *a tale*." — only the last phrase in the brand's
+  accent gold. Cheap (a single `<span>`), reads as considered rather
+  than templated. Directly usable in `aboutSection`/hero headlines.
+- **A pull-quote / brand-promise callout**: italic serif text, a thin
+  colored left border, attributed on its own line with an em-dash
+  ("— THE QISSA PROMISE"). A distinct block type this project's About
+  section doesn't have yet — currently `aboutSection` is a single plain
+  paragraph; a one-sentence "promise" pull-quote under it would be a
+  cheap, real upgrade using assets already generated (`profile.brandImpression`).
+- **Symmetric-dash section eyebrows** ("— THE MASTERPIECES —", dashes on
+  both sides, not just leading) as a section-transition marker before a
+  heading — slightly more considered than this project's current
+  single-leading-dash eyebrows (see `editorial-eyebrow`).
+- **A scrolling gold marquee/ticker band** of brand keywords ("Taste ✦
+  Craft ✦ Gathering ✦ Celebration ✦ Origin ✦ Spice"), full-bleed, in
+  italic serif, as a section divider — strong rhythm break between two
+  content sections using pure text, no imagery. A genuinely cheap
+  (CSS `@keyframes` marquee) technique that would suit Restaurant/Café/
+  Bäckerei industries' `editorial`/`about` boundary.
+- **Menu categories as a real 2-column photo+caption grid** ("Grills &
+  Tandoor" / "Traditional Curries", full-bleed rounded photo + serif
+  title + one-line description below, not a tight card) — more
+  editorial than this project's current `servicesSection` cards; worth
+  considering as an alternate services layout for hospitality profiles
+  specifically (elegant/hospitality already get more whitespace scale).
+- **Partial-crop neighbor images in a photo row** (a food-plate gallery
+  where the center plate is full-size and the left/right neighbors are
+  visibly cut off at the viewport edge) — hints at "more content" without
+  needing an actual carousel library; a pure CSS overflow technique.
+- **Elegant scroll-cue**: "BEGIN THE STORY" label + a short vertical
+  line beneath the hero CTA, instead of a generic down-arrow — ties the
+  scroll affordance to the brand's own "story" concept rather than being
+  generic chrome.
+
+### Real estate / office space — "The Nest" (thenest.pl, Awwwards nominee)
+
+Pure "real estate agent" results were thin on Awwwards (only 2 hits for
+the term); this one is a virtual-office/business-address service, not a
+brokerage, but the property-presentation techniques still transfer:
+
+- **Layered geometric building illustration** in the hero: a real photo
+  of the actual building, overlaid with flat geometric shapes (a dark
+  solid silhouette wedge, a circle, a torn-paper-edge blob) plus small
+  numbered/pin markers on specific floors — turns a plain building photo
+  into an annotated, editorial diagram rather than a stock exterior
+  shot. A genuinely adaptable technique for Immobilienmakler: annotate
+  a *real* property photo (pins on real floors/rooms) instead of an
+  unlabeled exterior shot, IF real per-room data exists — otherwise
+  don't invent labels (see this project's existing "nicht erfinden"
+  discipline).
+- **Inline italic color-accent on the last phrase of a heading** ("at a
+  real address.") — the exact same technique as Qissa's "a tale.",
+  independently observed on a completely different industry/agency —
+  worth treating as a genuinely reusable, industry-agnostic pattern
+  rather than a one-off.
+
+**Next industries to research**: Anwalt/law firm, Friseur/salon,
+Autowerkstatt — continue this section rather than starting a new file.
