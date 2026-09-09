@@ -374,3 +374,85 @@ Real Estate, Anwalt, Friseur, Autowerkstatt) — revisit for more
 industries (Café, Bäckerei, Immobilienmakler-specific brokerages,
 Zahnarzt/Arztpraxis, Fahrradladen) in a future session rather than
 re-researching these five.
+
+## GSAP / Awwwards animation flows (started 2026-09-09)
+
+Explicit user request: "bei awwwards beste animation flows webseiten,
+gsap webseiten recherchieren und manche demos sollen von awwwards
+replicat werden 1:1". Source list: the real, live
+[awwwards.com/websites/gsap/](https://www.awwwards.com/websites/gsap/)
+tag page (20 real sites, fetched 2026-09-09 — not a guessed URL). Note
+on method: none of the sites checked exposed `window.gsap` — GSAP is
+bundled inside their Next.js/Vite chunks, invisible to a `typeof
+window.gsap` check — so "GSAP-tagged" here is taken on Awwwards' own
+tagging, and the choreography below was captured empirically (real
+scroll-throughs + screenshots at each stage), not by reading their
+minified JS. That is exactly what this project needs anyway: it
+reimplements its own vanilla GSAP, never borrows a competitor's code.
+
+### dsgn Interior (dsgninterior.se) — interior architecture, Malmö — **STRONGEST 1:1 CANDIDATE**
+
+- **Pinned-heading, scroll-scrubbed project reel**: the hero section
+  pins in place while the user scrolls; a background photo crossfades
+  through a sequence of real completed projects, each one's name
+  (`Fellowmind Göteborg`, `Car.info`, …) crossfading in sync as its
+  photo resolves to full clarity, then the whole section releases back
+  into normal scroll once the sequence ends. Verified live by scrolling
+  through 3 real transitions — genuinely pinned (not just a fast
+  fade-in-on-scroll), heading stays dead-center the entire time.
+  → **This is directly buildable as a real feature today, with zero
+  invented content**: every lead's demo already has exactly this shape
+  of data — 3 real editorial photos + real real captions
+  (`buildEditorialRows()`, already shared between both engines). A new
+  `projectReelSection()`/`projectReelScript()` (GSAP ScrollTrigger,
+  `pin: true`, cross-fading `opacity` on stacked `<img>` layers keyed to
+  scroll progress, heading text swapped via the same progress value) is
+  a genuine, honest 1:1 structural+motion replica — same technique
+  category as this session's angled-carousel work but a *vertical
+  pinned crossfade* instead of a *horizontal scrub*, so it reads as a
+  distinct real choice for a lead, not a reskin of the same idea.
+  Strong fit for Immobilienmakler (real listings/objects), Autowerkstatt
+  (real completed jobs), Friseur (real before/after work) — anywhere a
+  lead has 3+ real photos that represent discrete "pieces of work."
+- Full-bleed real video (not photo) as the hero background, bold
+  oversized sans headline directly on top, no scrim beyond natural video
+  contrast — confirms a real lead's own video footage (if ever
+  available) could replace a static hero image directly, no new
+  technique needed.
+
+### The Nest (thenest.pl) — revisited for motion (content already logged above)
+
+- **Numbered stacked feature list**, no cards/icons: `— 01 OFFICE
+  FLOORS` small-caps eyebrow (leader line + number), big serif heading,
+  one paragraph, a plain underlined text link with an arrow. Each block
+  simply fades up in sequence on scroll — no exotic motion, but a
+  genuinely different, calmer alternative to this project's card-grid
+  `servicesSection` for profiles wanting a quieter, editorial feel
+  (Anwalt, Steuerberater-style trades). Directly shippable as an
+  alternate services layout — no new data needed, same `services[]`
+  array this project already has.
+- **Staggered pin-marker + label reveal on an annotated building
+  photo**: real building photo overlaid with flat geometric shapes and
+  small numbered pin markers; as the section scrolls into view, floor
+  labels ("GROUND FLOOR — Bistro in the Michelin Guide 2026") appear one
+  at a time next to their pin, not all at once. Good technique for
+  Immobilienmakler **only if** a lead has real per-floor/per-room facts
+  to attach to real pin coordinates — otherwise this project's
+  "nicht erfinden" rule blocks it (no inventing floor labels).
+
+### ALTITUDE 101 (altitude101.com) — VR/immersive product — inspiration only, not lead-transferable
+
+- A continuously-orbiting field of glossy 3D torus/tube shapes (WebGL)
+  surrounds a bright glowing headset-silhouette mask; scrolling reveals
+  a large word cropped inside that glowing mask, crossfading as it
+  scrolls. No real local-business analog (abstract tech/VR product, no
+  real content to transfer honestly) — logged purely as a technique
+  reference for `demo-app`'s own WebGL hero (`WebGLHero.tsx`): a
+  glow-mask text reveal layered over a continuously-rotating 3D object
+  field is a legitimate, industry-agnostic upgrade to consider there
+  specifically, once a real reason to add more WebGL polish comes up.
+
+**Verdict**: one real, honest, zero-invented-content 1:1 candidate
+identified (dsgn Interior's pinned project reel) — building it next as
+`projectReelSection()` using a real lead's existing editorial assets,
+the same way the angled carousel used Tobias Grünert's.

@@ -525,6 +525,84 @@ export function angledCarouselScript(): string {
   </script>`;
 }
 
+/** A real 1:1 replica of a genuine Awwwards technique (dsgn interior,
+ * dsgninterior.se — logged in design-inspiration-playbook.md's "GSAP /
+ * Awwwards animation flows" section): the section pins in place while
+ * a full-bleed background photo crossfades through a real sequence —
+ * each lead's own editorial photos/captions here, never invented — and
+ * releases back into normal scroll once the sequence ends. Same real
+ * per-lead data as the angled carousel (buildEditorialRows()-generated
+ * captions), but a genuinely different motion category: a *vertical
+ * pinned crossfade*, not a horizontal scrub, so it reads as its own
+ * real choice rather than a reskin of the carousel. Degrades to a
+ * plain stacked list of real photo+caption blocks (no absolute
+ * positioning, no pin) whenever GSAP fails to load or JS is off — see
+ * the `.project-reel-js` gating in the stylesheet. */
+export function projectReelSection(items: AngledCarouselItem[], label: string): string {
+  if (items.length === 0) return "";
+  const layers = items
+    .map(
+      (item, i) => `
+      <div class="project-reel-layer${i === 0 ? " is-active" : ""}" data-index="${i}">
+        ${pictureTag(item.asset, "project-reel-media")}
+        <div class="project-reel-scrim"></div>
+        <div class="project-reel-caption">
+          <h3>${escapeHtml(item.headline)}</h3>
+          <p>${escapeHtml(item.body)}</p>
+        </div>
+      </div>`
+    )
+    .join("");
+  return `
+  <section class="project-reel" data-reveal>
+    <span class="editorial-eyebrow">${escapeHtml(label)}</span>
+    <div class="project-reel-viewport">${layers}</div>
+  </section>`;
+}
+
+export function projectReelScript(): string {
+  return `
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/${GSAP_VERSION}/gsap.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/${GSAP_VERSION}/ScrollTrigger.min.js"></script>
+  <script>
+    (function () {
+      if (typeof gsap === 'undefined' || typeof ScrollTrigger === 'undefined') return;
+      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+      try {
+        gsap.registerPlugin(ScrollTrigger);
+        var section = document.querySelector('.project-reel');
+        var viewport = document.querySelector('.project-reel-viewport');
+        var layers = document.querySelectorAll('.project-reel-layer');
+        if (!section || !viewport || layers.length < 2) return;
+        section.classList.add('project-reel-js');
+
+        var current = 0;
+        var distance = window.innerHeight * (layers.length - 1) * 0.9;
+
+        ScrollTrigger.create({
+          trigger: viewport,
+          start: 'top top',
+          end: '+=' + distance,
+          pin: true,
+          scrub: true,
+          anticipatePin: 1,
+          onUpdate: function (self) {
+            var idx = Math.min(layers.length - 1, Math.floor(self.progress * layers.length));
+            if (idx === current) return;
+            layers[current].classList.remove('is-active');
+            layers[idx].classList.add('is-active');
+            current = idx;
+          },
+        });
+      } catch (e) {
+        // GSAP unavailable/blocked — the stylesheet's default (non
+        // ".project-reel-js") rules already render every layer as a
+        // plain stacked photo+caption block, nothing to recover here.
+      }
+    })();
+  </script>`;
+}
+
 /** A real embedded map — OpenStreetMap's own free export/embed, no API
  * key needed — centered on this exact business's real coordinates
  * (never a geocoded guess, see DemoData.latitude/longitude). This is
@@ -1803,6 +1881,44 @@ export function renderDemoSite(
     .angled-card-media { transition-duration: 1ms !important; }
   }
 
+  /* Pinned scroll-crossfade project reel (projectReelSection/
+     projectReelScript) — a real 1:1 replica of dsgn interior's
+     (dsgninterior.se) technique, logged in design-inspiration-
+     playbook.md. Default rules below are the no-JS/GSAP-failed
+     fallback: every layer renders as a plain stacked photo+caption
+     block. .project-reel-js (added only once GSAP successfully sets
+     up the pin) switches layers to an absolutely-positioned crossfade
+     stack instead. */
+  .project-reel { padding-top: clamp(2rem, 5vw, 3.5rem); padding-bottom: 0; }
+  .project-reel-viewport { position: relative; }
+  .project-reel-layer { position: relative; margin-bottom: 2px; }
+  .project-reel-media { width: 100%; height: auto; aspect-ratio: 16 / 9; object-fit: cover; display: block; }
+  .project-reel-scrim { display: none; }
+  .project-reel-caption { padding: 1.5rem clamp(1.5rem, 6vw, 5rem) 0; }
+  .project-reel-caption h3 { font-size: clamp(1.4rem, 3vw, 2rem); margin-bottom: 0.5rem; }
+  .project-reel-caption p { color: color-mix(in srgb, var(--fg) 75%, transparent); max-width: 34rem; }
+
+  .project-reel.project-reel-js .project-reel-viewport { height: 100vh; overflow: hidden; }
+  .project-reel.project-reel-js .project-reel-layer {
+    position: absolute; inset: 0; margin: 0; opacity: 0;
+    transition: opacity 500ms var(--ease-out);
+  }
+  .project-reel.project-reel-js .project-reel-layer.is-active { opacity: 1; z-index: 1; }
+  .project-reel.project-reel-js .project-reel-media { width: 100%; height: 100%; aspect-ratio: auto; }
+  .project-reel.project-reel-js .project-reel-scrim {
+    display: block; position: absolute; inset: 0;
+    background: linear-gradient(180deg, rgba(0,0,0,0.15) 0%, rgba(0,0,0,0.6) 100%);
+  }
+  .project-reel.project-reel-js .project-reel-caption {
+    position: absolute; inset: 0; z-index: 2; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; text-align: center; gap: 0.75rem;
+    padding: 2rem; color: #fff;
+  }
+  .project-reel.project-reel-js .project-reel-caption p { color: rgba(255,255,255,0.85); }
+  @media (prefers-reduced-motion: reduce) {
+    .project-reel.project-reel-js .project-reel-layer { transition-duration: 1ms !important; }
+  }
+
   .quick-links {
     display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem;
     padding: clamp(1.5rem, 4vw, 2.5rem) clamp(1.5rem, 6vw, 5rem) 0;
@@ -1971,6 +2087,7 @@ export function renderDemoSite(
   ${bodyHtml.includes("editorial-lightbox-trigger") ? lightboxScript() : ""}
   ${bodyHtml.includes("weather-badge") ? weatherWidgetScript() : ""}
   ${bodyHtml.includes("angled-carousel") ? angledCarouselScript() : ""}
+  ${bodyHtml.includes("project-reel") ? projectReelScript() : ""}
   ${bodyHtml.includes("fluid-flow") ? fluidFlowScript() : ""}
   ${colorPickerScript(colorwayOptions, activeColorwayIndex)}
   ${slug === "" && profile.use3d ? three3dScript(profile.colors.accent) : ""}
