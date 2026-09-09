@@ -1,5 +1,5 @@
 import { getVisualProfile } from "./profiles";
-import { applyColorway } from "./colorway";
+import { applyColorway, colorwayOptions } from "./colorway";
 import type { VisualProfile } from "./types";
 import type { ConceptVariant } from "./variants";
 
@@ -56,7 +56,10 @@ export function buildVisualProfile(
   // industry-tied. This keeps it industry-authentic (same saturation/
   // lightness — see colorway.ts) while still giving repeated
   // regenerations a genuinely different color mood, tied to which
-  // variant got picked so the pairing stays deterministic.
+  // variant got picked so the pairing stays deterministic. The full set
+  // of options is attached too, so the demo itself can offer the lead a
+  // live color picker instead of only ever showing this one pick.
+  profile.colorwayOptions = colorwayOptions(profile.colors);
   profile.colors = applyColorway(profile.colors, variant?.id ?? profile.industryKey);
 
   return profile;

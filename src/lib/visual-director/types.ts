@@ -58,6 +58,13 @@ export interface VisualProfile {
   motion: MotionLevel;
   use3d: boolean;
   colors: ColorWorld;
+  /** Every colorway this profile's colors can appear in (see
+   * colorway.ts) — powers the live color picker on the demo itself.
+   * `colors` is always one of these entries. Optional because the raw
+   * per-industry profiles in profiles.ts don't set it — only
+   * buildVisualProfile() (the one real entry point) does, once it knows
+   * the final base colors to branch options off of. */
+  colorwayOptions?: ColorWorld[];
   typography: Typography;
   avoid: string[];
   assetPlan: AssetPlanEntry[];

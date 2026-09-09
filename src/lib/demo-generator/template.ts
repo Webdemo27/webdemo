@@ -1,4 +1,4 @@
-import type { VisualProfile, MotionLevel } from "../visual-director/types";
+import type { VisualProfile, MotionLevel, ColorWorld } from "../visual-director/types";
 import type { ConceptVariant, HeroStyle, CtaIntensity, SectionKey } from "../visual-director/variants";
 import { pickVariant } from "../messaging/templates";
 import { toAssetView, groupByRole, type DemoAssetView } from "./asset-view";
@@ -361,6 +361,73 @@ function buildMotionCss(level: MotionLevel, flavor: MotionFlavor): string {
   }`;
 }
 
+/** A small floating swatch picker so a lead can preview the demo in a
+ * different (still industry-authentic — see colorway.ts) color mood
+ * themselves, right on the page, instead of only ever seeing the one
+ * colorway the generator happened to pick. Rendered on every page;
+ * the choice persists across pages via localStorage. */
+function colorPickerWidget(options: ColorWorld[], activeIndex: number): string {
+  if (options.length <= 1) return "";
+  const swatches = options
+    .map(
+      (c, i) =>
+        `<button type="button" class="color-swatch${i === activeIndex ? " is-active" : ""}" data-index="${i}" style="--swatch-color:${c.primary}" aria-label="Farbvariante ${i + 1} von ${options.length}"></button>`
+    )
+    .join("");
+  return `
+  <div class="color-picker" role="group" aria-label="Farbe der Demo wählen">
+    <span class="color-picker-label">Farbe</span>
+    ${swatches}
+  </div>`;
+}
+
+function colorPickerScript(options: ColorWorld[], activeIndex: number): string {
+  const palettes = options.map((c) => ({
+    primary: c.primary,
+    primaryDark: c.primaryDark,
+    secondary: c.secondary,
+    accent: c.accent,
+  }));
+  return `
+  <script>
+    (function () {
+      var palettes = ${JSON.stringify(palettes)};
+      var root = document.documentElement;
+      var STORAGE_KEY = 'demoColorway';
+
+      function apply(index) {
+        var palette = palettes[index];
+        if (!palette) return;
+        root.classList.add('color-swapping');
+        window.clearTimeout(root._colorSwapTimer);
+        root._colorSwapTimer = window.setTimeout(function () {
+          root.classList.remove('color-swapping');
+        }, 500);
+        Object.keys(palette).forEach(function (key) {
+          root.style.setProperty('--' + key, palette[key]);
+        });
+        document.querySelectorAll('.color-swatch').forEach(function (btn, i) {
+          btn.classList.toggle('is-active', i === index);
+        });
+        try { localStorage.setItem(STORAGE_KEY, String(index)); } catch (e) {}
+      }
+
+      document.querySelectorAll('.color-swatch').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          apply(parseInt(btn.getAttribute('data-index'), 10));
+        });
+      });
+
+      var stored = null;
+      try { stored = localStorage.getItem(STORAGE_KEY); } catch (e) {}
+      var storedIndex = stored !== null ? parseInt(stored, 10) : NaN;
+      if (!isNaN(storedIndex) && storedIndex !== ${activeIndex} && palettes[storedIndex]) {
+        apply(storedIndex);
+      }
+    })();
+  </script>`;
+}
+
 function headerScrollScript(): string {
   return `
   <script>
@@ -529,6 +596,12 @@ export function renderDemoSite(
     phone: !lead.contactPhone,
     email: !lead.contactEmail,
   };
+
+  const colorwayOptions = profile.colorwayOptions ?? [profile.colors];
+  const activeColorwayIndex = Math.max(
+    0,
+    colorwayOptions.findIndex((c) => c.primary === profile.colors.primary)
+  );
 
   const assets = rawAssets.map(toAssetView);
   const byRole = groupByRole(assets);
@@ -749,6 +822,39 @@ export function renderDemoSite(
   footer { padding: 2rem 1.5rem 3rem; text-align: center; color: color-mix(in srgb, var(--fg) 65%, transparent); font-size: 0.8rem; }
   .demo-flag { display: inline-block; margin-top: 0.5rem; padding: 0.3rem 0.7rem; border-radius: 999px; background: color-mix(in srgb, var(--primary) 15%, white); color: var(--primary-dark); font-weight: 600; }
 
+  .color-picker {
+    position: fixed; bottom: 1.25rem; right: 1.25rem; z-index: 40;
+    display: flex; align-items: center; gap: 0.5rem;
+    padding: 0.5rem 0.75rem; border-radius: 999px;
+    background: color-mix(in srgb, var(--card) 92%, transparent);
+    backdrop-filter: blur(8px);
+    border: 1px solid var(--border);
+    box-shadow: 0 8px 24px -12px rgba(0,0,0,0.3);
+  }
+  .color-picker-label { font-size: 0.72rem; font-weight: 600; color: color-mix(in srgb, var(--fg) 65%, transparent); white-space: nowrap; }
+  .color-swatch {
+    width: 1.35rem; height: 1.35rem; flex-shrink: 0; border-radius: 999px;
+    border: 2px solid color-mix(in srgb, var(--card) 80%, transparent);
+    background: var(--swatch-color); cursor: pointer; padding: 0;
+    box-shadow: 0 0 0 1px rgba(0,0,0,0.1);
+    transition: transform var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out);
+  }
+  .color-swatch:hover { transform: scale(1.15); }
+  .color-swatch.is-active { box-shadow: 0 0 0 2px var(--card), 0 0 0 4px var(--swatch-color); }
+  @media (max-width: 640px) {
+    .color-picker { bottom: calc(4.5rem + 0.75rem); right: 0.75rem; padding: 0.4rem 0.55rem; }
+    .color-picker-label { display: none; }
+  }
+  /* The picker's own click-to-preview crossfade is a deliberate,
+   * user-initiated response (occasional, not ambient) — it plays
+   * regardless of profile.motion, but still respects the OS-level
+   * reduced-motion setting, which is a distinct, stronger signal. */
+  @media (prefers-reduced-motion: no-preference) {
+    .color-swapping, .color-swapping * {
+      transition: background-color .45s ease, border-color .45s ease, color .45s ease, box-shadow .45s ease, fill .45s ease !important;
+    }
+  }
+
   @media (max-width: 720px) {
     .editorial-row, .editorial-row--reverse { grid-template-columns: 1fr; }
     .editorial-row--reverse .editorial-media { order: 0; }
@@ -802,9 +908,11 @@ export function renderDemoSite(
   </footer>
 
   ${mobileCtaBar}
+  ${colorPickerWidget(colorwayOptions, activeColorwayIndex)}
 
   ${reduceMotionScript()}
   ${headerScrollScript()}
+  ${colorPickerScript(colorwayOptions, activeColorwayIndex)}
   ${slug === "" && profile.use3d ? three3dScript(profile.colors.accent) : ""}
 </body>
 </html>

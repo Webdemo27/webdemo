@@ -82,11 +82,7 @@ function rotate(hex: string, shift: number): string {
   return hslToHex(safeShift(h, shift), s, l);
 }
 
-/** Applies a seed-deterministic hue shift to the brand colors only —
- * background/foreground/card/muted/border stay exactly as the industry
- * profile defined them, so page-wide readability is never affected. */
-export function applyColorway(colors: ColorWorld, seed: string): ColorWorld {
-  const shift = pickVariant([...HUE_SHIFTS], `${seed}:colorway`);
+function buildPalette(colors: ColorWorld, shift: number): ColorWorld {
   if (shift === 0) return colors;
   return {
     ...colors,
@@ -95,4 +91,22 @@ export function applyColorway(colors: ColorWorld, seed: string): ColorWorld {
     secondary: rotate(colors.secondary, shift),
     accent: rotate(colors.accent, shift),
   };
+}
+
+/** Applies a seed-deterministic hue shift to the brand colors only —
+ * background/foreground/card/muted/border stay exactly as the industry
+ * profile defined them, so page-wide readability is never affected. */
+export function applyColorway(colors: ColorWorld, seed: string): ColorWorld {
+  const shift = pickVariant([...HUE_SHIFTS], `${seed}:colorway`);
+  return buildPalette(colors, shift);
+}
+
+/** Every colorway this industry's base colors can appear in — used to
+ * offer the lead a live color picker on the demo itself ("what would
+ * this look like in a different color") rather than only ever showing
+ * the one applyColorway happened to pick. Same hue-rotation rule (see
+ * buildPalette), so every option is exactly as industry-authentic and
+ * contrast-safe as the one actually rendered. */
+export function colorwayOptions(colors: ColorWorld): ColorWorld[] {
+  return HUE_SHIFTS.map((shift) => buildPalette(colors, shift));
 }
