@@ -288,14 +288,40 @@ function serviceCard(label: string, asset: DemoAssetView | undefined, featured: 
     </li>`;
 }
 
-function servicesSection(services: string[], assets: DemoAssetView[], heading: string): string {
-  const cards = services
-    .map((label, i) => serviceCard(label, assets[i], i === 0 && assets.length > 0, i))
+/** Numbered stacked feature list — no cards, no icons, no images (real
+ * technique from The Nest, thenest.pl, logged in design-inspiration-
+ * playbook.md's GSAP/Awwwards section). Gated on the exact
+ * `brandImpression` string `professionalProfile()` gives Rechtsanwalt/
+ * Steuerberater — "confidence needs no decoration" fits their
+ * restrained, formal tone, matching the same signal The Nest's own
+ * calm real-estate/office-service copy used. Deliberately omits the
+ * per-item paragraph + link The Nest's real version has: this project
+ * only has real short service LABELS (`services[]`), never invented
+ * one-sentence descriptions or destinations to link to — same real
+ * copy pattern as everywhere else, just a leaner honest subset of the
+ * source technique. */
+function numberedFeatureList(services: string[]): string {
+  const items = services
+    .map(
+      (label, i) => `
+    <div class="numbered-feature" data-reveal style="--stagger-index:${i}">
+      <span class="numbered-feature-index">— ${String(i + 1).padStart(2, "0")}</span>
+      <h3>${kineticWords(label)}</h3>
+    </div>`
+    )
     .join("");
+  return `<div class="numbered-features">${items}</div>`;
+}
+
+function servicesSection(services: string[], assets: DemoAssetView[], heading: string, brandImpression: string): string {
+  const numbered = brandImpression === "seriös, autoritär, vertrauenswürdig";
+  const body = numbered
+    ? numberedFeatureList(services)
+    : `<ul class="services-grid">${services.map((label, i) => serviceCard(label, assets[i], i === 0 && assets.length > 0, i)).join("")}</ul>`;
   return `
-  <section id="leistungen" class="services">
+  <section id="leistungen" class="services${numbered ? " services--numbered" : ""}">
     <h2 data-reveal>${kineticWords(heading)}</h2>
-    <ul class="services-grid">${cards}</ul>
+    ${body}
   </section>`;
 }
 
@@ -1501,7 +1527,7 @@ export function renderDemoSite(
   const services = deriveServiceLabels(profile);
 
   const nonHeroSections: Partial<Record<Exclude<SectionKey, "hero">, string>> = {
-    services: services.length > 0 ? servicesSection(services, serviceAssets, secondaryPageLabel(profile.industryKey)) : "",
+    services: services.length > 0 ? servicesSection(services, serviceAssets, secondaryPageLabel(profile.industryKey), profile.brandImpression) : "",
     editorial: editorialSection(editorialAssets, lead.companyName, location, galleryLabelFor(profile.industryKey)),
     detail: detailStrip(detailAssets) + environmentSection(environmentAsset),
     location: lead.location ? locationBanner(lead.location, lead.latitude, lead.longitude) : "",
@@ -1787,6 +1813,15 @@ export function renderDemoSite(
   .service-card-label span { display: flex; color: var(--primary); }
   .service-card--featured { grid-row: span 2; }
   .service-card--featured .service-media { aspect-ratio: 4 / 5; height: 100%; }
+
+  /* Numbered stacked feature list (numberedFeatureList) — real Awwwards
+     technique (The Nest, thenest.pl), no cards/icons/images, for the
+     restrained professionalProfile brandImpression only. */
+  .numbered-features { display: flex; flex-direction: column; max-width: 42rem; }
+  .numbered-feature { display: flex; align-items: baseline; gap: 1.25rem; padding: clamp(1.5rem, 4vw, 2.25rem) 0; border-bottom: 1px solid var(--border); }
+  .numbered-feature:first-child { border-top: 1px solid var(--border); }
+  .numbered-feature-index { flex-shrink: 0; font-size: 0.8rem; letter-spacing: 0.08em; color: color-mix(in srgb, var(--fg) 55%, transparent); }
+  .numbered-feature h3 { margin: 0; font-size: clamp(1.2rem, 2.4vw, 1.6rem); }
 
   .editorial-row { display: grid; grid-template-columns: 1.2fr 1fr; gap: clamp(1.5rem, 4vw, 4rem); align-items: center; margin-bottom: clamp(2.5rem, 6vw, 5rem); }
   .editorial-row:last-child { margin-bottom: 0; }
