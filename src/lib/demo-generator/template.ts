@@ -308,7 +308,7 @@ function editorialRow(asset: DemoAssetView, index: number, headline: string, bod
       <span class="lightbox-zoom-hint" aria-hidden="true">${ICONS.zoom}</span>
     </button>
     <div class="editorial-text">
-      <h3>${escapeHtml(headline)}</h3>
+      <h3>${kineticWords(headline)}</h3>
       <p>${escapeHtml(body)}</p>
     </div>
   </div>`;
@@ -464,7 +464,7 @@ export function angledCarouselSection(items: AngledCarouselItem[], label: string
       <div class="angled-card" style="--tilt:${tilt}deg">
         <div class="angled-card-media">${pictureTag(item.asset, "angled-card-image")}</div>
         <div class="angled-card-caption">
-          <h3>${escapeHtml(item.headline)}</h3>
+          <h3>${kineticWords(item.headline)}</h3>
           <p>${escapeHtml(item.body)}</p>
         </div>
       </div>`;
@@ -632,7 +632,7 @@ function locationBanner(location: string, latitude: number | null, longitude: nu
   return `
   <section class="location-banner" data-reveal>
     <span class="location-eyebrow">Vor Ort in</span>
-    <span class="location-name">${escapeHtml(location)}</span>
+    <span class="location-name">${kineticWords(location)}</span>
     ${weather}
   </section>
   ${map}`;
