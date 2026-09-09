@@ -265,6 +265,12 @@ mission's top-priority ask this round.
 
 ## COMPLETED
 
+- **Demo-app: real location map + live weather ported** (2026-09-09,
+  same loop) — `LocationSection.tsx` brings the static engine's real
+  OSM map embed and the live Open-Meteo weather badge into the React
+  engine (Home route, below hero), added `latitude`/`longitude` to the
+  exported LeadData. Verified live on the same real Mainz lead — real
+  weather, real map with marker at the actual coordinates.
 - **Awwwards: Autowerkstatt done (research thread complete), 4th shipped
   feature — real live weather badge** (2026-09-09, same loop) — 363 Car
   & Social Club logged in `.ai/design-inspiration-playbook.md`: a real
