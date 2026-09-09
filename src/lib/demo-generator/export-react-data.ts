@@ -3,7 +3,7 @@ import path from "path";
 import { prisma } from "../db";
 import { fromJson } from "../db/json";
 import type { VisualProfile } from "../visual-director/types";
-import { taglineFor, deriveServiceLabels, buildAboutText, secondaryPageLabel } from "./template";
+import { taglineFor, deriveServiceLabels, buildAboutText, buildBrandPromise, secondaryPageLabel } from "./template";
 import { toAssetView, groupByRole } from "./asset-view";
 
 const REACT_APP_DATA_DIR = path.join(process.cwd(), "demo-app", "public", "data");
@@ -86,6 +86,7 @@ export async function exportLeadDataForReactApp(leadId: string): Promise<{ slug:
     contactPhone: lead.contactPhone ?? "",
     tagline: taglineFor(lead.companyName, location, profile, seed),
     aboutText: buildAboutText(lead.companyName, location, profile.brandImpression, seed),
+    brandPromise: buildBrandPromise(lead.companyName, profile.brandImpression, seed),
     servicesLabel: secondaryPageLabel(profile.industryKey),
     colors: {
       primary: profile.colors.primary,

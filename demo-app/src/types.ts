@@ -33,6 +33,7 @@ export interface LeadData {
   contactPhone: string;
   tagline: string;
   aboutText: string;
+  brandPromise: string;
   servicesLabel: string;
   colors: LeadColors;
   typography: LeadTypography;

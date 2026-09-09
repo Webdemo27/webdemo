@@ -196,6 +196,32 @@ a {
   font-size: 1.05rem;
 }
 
+.about-promise {
+  max-width: 34rem;
+  margin: clamp(2rem, 5vw, 3rem) auto 0;
+  padding: 0 0 0 clamp(1rem, 3vw, 1.5rem);
+  border-left: 3px solid var(--accent);
+  text-align: left;
+}
+
+.about-promise p {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-style: italic;
+  font-size: clamp(1.1rem, 2.2vw, 1.35rem);
+  color: var(--fg);
+}
+
+.about-promise cite {
+  display: block;
+  margin-top: 0.6rem;
+  font-style: normal;
+  font-size: 0.8rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--fg) 60%, transparent);
+}
+
 .contact {
   padding: clamp(2rem, 6vw, 4rem) clamp(1.5rem, 6vw, 5rem);
 }
