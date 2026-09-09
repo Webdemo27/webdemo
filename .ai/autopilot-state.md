@@ -5,8 +5,10 @@ start of every new session on this project before doing anything else. Then
 go straight to NEXT ACTION — don't wait for a new task description.
 
 Last updated: 2026-09-09 (session covering the CEO quality audit,
-Cloudflare rebuild, first real Cloudflare publish, first GitHub push, and
-the multi-page Demo Engine rebuild).
+Cloudflare rebuild, first real Cloudflare publish, first GitHub push, the
+multi-page Demo Engine rebuild, real Gmail OAuth end-to-end, auto-link
+insertion into approved messages, and the Demo Engine motion pass using
+the emilkowalski/skill animation skills).
 
 ## CURRENT OBJECTIVE
 
@@ -80,6 +82,33 @@ mission's top-priority ask this round.
   silently rewind its status and let /loop overwrite an approved
   message — guarded by `advancePipelineStatus` (forward-only) plus a
   hard refusal in `runMessageGeneration`.
+- **Gmail OAuth fully live, verified twice** (Meisterschnitt, Hotel Zum
+  Riesen): real drafts created via the Gmail API in
+  hacibekircayir@gmail.com's account. Four distinct setup bugs found and
+  fixed live with the user (OAuth client type, wrong Google account,
+  missing test-user grant, Gmail API not enabled on the project) — see
+  LAST SUCCESSFUL TEST.
+- **`insertDemoLink()`** (`src/lib/messaging/index.ts`) wired into
+  `publishDemoPublicly()` (`src/lib/publishing/publish-demo.ts`): after a
+  verified publish, an already-approved message's "I'll send the link
+  separately" placeholder is automatically swapped for the real URL —
+  never touches `approvedAt`/`rejectedAt`/`sentAt`, so it can't silently
+  overwrite a human's review decision.
+- **Demo Engine: real motion**, not a static template. Installed and
+  applied the `emilkowalski/skill` animation pack: custom easing tokens,
+  an animated sliding underline on the nav, a diagonal shimmer sweep on
+  primary/header buttons, universal `scale(0.97)` press feedback, a
+  kinetic hero (headline → tagline → CTA staggered 70ms apart), staggered
+  service-card/detail-image reveals via a `--stagger-index` CSS custom
+  property, and a `clip-path` image-uncover layered under the existing
+  fade. Three reveal flavors (fade-up/fade-scale/fade-blur) are chosen
+  per-lead from the seed so demos don't all share one motion signature.
+  Everything decorative is gated behind the existing `profile.motion`
+  flag — verified live that a `motion: "none"` profile (Rechtsanwalt
+  Bocionek) renders with zero shimmer/underline/stagger while still
+  getting the universal press feedback, and an expressive profile
+  (Ristorante) gets the full treatment on both desktop and mobile.
+  `prefers-reduced-motion` handled via a dedicated `@media` block.
 
 ## IN PROGRESS
 
@@ -93,38 +122,34 @@ external integration is real and verified.
 
 ## NEXT ACTION
 
-1. **The Gmail Enable-API step is done** (project 491216628576's Gmail
-   API enabled) and the full pipeline verified end-to-end on
-   Meisterschnitt: real preflight checklist all-green, real Gmail draft
-   actually created via the API. Hotel Zum Riesen and Junker Immobilien
-   are also now published with real links in their approved messages
-   (Junker has no discovered contact email, so its Gmail draft can't be
-   created — "Text kopieren" is its path). Worth a quick Gmail-draft
-   test on Hotel Zum Riesen too (it has a real contact email) to confirm
-   this isn't a one-lead fluke.
-2. **Demo Engine QA pass** (done for the most part): visually verified
-   the 4-page (law firm, restaurant, hotel with "Zimmer & Angebote"
-   label) and 3-page (luxury-minimal, no Leistungen page) cases live.
-3. **Publish real links for more approved leads** — 3 of the leads that
-   have ever been approved now have real public URLs (Meisterschnitt,
-   Hotel Zum Riesen, Junker Immobilien); any newly-approved lead still
-   needs someone to click "Öffentlich bereitstellen" — this doesn't
-   happen automatically.
-4. **New: emilkowalski/skill animation skills installed** this session
-   (`.agents/skills/` — animate, apple-design, animation-vocabulary,
-   improve-animations, review-animations, find-animation-opportunities,
-   emil-design-eng, etc.). Directly relevant to the master mission's
-   Typography+Animation / Motion Language asks (sections 10-12) — use
-   these when picking that work up rather than inventing motion
+1. **Publish real links for more approved leads** — Meisterschnitt, Hotel
+   Zum Riesen, and Junker Immobilien have real public URLs; any
+   newly-approved lead still needs someone to click "Öffentlich
+   bereitstellen" — this doesn't happen automatically, and since this
+   session the resulting link is auto-inserted into the approved message
+   afterward (see COMPLETED / `insertDemoLink`).
+2. **Demo Engine motion pass is done for the core mechanics** (nav,
+   buttons, reveals, stagger, hero) — verified live across an expressive
+   and a "no motion" profile, desktop and mobile. Not yet done: applying
+   the same motion-flavor thinking to the hero visual itself (e.g. a
+   subtle parallax/idle float on `hero-color-block` or 3D variants) and
+   to page-to-page navigation (no page-transition animation between the
+   static multi-page files yet — would need a tiny shared-element/fade
+   script, not attempted this session, judge whether it's worth the
+   added JS for a static demo before building it).
+3. Per the master mission's Demo Engine ask (≥30 named creative
+   directions, a formal variant registry with similarity detection):
+   the multi-page work + this session's motion pass are the structural
+   and motion pieces; the registry itself (tracking variantId/concept/
+   industry/etc. and rejecting near-duplicate variants) is still not
+   built — separate, deliberate design work, don't start it
+   speculatively mid-session.
+4. The `.agents/skills/` emilkowalski animation pack (animate,
+   animation-vocabulary, emil-design-eng, improve-animations,
+   review-animations, find-animation-opportunities, etc.) is now
+   actually applied (see COMPLETED), not just installed — reach for it
+   again for any further motion/polish work rather than inventing
    patterns from scratch.
-5. Per the master mission's Demo Engine ask (≥30 named creative
-   directions, typography/motion systems, variant registry with
-   similarity detection): the multi-page work above is the structural
-   piece; the registry/typography/motion expansion is bigger, separate
-   design work — don't start it speculatively mid-session. If picked
-   up, scope it deliberately (which named directions, what they change
-   beyond color/font) rather than generating filler variants, and lean
-   on the newly-installed animation skills for the motion side of it.
 
 ## KNOWN BUGS
 
@@ -168,23 +193,39 @@ Also verified live this session: multi-page demo generation across 4-page
 (law firm, restaurant, hotel with the "Zimmer & Angebote" label) and
 3-page (luxury-minimal, correctly has no Leistungen page) cases.
 
+**Motion pass verification (2026-09-09):** regenerated Ristorante Classico
+Da Gigi's (expressive/subtle-motion profile) and Rechtsanwalt Bocionek
+(motion:"none" profile) live via the dashboard, then inspected computed
+styles directly in the browser (not just screenshots): confirmed the
+nav underline `::after` scales to 1 under the active link, the button
+shimmer's `::after` sweeps from `translateX(-130%)` to `+130%` on real
+`:hover`, hero headline/tagline/CTA carry 0/70/140ms transition-delays,
+service cards stagger the same way with images fully uncovered via
+`clip-path`, and on the "none" profile every one of those (`::after`
+content, position, transform) is inert — only the universal
+`scale(0.97)` press-feedback transition survives, exactly as intended.
+Checked on both desktop and a 375px mobile viewport.
+
 ## LAST COMMIT
 
-`d4be967` — Cloudflare publish: use the stable project URL, not the
-per-deploy hash URL. Pushed to `origin/main`. Three commits pushed this
-session total so far (`a27b6c8`, `29ff617`, `d4be967`) — push the
-`.env`-adjacent state-file commit and the emilkowalski skills addition
-next if not already done by the time this is read.
+`537df82` — Demo Engine: real motion (nav underline, button shimmer,
+staggered/clip-path reveals). Pushed to `origin/main`, confirmed
+`origin/main == HEAD`. Preceded by `41f70cd` (auto-insert demo link into
+approved messages) and `d873bd0` from earlier in the session — all
+pushed. **The user has since given standing authorization to push to
+this repo without asking each time** (see the `feedback-github-push-no-ask`
+memory) — keep committing and pushing at every stable milestone, no
+per-push confirmation needed going forward.
 
 ## NEXT PRIORITY
 
 **All P1 items are done**: Cloudflare, GitHub, and Gmail are all real,
-configured, and proven working end-to-end. There is no remaining
-external-integration work. Next priority is P2: Demo Engine expansion
-(≥30 named creative directions, typography/motion systems — see NEXT
-ACTION §4-5, and use the newly-installed emilkowalski animation skills
-for the motion side) or continuing to publish real links / test more
-industries as new leads come in.
+configured, and proven working end-to-end, and approved messages now
+pick up their real link automatically after publish. Demo Engine now
+has genuine motion (P2, this session). Next priority is P3: the formal
+variant registry with similarity detection, and/or continuing to
+publish real links and QA more industries as new leads come in — see
+NEXT ACTION.
 
 ## CONCURRENT SESSION NOTE
 
