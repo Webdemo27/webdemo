@@ -7,8 +7,21 @@ go straight to NEXT ACTION — don't wait for a new task description.
 Last updated: 2026-09-09 (session covering the CEO quality audit,
 Cloudflare rebuild, first real Cloudflare publish, first GitHub push, the
 multi-page Demo Engine rebuild, real Gmail OAuth end-to-end, auto-link
-insertion into approved messages, and the Demo Engine motion pass using
-the emilkowalski/skill animation skills).
+insertion into approved messages, the Demo Engine motion pass using the
+emilkowalski/skill animation skills, chain/websiteless research filters,
+bulk-delete leads, full-pipeline restart on "Demo neu erstellen",
+per-regeneration color variation, and the message-reformulate feature).
+
+**Open question for the user, not yet acted on**: a message this
+session asked for "React Vite Demos... WEB3GL" — read as possibly
+wanting the demo-generator rewritten onto React/Vite instead of static
+self-contained HTML. That directly conflicts with CLAUDE.md's explicit
+"no framework dependency" architecture (chosen for iframe preview +
+Cloudflare Pages static Direct Upload). Did NOT silently pivot the
+architecture on an ambiguous one-line message — flagged it back to the
+user instead. If they confirm they want it, that's a genuinely large,
+separate rewrite (per-demo build step, bigger output, new failure
+modes) — scope it deliberately, don't bolt it on quickly.
 
 ## CURRENT OBJECTIVE
 
@@ -109,6 +122,21 @@ mission's top-priority ask this round.
   getting the universal press feedback, and an expressive profile
   (Ristorante) gets the full treatment on both desktop and mobile.
   `prefers-reduced-motion` handled via a dedicated `@media` block.
+
+- **Research/leads quality pass** (all verified live): Overpass now
+  skips branches of a chain/franchise (OSM brand/operator tags + a
+  short known-name safety net — chain-filter.ts) and businesses with no
+  website at all (the pipeline can't analyze what doesn't exist —
+  confirmed via a real permanently-stuck lead). Leads table got a real
+  multi-select + delete UI (leads-table.tsx, bulk-actions.ts) so
+  pre-existing junk can be cleaned out manually — the user used this
+  live to go from 80 leads down to 12. "Demo neu erstellen" now restarts
+  the whole per-lead process (analysis → demo → message) in one click
+  instead of three, still refusing to touch an already-decided message.
+  Demo color now varies per regeneration too (colorway.ts, pure hue
+  rotation, industry-authentic saturation/lightness preserved). A
+  message that's already sent can now be reformulated into a fresh
+  draft requiring its own approval (reformulateSentMessage).
 
 ## IN PROGRESS
 
