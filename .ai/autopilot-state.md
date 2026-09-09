@@ -265,6 +265,20 @@ mission's top-priority ask this round.
 
 ## COMPLETED
 
+- **Autonomous /loop mission started (2026-09-09)**: user asked for ~3
+  days of self-paced autonomous work (playbooks, gallery images/videos
+  with a "Demo" watermark, Awwwards per-industry research). Shipped so
+  far this loop: a `stampDemoWatermark()` step on every AI-generated
+  image (real photos untouched); video generation researched (OpenRouter
+  has a real API, ~$0.50/video-second for Veo 3.1, async — deliberately
+  not built yet, needs its own scoped pass, see NEXT ACTION); Awwwards
+  research for Restaurant (Qissa) and Real Estate (The Nest) logged in
+  `.ai/design-inspiration-playbook.md`; and the first shipped result
+  from that research — a brand-promise pull-quote in the About section
+  (`buildBrandPromise()`, built only from the existing curated
+  `profile.brandImpression`, never an invented claim). If you're a fresh
+  session picking this up: check whether the loop is still active
+  (ScheduleWakeup firing every ~20-25min) before assuming it stopped.
 - Full pipeline: research (OSM Overpass, retries on transient
   502/503/504) → analysis (cheerio audit + real Playwright
   before-screenshots) → contact discovery (crawls Impressum/Kontakt/
