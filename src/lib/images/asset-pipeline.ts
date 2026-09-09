@@ -8,6 +8,7 @@ import { extractRealImages, type ExtractedImageCandidate } from "./real-image-ex
 import { generateAbstractSvg } from "./abstract-generator";
 import { optimizeAndSave, readImageMetadata } from "./optimizer";
 import { OpenAiImageProvider, isOpenAiImagesConfigured } from "./providers/openai-image-provider";
+import { OpenRouterImageProvider, isOpenRouterImagesConfigured } from "./providers/openrouter-image-provider";
 import { NotConfiguredProvider } from "./providers/not-configured-provider";
 import type { ImageGenerationProvider } from "./types";
 
@@ -24,8 +25,14 @@ const ROLE_LABELS: Record<ImageRole, string> = {
   "3d": "3D-Element",
 };
 
+/** OpenRouter checked first: it's a single gateway to 30+ image models
+ * (see openrouter-image-provider.ts), so it's the more flexible option
+ * when both happen to be configured — not a judgment that OpenAI's
+ * direct API is worse, just an arbitrary but stable tie-break. */
 function getProvider(): ImageGenerationProvider {
-  return isOpenAiImagesConfigured() ? new OpenAiImageProvider() : new NotConfiguredProvider();
+  if (isOpenRouterImagesConfigured()) return new OpenRouterImageProvider();
+  if (isOpenAiImagesConfigured()) return new OpenAiImageProvider();
+  return new NotConfiguredProvider();
 }
 
 function assetsDir(slug: string): string {
