@@ -183,7 +183,7 @@ function servicesSection(services: string[], assets: DemoAssetView[], heading: s
     .join("");
   return `
   <section id="leistungen" class="services">
-    <h2 data-reveal>${escapeHtml(heading)}</h2>
+    <h2 data-reveal>${kineticWords(heading)}</h2>
     <ul class="services-grid">${cards}</ul>
   </section>`;
 }
@@ -252,7 +252,7 @@ function aboutSection(name: string, location: string, mood: string, seed: string
   const closer = pickVariant(ABOUT_CLOSERS, seed + ":about-close");
   return `
   <section id="ueber-uns" class="about" data-reveal>
-    <h2>Über uns</h2>
+    <h2>${kineticWords("Über uns")}</h2>
     <p class="about-text">${escapeHtml(opener)} ${escapeHtml(closer)}</p>
   </section>`;
 }
@@ -277,7 +277,7 @@ function contactSection(lead: DemoData): string {
 
   return `
     <section id="kontakt" class="contact" data-reveal>
-      <h2>Kontakt</h2>
+      <h2>${kineticWords("Kontakt")}</h2>
       <div class="contact-wrap">${contactCard}</div>
     </section>`;
 }
