@@ -660,6 +660,58 @@ function fullscreenMenuScript(): string {
   </script>`;
 }
 
+/** A deliberate interaction moment on the hero's main CTA (mission
+ * section 11: every demo needs at least one) — the button is subtly
+ * attracted toward the cursor within a radius around it, springing back
+ * once the cursor moves away. Desktop-with-a-real-pointer only (gated by
+ * hover+pointer:fine, exactly like the button hover-lift elsewhere in
+ * this file — touch fires false hover/move events), respects reduced
+ * motion, and reuses the button's own existing transform transition
+ * (var(--dur-fast)) rather than adding a new one. rAF-throttled so it
+ * never does more than one style write per frame regardless of how
+ * fast mousemove fires (mission section 16: no unnecessary main-thread
+ * work from an animation). No-ops cleanly on a minimal-CTA hero (a bare
+ * text link, not a .btn-primary) since the selector just finds nothing. */
+function magneticCtaScript(): string {
+  return `
+  <script>
+    (function () {
+      if (!window.matchMedia('(hover: hover) and (pointer: fine)').matches) return;
+      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+      var btn = document.querySelector('.hero .btn-primary');
+      if (!btn) return;
+      var radius = 70;
+      var strength = 0.3;
+      var pending = false;
+      var lastEvent = null;
+
+      function apply() {
+        pending = false;
+        var rect = btn.getBoundingClientRect();
+        var cx = rect.left + rect.width / 2;
+        var cy = rect.top + rect.height / 2;
+        var dx = lastEvent.clientX - cx;
+        var dy = lastEvent.clientY - cy;
+        var dist = Math.sqrt(dx * dx + dy * dy);
+        var maxDist = Math.max(rect.width, rect.height) / 2 + radius;
+        if (dist < maxDist) {
+          var pull = (1 - dist / maxDist) * strength;
+          btn.style.transform = 'translate(' + (dx * pull).toFixed(1) + 'px, ' + (dy * pull).toFixed(1) + 'px)';
+        } else if (btn.style.transform) {
+          btn.style.transform = '';
+        }
+      }
+
+      document.addEventListener('mousemove', function (e) {
+        lastEvent = e;
+        if (pending) return;
+        pending = true;
+        requestAnimationFrame(apply);
+      }, { passive: true });
+    })();
+  </script>`;
+}
+
 function reduceMotionScript(): string {
   return `
   <script>
@@ -1268,6 +1320,7 @@ export function renderDemoSite(
   ${reduceMotionScript()}
   ${headerScrollScript()}
   ${variant.navigationConcept === "fullscreen-overlay" ? fullscreenMenuScript() : ""}
+  ${slug === "" && profile.motion !== "none" ? magneticCtaScript() : ""}
   ${colorPickerScript(colorwayOptions, activeColorwayIndex)}
   ${slug === "" && profile.use3d ? three3dScript(profile.colors.accent) : ""}
   ${profile.motion !== "none" && (variant.motionStructure === "scroll-scrub" || (slug === "" && variant.motionStructure === "cinematic-parallax")) ? gsapMotionScript(variant.motionStructure) : ""}
