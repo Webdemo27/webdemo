@@ -5,6 +5,7 @@ import type {
   SavedAsset,
 } from "./types";
 import { optimizeAndSave } from "./optimizer";
+import { stampDemoWatermark } from "./watermark";
 
 /** Shared saveAsset/optimizeAsset so every concrete provider writes
  * files the same way — only the actual generation calls differ between
@@ -19,7 +20,8 @@ export abstract class BaseImageProvider implements ImageGenerationProvider {
   ): Promise<GeneratedImage>;
 
   async saveAsset(image: GeneratedImage, destDir: string, baseName: string): Promise<SavedAsset> {
-    return optimizeAndSave(image.buffer, destDir, baseName);
+    const watermarked = await stampDemoWatermark(image.buffer);
+    return optimizeAndSave(watermarked, destDir, baseName);
   }
 
   /** Default optimize is a no-op passthrough — real compression happens
