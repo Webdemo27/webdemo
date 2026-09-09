@@ -265,6 +265,21 @@ mission's top-priority ask this round.
 
 ## COMPLETED
 
+- **Awwwards: Autowerkstatt done (research thread complete), 4th shipped
+  feature — real live weather badge** (2026-09-09, same loop) — 363 Car
+  & Social Club logged in `.ai/design-inspiration-playbook.md`: a real
+  live weather reading for the business's own city, done via Open-Meteo
+  (free, keyless, CORS-open, verified with a real cross-origin fetch).
+  Shipped immediately — reuses `Lead.latitude`/`longitude` already
+  captured for the location map, no new data source needed.
+  `weatherBadge()`/`weatherWidgetScript()` in template.ts, `hidden` by
+  default, only reveals on real successful data (never a broken/
+  placeholder state on failure). Verified live on a real Immobilienmakler
+  lead in Mainz — real current temperature/condition rendered correctly.
+  Completes the initial 5-industry Awwwards research pass (Restaurant,
+  Real Estate, Anwalt, Friseur, Autowerkstatt) — more industries (Café,
+  Bäckerei, Zahnarzt, Fahrradladen) are a good target for a future
+  session, continuing the same playbook file.
 - **Awwwards: Friseur done, 3rd shipped feature** (2026-09-09, same
   loop) — Serenity Hair logged in `.ai/design-inspiration-playbook.md`
   (colored quick-link tiles, a handwritten-script hero aside, a
