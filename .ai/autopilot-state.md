@@ -4,24 +4,42 @@ Read this file, `CLAUDE.md`, `git log --oneline -20`, and `git status` at the
 start of every new session on this project before doing anything else. Then
 go straight to NEXT ACTION — don't wait for a new task description.
 
-Last updated: 2026-09-09 (session covering the CEO quality audit,
-Cloudflare rebuild, first real Cloudflare publish, first GitHub push, the
-multi-page Demo Engine rebuild, real Gmail OAuth end-to-end, auto-link
-insertion into approved messages, the Demo Engine motion pass using the
-emilkowalski/skill animation skills, chain/websiteless research filters,
-bulk-delete leads, full-pipeline restart on "Demo neu erstellen",
-per-regeneration color variation, and the message-reformulate feature).
+Last updated: 2026-09-09, late in an extremely long single session
+covering (in order): the CEO quality audit, Cloudflare rebuild, first
+real Cloudflare publish, first GitHub push, the multi-page Demo Engine
+rebuild, real Gmail OAuth end-to-end, auto-link insertion into approved
+messages, a full Demo Engine motion pass (animated capsule nav + mobile
+hamburger, button shimmer/press/hover-lift, staggered reveals,
+per-regeneration color variation growing into a 20-color live picker),
+chain/websiteless research filters, bulk-delete leads, a demo delete
+button that also tears down the Cloudflare project, full-pipeline
+restart on "Demo neu erstellen", the message-reformulate feature, and
+finally 12 ConceptVariants with distinct GSAP/ScrollTrigger-based motion
+structures. See git log for the full, detailed commit-by-commit story —
+each commit message is deliberately thorough.
 
-**Open question for the user, not yet acted on**: a message this
-session asked for "React Vite Demos... WEB3GL" — read as possibly
-wanting the demo-generator rewritten onto React/Vite instead of static
-self-contained HTML. That directly conflicts with CLAUDE.md's explicit
-"no framework dependency" architecture (chosen for iframe preview +
-Cloudflare Pages static Direct Upload). Did NOT silently pivot the
-architecture on an ambiguous one-line message — flagged it back to the
-user instead. If they confirm they want it, that's a genuinely large,
-separate rewrite (per-demo build step, bigger output, new failure
-modes) — scope it deliberately, don't bolt it on quickly.
+**"React Vite... WEB3GL" question — resolved, not pivoted.** The user
+clarified later in the session that the specific tech doesn't matter
+("egal ob web3gl oder next threejs... aber ALLES lebendig") — the actual
+ask was for genuinely alive, GSAP/ScrollTrigger-level motion, not a
+React/Vite rewrite. Built that within the existing static-HTML
+architecture (CDN-loaded GSAP, same pattern as Three.js/use3d) rather
+than the framework rewrite — correctly avoided a huge, unrequested
+architecture change. **Do not revisit the React/Vite rewrite question
+speculatively** — it was asked and answered.
+
+**PENDING: local commits not yet pushed, by explicit user instruction.**
+The user went to sleep mid-session and said: keep building/committing
+(things that don't need their permission), but hold off on `git push`
+until they're awake and explicitly ask for it — a practical concern
+about a push hanging on an unattended credential-manager prompt (this
+happened for real earlier in the session), not a reversal of the
+standing "never ask about GitHub" authorization ([[feedback-github-push-no-ask]]
+memory) — that's still fully in force for when they're back. **If you
+are a future session picking this up: check `git status`/`git log
+origin/main..HEAD` first — if there are unpushed local commits and no
+fresh instruction from the user to push, ask before pushing this once;
+otherwise the standing no-ask authorization applies as always.**
 
 ## CURRENT OBJECTIVE
 
@@ -137,11 +155,45 @@ mission's top-priority ask this round.
   rotation, industry-authentic saturation/lightness preserved). A
   message that's already sent can now be reformulated into a fresh
   draft requiring its own approval (reformulateSentMessage).
+- **Demo Engine, second major round this session** (all verified live
+  with computed-style checks, not just screenshots):
+  - Nav redesigned again per explicit feedback into a rounded
+    capsule/segmented-control (pill track, active link lifted onto a
+    solid pill, hover pills) plus a real animated mobile hamburger menu
+    (morphs to X, dropdown fades/scales in with a per-link stagger).
+  - Buttons gained a permanent glossy diagonal highlight + soft
+    color-matched glow shadow at rest (not just on hover) — "nicht matt
+    sondern bloom elegant."
+  - Color picker grew from a fixed 5-swatch row into a proper 20-color
+    full-spectrum picker (colorway.ts's `colorwayOptions()`): a compact
+    circular trigger (today's color, glossy) expands a swatch-grid
+    popover, crossfades the whole page's CSS custom properties live,
+    persists via localStorage across the multi-page site. The tool's own
+    automatic pick (`applyColorway()`) stays restricted to a conservative
+    subset of those same 20 so it's always exactly one of the visible
+    swatches — no unreachable 21st color.
+  - Demos list page got a delete button that also tears down the
+    Cloudflare Pages project (`CloudflarePagesPublisher.deleteProject()`,
+    `wrangler pages project delete --yes`) — best-effort, never blocks
+    local cleanup, lead itself untouched.
+  - **12 ConceptVariants now** (was 8), each carrying a `motionStructure`
+    — a real animation *system*, not a duration tweak: kinetic-stagger /
+    editorial-fade / energetic-punch on the existing vanilla reveal, plus
+    two new GSAP+ScrollTrigger-based ones (cinematic-parallax,
+    scroll-scrub) loaded via CDN only for variants that use them, always
+    purely additive on top of the vanilla system (never load-bearing for
+    basic visibility — if GSAP fails, the page looks exactly like it
+    would without it). Fixed a real bug caught during this work: the
+    GSAP call site didn't check `profile.motion !== "none"`, so a
+    serious/no-motion industry profile could still get GSAP parallax if
+    it landed on a variant with no explicit motionOverride — now fixed
+    to match how buildMotionCss already gates everything else.
 
 ## IN PROGRESS
 
-Nothing. All three integrations (Cloudflare, GitHub, Gmail) are
-configured and proven working end-to-end as of this session.
+Nothing mid-implementation. All work above is complete, type-checked,
+linted, and verified live. **What's actually pending is pushing to
+GitHub** — see the PENDING note near the top of this file.
 
 ## BLOCKED
 
@@ -285,14 +337,14 @@ Checked on both desktop and a 375px mobile viewport.
 
 ## LAST COMMIT
 
-`537df82` — Demo Engine: real motion (nav underline, button shimmer,
-staggered/clip-path reveals). Pushed to `origin/main`, confirmed
-`origin/main == HEAD`. Preceded by `41f70cd` (auto-insert demo link into
-approved messages) and `d873bd0` from earlier in the session — all
-pushed. **The user has since given standing authorization to push to
-this repo without asking each time** (see the `feedback-github-push-no-ask`
-memory) — keep committing and pushing at every stable milestone, no
-per-push confirmation needed going forward.
+`ca41d9c` — Fix: GSAP motion structures ignored the profile.motion=none
+business flag. **NOT pushed** — local HEAD is several commits ahead of
+`origin/main` (last pushed: `1b038a4`, the 20-color picker). See the
+PENDING note near the top of this file for why (user asked to hold
+pushes until they're back awake) and the standing
+`feedback-github-push-no-ask` authorization that still applies once they
+are. Run `git log origin/main..HEAD --oneline` to see exactly what's
+waiting.
 
 ## NEXT PRIORITY
 
