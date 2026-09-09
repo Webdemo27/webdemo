@@ -1,0 +1,43 @@
+{
+  "slug": "cafe-aroma",
+  "companyName": "Café Aroma",
+  "industry": "Café",
+  "location": "Marburg",
+  "address": "Schwanallee 29a, 35037 Marburg",
+  "contactEmail": "cafearoma@hotmail.de",
+  "contactPhone": "",
+  "tagline": "Für alle in Marburg, denen ein gemütlich, freundlich und unaufgeregt wirkender Auftritt wichtig ist",
+  "aboutText": "Café Aroma wirkt in Marburg auf den ersten Blick gemütlich, freundlich und unaufgeregt. Inhalte und Bilder werden im nächsten Schritt gemeinsam final abgestimmt.",
+  "brandPromise": "Café Aroma steht für gemütlich, freundlich und unaufgeregt — in jedem Detail, bei jedem Besuch.",
+  "servicesLabel": "Angebot",
+  "latitude": null,
+  "longitude": null,
+  "colors": {
+    "primary": "#92400E",
+    "primaryDark": "#78350F",
+    "secondary": "#B45309",
+    "accent": "#78350F",
+    "background": "#FDF8F0",
+    "foreground": "#57310C"
+  },
+  "typography": {
+    "heading": "Playfair Display SC",
+    "body": "Karla",
+    "googleFontsHref": "https://fonts.googleapis.com/css2?family=Karla:wght@300;400;500;600;700&family=Playfair+Display+SC:wght@400;700&display=swap"
+  },
+  "heroImage": "/data/cafe-aroma/hero.svg",
+  "services": [
+    {
+      "label": "Kaffeespezialitäten",
+      "image": "/data/cafe-aroma/service-1.svg"
+    },
+    {
+      "label": "Frühstück",
+      "image": "/data/cafe-aroma/service-2.svg"
+    },
+    {
+      "label": "Kuchenauswahl",
+      "image": "/data/cafe-aroma/service-3.svg"
+    }
+  ]
+}

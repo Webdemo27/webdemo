@@ -9,6 +9,7 @@ export function HomePage() {
     <>
       <section id="home" className="hero">
         <WebGLHero imageUrl={data.heroImage} />
+        <div className="hero-scrim" />
         <div className="hero-content">
           <h1>{data.companyName}</h1>
           <p className="hero-tagline">{data.tagline}</p>

@@ -104,6 +104,12 @@ a {
   overflow: hidden;
 }
 
+.hero-scrim {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.2) 0%, rgba(0, 0, 0, 0.68) 100%);
+}
+
 .hero-canvas-fallback {
   position: absolute;
   inset: 0;

@@ -107,5 +107,12 @@ export function generateAbstractSvg(
   const recipe = pickRecipe(layoutDirection, role);
   const body = recipe(colors, rand, width, height);
 
-  return `<svg viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg" role="img" aria-hidden="true">${body}</svg>`;
+  // width/height attributes (not just viewBox) are required for reliable
+  // intrinsic sizing when this SVG is loaded standalone via `new
+  // Image()` — e.g. THREE.TextureLoader in the WebGL demo engine — which
+  // has no surrounding CSS box to size against, unlike a plain <img> in
+  // the static-HTML engine. Real bug, caught live: without these, the
+  // WebGL hero rendered abstract-art fallback images as a black/
+  // distorted texture (.ai/autopilot-state.md, demo-app section).
+  return `<svg viewBox="0 0 ${width} ${height}" width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg" role="img" aria-hidden="true">${body}</svg>`;
 }
