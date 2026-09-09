@@ -1,0 +1,40 @@
+{
+  "slug": "joachim-langner",
+  "companyName": "Joachim Langner",
+  "industry": "Zahnarzt",
+  "location": "Marburg",
+  "address": "Emil-von-Behring-Straße 23, 35041 Marburg",
+  "contactEmail": "info@zahnarzt-langner.de",
+  "contactPhone": "+49 6421 67442",
+  "tagline": "Für alle in Marburg, denen ein vertrauensvoll, ruhig und kompetent wirkender Auftritt wichtig ist",
+  "aboutText": "Joachim Langner tritt in Marburg vertrauensvoll, ruhig und kompetent auf, mit viel Aufmerksamkeit für die Beratung im Detail. Inhalte und Bilder werden im nächsten Schritt gemeinsam final abgestimmt.",
+  "servicesLabel": "Leistungen",
+  "colors": {
+    "primary": "#0891B2",
+    "primaryDark": "#164E63",
+    "secondary": "#22D3EE",
+    "accent": "#059669",
+    "background": "#F0FBFC",
+    "foreground": "#164E63"
+  },
+  "typography": {
+    "heading": "Lexend",
+    "body": "Source Sans 3",
+    "googleFontsHref": "https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700&family=Source+Sans+3:wght@300;400;500;600;700&display=swap"
+  },
+  "heroImage": "/data/joachim-langner/hero.webp",
+  "services": [
+    {
+      "label": "Vorsorge",
+      "image": "/data/joachim-langner/service-1.webp"
+    },
+    {
+      "label": "Ästhetische Zahnheilkunde",
+      "image": "/data/joachim-langner/service-2.webp"
+    },
+    {
+      "label": "Notfalltermine",
+      "image": "/data/joachim-langner/service-3.webp"
+    }
+  ]
+}

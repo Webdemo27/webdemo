@@ -30,7 +30,10 @@ export interface LeadData {
   location: string;
   address: string;
   contactEmail: string;
+  contactPhone: string;
   tagline: string;
+  aboutText: string;
+  servicesLabel: string;
   colors: LeadColors;
   typography: LeadTypography;
   heroImage: string;

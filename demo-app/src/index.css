@@ -173,6 +173,87 @@ a {
   font-weight: 600;
 }
 
+.about {
+  padding: clamp(2rem, 6vw, 4rem) clamp(1.5rem, 6vw, 5rem);
+  text-align: center;
+}
+
+.about-text {
+  max-width: 42rem;
+  margin: 0 auto;
+  color: color-mix(in srgb, var(--fg) 75%, transparent);
+  font-size: 1.05rem;
+}
+
+.contact {
+  padding: clamp(2rem, 6vw, 4rem) clamp(1.5rem, 6vw, 5rem);
+}
+
+.contact-wrap {
+  display: grid;
+  gap: 1.5rem;
+  grid-template-columns: 1fr;
+  max-width: 32rem;
+  margin: 0 auto;
+}
+
+.contact-details {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  padding: 1.5rem;
+  background: #fff;
+  border: 1px solid color-mix(in srgb, var(--fg) 12%, transparent);
+  border-radius: 0.9rem;
+}
+
+.contact-row {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  text-decoration: none;
+  color: var(--fg);
+}
+
+.contact-row svg {
+  color: var(--primary);
+  flex-shrink: 0;
+}
+
+.contact-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  padding: 1.5rem;
+  background: #fff;
+  border: 1px solid color-mix(in srgb, var(--fg) 12%, transparent);
+  border-radius: 0.9rem;
+}
+
+.contact-form input,
+.contact-form textarea {
+  padding: 0.65rem 0.8rem;
+  border-radius: 0.5rem;
+  border: 1px solid color-mix(in srgb, var(--fg) 20%, transparent);
+  font: inherit;
+  background: var(--bg);
+}
+
+.contact-form button {
+  padding: 0.7rem;
+  border: none;
+  border-radius: 0.5rem;
+  background: var(--primary);
+  color: #fff;
+  font-weight: 600;
+}
+
+.form-hint {
+  margin: 0;
+  font-size: 0.8rem;
+  color: color-mix(in srgb, var(--fg) 65%, transparent);
+}
+
 .site-footer {
   padding: 2rem 1.5rem 3rem;
   text-align: center;

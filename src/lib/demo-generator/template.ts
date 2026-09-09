@@ -375,16 +375,21 @@ function formatMoodList(mood: string): string {
   return `${parts.slice(0, -1).join(", ")} und ${parts[parts.length - 1]}`;
 }
 
-function aboutSection(name: string, location: string, mood: string, seed: string): string {
+export function buildAboutText(name: string, location: string, mood: string, seed: string): string {
   const opener = pickVariant(ABOUT_OPENERS, seed + ":about-open")
     .replace("{company}", name)
     .replace("{location}", location)
     .replace("{mood}", formatMoodList(mood));
   const closer = pickVariant(ABOUT_CLOSERS, seed + ":about-close");
+  return `${opener} ${closer}`;
+}
+
+function aboutSection(name: string, location: string, mood: string, seed: string): string {
+  const text = buildAboutText(name, location, mood, seed);
   return `
   <section id="ueber-uns" class="about" data-reveal>
     <h2>${kineticWords("Über uns")}</h2>
-    <p class="about-text">${escapeHtml(opener)} ${escapeHtml(closer)}</p>
+    <p class="about-text">${escapeHtml(text)}</p>
   </section>`;
 }
 
@@ -1002,7 +1007,7 @@ const SECONDARY_PAGE_LABELS: Record<string, string> = {
   Hotel: "Zimmer & Angebote",
 };
 
-function secondaryPageLabel(industryKey: string): string {
+export function secondaryPageLabel(industryKey: string): string {
   return SECONDARY_PAGE_LABELS[industryKey] ?? "Leistungen";
 }
 

@@ -5,7 +5,10 @@
   "location": "Frankfurt am Main",
   "address": "Bachmannstraße 2-4, 60488 Frankfurt am Main",
   "contactEmail": "info@kp21om.de",
+  "contactPhone": "",
   "tagline": "Einladend, appetitlich und gastfreundlich in Frankfurt am Main",
+  "aboutText": "KP21 tritt in Frankfurt am Main einladend, appetitlich und gastfreundlich auf, mit viel Aufmerksamkeit für die Beratung im Detail. Inhalte und Bilder werden im nächsten Schritt gemeinsam final abgestimmt.",
+  "servicesLabel": "Speisekarte",
   "colors": {
     "primary": "#928f0e",
     "primaryDark": "#78740f",

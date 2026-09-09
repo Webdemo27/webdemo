@@ -3,6 +3,8 @@ import { useParams } from "react-router-dom";
 import { Nav } from "./components/Nav";
 import { WebGLHero } from "./components/WebGLHero";
 import { ServicesSection } from "./components/ServicesSection";
+import { AboutSection } from "./components/AboutSection";
+import { ContactSection } from "./components/ContactSection";
 import type { LeadData } from "./types";
 
 /** Sets CSS custom properties from the lead's real color palette (same
@@ -69,11 +71,13 @@ export function App() {
           <h1>{data.companyName}</h1>
           <p className="hero-tagline">{data.tagline}</p>
           <a className="btn-primary" href="#leistungen">
-            Speisekarte ansehen
+            {data.servicesLabel} ansehen
           </a>
         </div>
       </section>
-      <ServicesSection services={data.services} />
+      <ServicesSection services={data.services} label={data.servicesLabel} />
+      <AboutSection text={data.aboutText} />
+      <ContactSection data={data} />
       <footer className="site-footer">
         <div>Unverbindliches Demo-Konzept — kein offizieller Auftritt von {data.companyName}.</div>
         <span className="demo-flag">Demo-Vorschau · Vite + React + WebGL</span>

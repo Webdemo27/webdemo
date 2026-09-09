@@ -5,7 +5,10 @@
   "location": "Marburg",
   "address": "",
   "contactEmail": "info@konditorei-klingelhoefer.de",
+  "contactPhone": "",
   "tagline": "Café mit Haltung — mitten in Marburg",
+  "aboutText": "Café Klingelhöfer tritt in Marburg gemütlich, freundlich und unaufgeregt auf, mit viel Aufmerksamkeit für die Beratung im Detail. Dieser Entwurf skizziert, wie sich das online genauso hochwertig zeigen lässt.",
+  "servicesLabel": "Angebot",
   "colors": {
     "primary": "#928f0e",
     "primaryDark": "#78740f",

@@ -11,7 +11,7 @@ gsap.registerPlugin(ScrollTrigger);
  * navigating away mid-scroll never leaves a dangling ScrollTrigger
  * watching a removed DOM node (the exact class of bug the mission's
  * "ScrollTrigger cleanup" requirement calls out). */
-export function ServicesSection({ services }: { services: LeadService[] }) {
+export function ServicesSection({ services, label }: { services: LeadService[]; label: string }) {
   const sectionRef = useRef<HTMLElement | null>(null);
 
   useLayoutEffect(() => {
@@ -42,7 +42,7 @@ export function ServicesSection({ services }: { services: LeadService[] }) {
 
   return (
     <section id="leistungen" className="services" ref={sectionRef}>
-      <h2>Speisekarte</h2>
+      <h2>{label}</h2>
       <ul className="services-grid">
         {services.map((service) => (
           <li key={service.label} className="service-card">

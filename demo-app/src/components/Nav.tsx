@@ -10,7 +10,7 @@ export function Nav({ data }: { data: LeadData }) {
       </div>
       <nav className="site-nav">
         <a href="#home">Home</a>
-        <a href="#leistungen">Speisekarte</a>
+        <a href="#leistungen">{data.servicesLabel}</a>
       </nav>
     </header>
   );
