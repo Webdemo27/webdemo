@@ -237,15 +237,18 @@ external integration is real and verified.
    applied across two full motion passes — reach for it again for any
    further motion/polish work rather than inventing patterns from
    scratch.
-6. **QA gap**: the 12-variant × GSAP-motion-structure combination has
-   only been spot-checked on one lead (Café Klingelhöfer, a Café/subtle-
-   motion industry) plus one "none"-motion fix verified by code review
-   only (no live lead of a `motion: "none"` industry existed in the DB
-   at the time — the user had deleted the test Rechtsanwalt leads).
-   Worth a live check across a `motion: "none"` industry (Rechtsanwalt/
-   Steuerberater) and a `motion: "standard"` one the next time either
-   exists as a real lead, to directly confirm the GSAP gating fix
-   (`ca41d9c`) with a live page, not just reasoning about the code.
+6. ~~QA gap~~ **Closed (2026-09-09, same session)**: researched a fresh
+   real Rechtsanwalt lead (Kassel, "Wille Rechtsanwälte") specifically to
+   verify the `ca41d9c` GSAP-gating fix live, since no `motion: "none"`
+   lead existed in the DB at the time it was written. Regenerated until
+   it landed on "Immersive Visual" (`cinematic-parallax`) — confirmed
+   both via `grep -c gsap` on the generated HTML (0 occurrences) and live
+   in the browser (`typeof gsap === 'undefined'`) that GSAP correctly
+   does not load, while the capsule nav (solid white active pill
+   confirmed via computed `backgroundColor`), glossy buttons, and color
+   picker — all correctly judged "baseline visual quality," not "heavy
+   motion" — still render normally. The fix is solid, not just
+   reasoned-about.
 
 ## KNOWN BUGS
 
