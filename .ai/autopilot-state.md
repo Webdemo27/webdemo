@@ -171,6 +171,23 @@ external integration is real and verified.
   inventing per-item descriptions would violate "nicht erfinden". Would
   need real structured content (research findings per service/project)
   before this is honest to build.
+- **`insertDemoLink()` can't replace an already-embedded link, only fill
+  in a missing one.** If a lead is republished after its message already
+  contains a demo URL (e.g. re-verifying an old hash-based Cloudflare URL
+  against the newer stable-alias one), `insertDemoLink` falls through to
+  its "append a new line" branch instead of swapping the old URL out —
+  the message ends up with two different links. Discovered this
+  session while deciding whether to backport the new animated demo
+  engine onto the 3 already-published leads (Meisterschnitt, Hotel Zum
+  Riesen, Junker Immobilien) — **deliberately did not touch them**
+  because of this: Meisterschnitt already has a real, unsent Gmail draft
+  built around its current (pre-motion-pass, hash-URL) demo, and
+  regenerating would have created exactly this two-links mismatch. Their
+  live links keep pointing at the older, non-animated but fully
+  verified demo; every demo generated from here on gets the new engine
+  automatically. Fixing `insertDemoLink` to detect and replace a prior
+  link properly is a reasonable follow-up if a real need to republish an
+  already-linked lead comes up, but wasn't built speculatively.
 
 ## LAST SUCCESSFUL TEST
 
