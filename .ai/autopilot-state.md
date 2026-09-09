@@ -499,7 +499,23 @@ push via SSH) is real, configured, and verified working end-to-end.
 Per the active "AUTOPILOT — DEMO CREATIVE LAB" mission (standing
 authorization, keep working without waiting for prompts):
 
-1. **Continue the demo-app migration** (see IN PROGRESS) — natural next
+1. **Video generation for hero backgrounds (per-industry, e.g. Hotel/
+   Restaurant/Immobilienmakler)** — researched 2026-09-09: OpenRouter has
+   a real video API (`POST /api/v1/videos`, async job + polling, models
+   include Veo 3.1, Seedance, Sora 2 Pro). Real cost consideration before
+   building this: Veo 3.1 is ~$0.50/video-second, so a 5s clip is ≈$2.50
+   — an order of magnitude more than a $0.006 image, and each demo could
+   want its own video. Worth a deliberate, scoped build (async polling
+   infra is architecturally different from the synchronous image
+   providers already built) rather than rushing it — needs: a
+   VideoGenerationProvider following the same pattern as
+   ImageGenerationProvider, a `<video autoplay muted loop playsinline>`
+   hero treatment gated behind `prefers-reduced-motion` + a poster-image
+   fallback, and almost certainly a DEMO watermark burned into the video
+   too (see `src/lib/images/watermark.ts` for the image equivalent — a
+   video needs frame-level compositing, e.g. via ffmpeg, not sharp).
+   Not yet started.
+2. **Continue the demo-app migration** (see IN PROGRESS) — natural next
    slices, roughly in order of value: (a) multi-page routing (React
    Router nested routes reading the same per-slug JSON, matching the
    static engine's real index/leistungen/ueber-uns/kontakt split —
