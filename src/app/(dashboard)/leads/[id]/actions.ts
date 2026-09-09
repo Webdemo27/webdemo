@@ -37,14 +37,28 @@ export async function analyzeLead(leadId: string): Promise<{ ok: boolean; error?
   }
 }
 
-/** Manually (re)generates the static demo site for a lead. */
+/** "Demo neu erstellen" restarts the whole per-lead process, not just the
+ * demo file: fresh analysis + scoring, then a new demo variant, then a
+ * new message draft — one click instead of three. The message step is
+ * skipped (not attempted, not an error) once a human has already
+ * approved/rejected/sent it, same hard rule as runMessageGeneration's
+ * own guard — this only makes that check explicit up front instead of
+ * relying on catching its thrown refusal. */
 export async function generateLeadDemo(leadId: string): Promise<{ ok: boolean; error?: string }> {
   try {
+    await runAnalysisAndScoring(leadId);
     await runDemoGeneration(leadId);
+
+    const message = await prisma.message.findUnique({ where: { leadId } });
+    const messageDecided = Boolean(message?.approvedAt || message?.rejectedAt || message?.sentAt);
+    if (!messageDecided) {
+      await runMessageGeneration(leadId);
+    }
+
     refresh(leadId);
     return { ok: true };
   } catch (e) {
-    const message = e instanceof Error ? e.message : "Unbekannter Fehler bei der Demo-Erstellung.";
+    const message = e instanceof Error ? e.message : "Unbekannter Fehler beim Neustart des Prozesses.";
     await safeRecordError(leadId, message);
     refresh(leadId);
     return { ok: false, error: message };

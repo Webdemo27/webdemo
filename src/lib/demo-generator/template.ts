@@ -291,6 +291,12 @@ function buildMotionCss(level: MotionLevel, flavor: MotionFlavor): string {
   if (level === "none") return "";
   const { hidden, filterTransition, filterReset } = revealTransformCss(flavor);
   return `
+  /* Free cross-page fade in browsers that support the View Transitions
+   * API (Chrome/Edge as of writing); everywhere else this rule is
+   * simply ignored and navigation is instant, same as before — no
+   * feature detection needed, no JS. */
+  @view-transition { navigation: auto; }
+
   [data-reveal] {
     --stagger-index: 0;
     opacity: 0;
@@ -309,14 +315,6 @@ function buildMotionCss(level: MotionLevel, flavor: MotionFlavor): string {
     clip-path: inset(0 0 0 0);
   }
 
-  .site-nav a { position: relative; padding-bottom: 0.3rem; }
-  .site-nav a::after {
-    content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 2px; border-radius: 2px;
-    background: var(--primary); transform: scaleX(0); transform-origin: left;
-    transition: transform var(--dur-base) var(--ease-out);
-  }
-  .site-nav a:hover::after, .site-nav a.is-active::after { transform: scaleX(1); }
-
   .nav-toggle span { transition: transform var(--dur-base) var(--ease-out), opacity var(--dur-fast) var(--ease-out); }
   .nav-toggle[aria-expanded="true"] span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
   .nav-toggle[aria-expanded="true"] span:nth-child(2) { opacity: 0; }
@@ -327,8 +325,7 @@ function buildMotionCss(level: MotionLevel, flavor: MotionFlavor): string {
       transition: opacity var(--dur-base) var(--ease-out), transform var(--dur-base) var(--ease-out);
     }
     .site-nav.is-open { opacity: 1; transform: none; }
-    .site-nav a::after { display: none; }
-    .site-nav a { opacity: 0; transform: translateY(-4px); transition: opacity var(--dur-base) var(--ease-out), transform var(--dur-base) var(--ease-out); }
+    .site-nav a { opacity: 0; transform: translateY(-4px); transition: opacity var(--dur-base) var(--ease-out), transform var(--dur-base) var(--ease-out), background-color var(--dur-base) var(--ease-out); }
     .site-nav.is-open a { opacity: 1; transform: none; }
     .site-nav.is-open a:nth-child(1) { transition-delay: 40ms; }
     .site-nav.is-open a:nth-child(2) { transition-delay: 80ms; }
@@ -350,6 +347,10 @@ function buildMotionCss(level: MotionLevel, flavor: MotionFlavor): string {
   }
   @media (hover: hover) and (pointer: fine) {
     .btn-primary:hover::after, .header-cta:hover::after { transform: translateX(130%); transition: transform 700ms var(--ease-in-out); }
+    .btn-primary:hover, .header-cta:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 28px -14px color-mix(in srgb, var(--primary) 55%, transparent);
+    }
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -633,18 +634,38 @@ export function renderDemoSite(
   .brand { display: flex; align-items: center; gap: 0.6rem; font-family: var(--font-heading); font-weight: 700; font-size: 1.1rem; flex-shrink: 0; }
   .brand-mark { display: flex; align-items: center; justify-content: center; width: 2.2rem; height: 2.2rem; border-radius: 0.5rem; background: var(--primary); color: #fff; font-weight: 700; flex-shrink: 0; }
   .header-cta { padding: 0.6rem 1.2rem; border-radius: 0.4rem; background: var(--primary); color: #fff; text-decoration: none; font-size: 0.85rem; font-weight: 600; flex-shrink: 0; }
-  .site-nav { display: flex; gap: 1.4rem; align-items: center; overflow-x: auto; scrollbar-width: none; }
+  /* A rounded "capsule" nav — a pill-shaped track holding pill-shaped
+   * links, the active one lifted onto a solid card-colored pill. Reads
+   * as one modern navigation unit rather than a row of plain text
+   * links. Kept to the desktop layout; the mobile dropdown below resets
+   * it back to a plain rectangular panel, where a capsule shape would
+   * look out of place. */
+  .site-nav {
+    display: flex; gap: 0.25rem; align-items: center; overflow-x: auto; scrollbar-width: none;
+    background: color-mix(in srgb, var(--muted) 70%, transparent);
+    border-radius: 999px; padding: 0.3rem;
+  }
   .site-nav::-webkit-scrollbar { display: none; }
-  .site-nav a { text-decoration: none; font-size: 0.88rem; font-weight: 600; color: var(--fg); opacity: 0.7; white-space: nowrap; }
-  .site-nav a:hover, .site-nav a.is-active { opacity: 1; color: var(--primary); }
+  .site-nav a {
+    text-decoration: none; font-size: 0.85rem; font-weight: 600; color: var(--fg); opacity: 0.75; white-space: nowrap;
+    padding: 0.5rem 1.05rem; border-radius: 999px;
+    transition: background-color var(--dur-base) var(--ease-out), color var(--dur-base) var(--ease-out), opacity var(--dur-base) var(--ease-out);
+  }
+  .site-nav a:hover { opacity: 1; background: color-mix(in srgb, var(--card) 55%, transparent); }
+  .site-nav a.is-active { opacity: 1; color: var(--primary); background: var(--card); box-shadow: 0 1px 2px rgba(0,0,0,0.06); }
   .nav-toggle { display: none; background: none; border: none; padding: 0; margin: 0; cursor: pointer; flex-shrink: 0; }
   @media (max-width: 640px) {
     .brand span:last-child { display: none; }
     .nav-toggle { display: flex; flex-direction: column; justify-content: center; align-items: stretch; gap: 5px; width: 1.5rem; height: 1.5rem; }
     .nav-toggle span { display: block; height: 2px; width: 100%; background: var(--fg); border-radius: 2px; }
-    .site-nav { position: absolute; top: 100%; left: 0; right: 0; flex-direction: column; align-items: flex-start; gap: 0; overflow: visible; background: var(--card); border-bottom: 1px solid var(--border); padding: 0.25rem 1.75rem 1rem; box-shadow: 0 12px 24px -16px rgba(0,0,0,0.25); }
+    .site-nav {
+      position: absolute; top: 100%; left: 0; right: 0; flex-direction: column; align-items: stretch; gap: 0.15rem;
+      overflow: visible; background: var(--card); border-radius: 0 0 1rem 1rem; padding: 0.5rem 1rem 1rem;
+      box-shadow: 0 12px 24px -16px rgba(0,0,0,0.25);
+    }
     .site-nav:not(.is-open) { visibility: hidden; pointer-events: none; }
-    .site-nav a { width: 100%; padding: 0.7rem 0; white-space: normal; }
+    .site-nav a { width: 100%; padding: 0.7rem 0.9rem; white-space: normal; }
+    .site-nav a.is-active { background: color-mix(in srgb, var(--primary) 10%, transparent); }
   }
 
   .hero { position: relative; min-height: 88vh; display: flex; overflow: hidden; background: linear-gradient(150deg, color-mix(in srgb, var(--primary) 30%, var(--bg)), var(--bg)); }
