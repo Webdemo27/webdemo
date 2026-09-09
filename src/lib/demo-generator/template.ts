@@ -406,6 +406,22 @@ export function buildBrandPromise(name: string, mood: string, seed: string): str
     .replace("{mood}", moodList);
 }
 
+/** Per-word spans with no mask/transform of their own (unlike
+ * kineticWords) — a plain, inert wrapper by default so every variant
+ * renders identically to before. Only variants using the `scroll-scrub`
+ * motionStructure attach real behavior to these spans (see
+ * gsapMotionScript): a scroll-scrubbed two-tone reveal inspired by
+ * ario.law's headline treatment (.ai/design-inspiration-playbook.md,
+ * Anwalt section) — each word brightens as the visitor scrolls past the
+ * quote, instead of a fixed static accent color. */
+function promiseWords(text: string): string {
+  return text
+    .split(" ")
+    .filter(Boolean)
+    .map((word) => `<span class="promise-word">${escapeHtml(word)}</span>`)
+    .join(" ");
+}
+
 function aboutSection(name: string, location: string, mood: string, seed: string): string {
   const text = buildAboutText(name, location, mood, seed);
   const promise = buildBrandPromise(name, mood, seed);
@@ -414,7 +430,7 @@ function aboutSection(name: string, location: string, mood: string, seed: string
     <h2>${kineticWords("Über uns")}</h2>
     <p class="about-text">${escapeHtml(text)}</p>
     <blockquote class="about-promise">
-      <p>${escapeHtml(promise)}</p>
+      <p>${promiseWords(promise)}</p>
       <cite>— ${escapeHtml(name)}</cite>
     </blockquote>
   </section>`;
@@ -993,7 +1009,18 @@ function gsapMotionScript(structure: MotionStructure): string {
             { scale: 1.12 },
             { scale: 1, ease: 'none', scrollTrigger: { trigger: img, start: 'top 95%', end: 'top 35%', scrub: true } }
           );
-        });`;
+        });
+        var promiseQuote = document.querySelector('.about-promise');
+        var promiseWords = gsap.utils.toArray('.promise-word');
+        if (promiseQuote && promiseWords.length) {
+          gsap.set(promiseWords, { opacity: 0.28 });
+          gsap.to(promiseWords, {
+            opacity: 1,
+            ease: 'none',
+            stagger: 0.5,
+            scrollTrigger: { trigger: promiseQuote, start: 'top 90%', end: 'bottom 55%', scrub: true },
+          });
+        }`;
 
   return `
   <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/${GSAP_VERSION}/gsap.min.js"></script>
