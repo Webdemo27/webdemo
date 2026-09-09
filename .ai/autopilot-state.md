@@ -265,6 +265,18 @@ mission's top-priority ask this round.
 
 ## COMPLETED
 
+- **Awwwards: Friseur done, 3rd shipped feature** (2026-09-09, same
+  loop) — Serenity Hair logged in `.ai/design-inspiration-playbook.md`
+  (colored quick-link tiles, a handwritten-script hero aside, a
+  circle-cropped portrait — the latter a natural fit for a future
+  "Friseur: Transformation" WOW moment if real before/after photos ever
+  exist). Shipped the quick-link tiles: `quickLinksSection()` in
+  template.ts, gated to warm/approachable industries only
+  (`layoutDirection === "editorial-asymmetric"`), real destinations
+  only. Verified live on KP21 — real navigation, zero console errors.
+  Known minor limitation: tile tint variety depends on how distinct a
+  lead's own primary/secondary/accent hues are (some industries, e.g.
+  Restaurant's default palette, have secondary===accent).
 - **Demo-app: dashboard export button** (2026-09-09, same loop) —
   closed the "only reachable via CLI script" gap from earlier: a real
   "Vite/React/WebGL-Vorschau" button on the lead detail page
