@@ -267,6 +267,30 @@ mission's top-priority ask this round.
     `@view-transition { navigation: auto; }` rule so the logo morphs
     across page navigation instead of a plain crossfade, in browsers
     that support the View Transitions API. Pure progressive enhancement.
+  - **Kinetic typography extended to every section heading**, not just
+    the hero — Leistungen/Über uns/Kontakt headings all reveal as masked
+    per-word spans too, via the same `kineticWords()` used for the hero.
+  - **Real embedded location map — a genuine "Lage" WOW moment** (mission
+    section 12, called out specifically for real estate). The exact
+    business's own coordinates were sitting unused in Overpass's response
+    the whole time (`out center tags` already returns a node's lat/lon or
+    a way's centroid) — captured them instead of discarding them.
+    `Lead.latitude`/`longitude` (new migration
+    `add_lead_coordinates`) thread through
+    `LeadCandidate -> LeadInput -> DemoData` into a real, live, pannable
+    OpenStreetMap embed (no API key, no invented address, no stock
+    image) with a marker at the real coordinates — not gated to real
+    estate, renders for any lead with coordinates whose variant includes
+    a location section. Falls back to the pre-existing text-only banner
+    when coordinates are unavailable (leads researched before this
+    migration). **Ran a real Prisma migration** — hit and fixed a real
+    Windows file-lock (`EPERM`) on the query-engine DLL because the dev
+    server had it open; stopped the server, `npx prisma generate`,
+    restarted. Verified end-to-end live: a fresh 5-lead real-estate
+    research batch (Mainz) captured distinct real coordinates matching
+    real addresses; a generated demo's map embed URL contained the exact
+    right coordinates and rendered as a genuine interactive map, not a
+    placeholder.
 
 ## IN PROGRESS
 
@@ -305,17 +329,20 @@ authorization, keep working without waiting for prompts):
    before/after or image-cursor-preview) but the baseline requirement
    (at least one deliberate interaction) is now met for every demo with
    a real hero CTA.
-3. **Per-industry WOW moments** (mission section 12) — not yet
-   deliberately designed per industry (Restaurant: Atmosphäre/Menü;
-   Immobilien: Visualisierung/Lage; Anwalt: Autorität/Case Story; etc.).
-   Current demos have a strong generic quality bar but no single
-   industry-tailored "moment" yet. Worth scoping as its own deliberate
-   pass rather than bolting on ad-hoc per-industry special cases.
-4. **Typography systems** (mission section 10) — kinetic word-reveal on
-   the hero headline is done (see COMPLETED). Not yet done: masked
-   scroll-driven typography elsewhere on the page (e.g. section
-   headings), oversized/condensed display type as its own art-direction
-   lever distinct from the existing heading/body font pairs.
+3. **Per-industry WOW moments** (mission section 12) — Immobilien's
+   ("Lage") is now genuinely done via the real embedded location map
+   (see COMPLETED); it also benefits every other industry generically,
+   since any local business has a real location. Still not deliberately
+   designed: Restaurant (Atmosphäre/Menü), Anwalt (Autorität/Case
+   Story), Friseur (Transformation/Gallery), etc. Worth scoping the
+   remaining ones as their own deliberate pass rather than bolting on
+   ad-hoc special cases.
+4. **Typography systems** (mission section 10) — kinetic word-reveal is
+   now on the hero headline AND every section heading (see COMPLETED).
+   Not yet done: scroll-*scrubbed* (not just triggered-once) masked
+   typography (e.g. via the GSAP scroll-scrub motionStructure), and
+   oversized/condensed display type as its own art-direction lever
+   distinct from the existing heading/body font pairs.
 5. Per the mission's ≥30-named-creative-directions ambition: now at 12
    ConceptVariants × 3 NavigationConcepts × 6 MotionStructures — real,
    substantial progress on genuine structural variety, not just palette
