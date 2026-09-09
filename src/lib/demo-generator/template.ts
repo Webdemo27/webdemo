@@ -356,6 +356,31 @@ function locationMapEmbed(lat: number, lon: number): string {
   </div>`;
 }
 
+/** Colored quick-link tiles below the hero — inspired by Serenity Hair
+ * (.ai/design-inspiration-playbook.md, Friseur section): a friendly,
+ * tactile "visual sitemap" instead of relying only on small header nav
+ * text. Only rendered for warm/approachable industries
+ * (`layoutDirection === "editorial-asymmetric"` — Bäckerei, Restaurant,
+ * Café, Friseur, Blumenladen), never for restrained/professional or
+ * luxury profiles, where it would clash with their deliberate
+ * minimalism. Real destinations only (whatever secondary pages this
+ * lead+variant actually has), never invented links. */
+function quickLinksSection(pages: Array<{ filename: string; label: string }>): string {
+  if (pages.length === 0) return "";
+  return `
+  <section class="quick-links" data-reveal>
+    ${pages
+      .map(
+        (p, i) =>
+          `<a class="quick-link-tile quick-link-tile--${i % 3}" href="${p.filename}">
+            <span class="quick-link-eyebrow">Entdecken Sie</span>
+            <span class="quick-link-label">${escapeHtml(p.label)}</span>
+          </a>`
+      )
+      .join("")}
+  </section>`;
+}
+
 function locationBanner(location: string, latitude: number | null, longitude: number | null): string {
   const map = latitude != null && longitude != null ? locationMapEmbed(latitude, longitude) : "";
   return `
@@ -1197,10 +1222,17 @@ export function renderDemoSite(
     secondaryLabel
   );
 
+  const quickLinksHtml =
+    profile.layoutDirection === "editorial-asymmetric"
+      ? quickLinksSection(navPages.filter((p) => p.slug !== "").map((p) => ({ filename: p.filename, label: p.label })))
+      : "";
+
   function bodyFor(slug: PageSlug): string {
     if (slug === "") {
       const homeKeys = variant.sectionOrder.filter((k) => k === "location" && nonHeroSections.location);
-      return [heroHtml, ...homeKeys.map((k) => nonHeroSections[k as Exclude<SectionKey, "hero">] ?? "")].join("\n");
+      return [heroHtml, quickLinksHtml, ...homeKeys.map((k) => nonHeroSections[k as Exclude<SectionKey, "hero">] ?? "")].join(
+        "\n"
+      );
     }
     const group = activeSecondary.find((g) => g.slug === slug);
     if (!group) return "";
@@ -1474,6 +1506,21 @@ export function renderDemoSite(
   @media (prefers-reduced-motion: reduce) {
     .lightbox, .lightbox-zoom-hint { transition-duration: 1ms !important; }
   }
+
+  .quick-links {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem;
+    padding: clamp(1.5rem, 4vw, 2.5rem) clamp(1.5rem, 6vw, 5rem) 0;
+  }
+  .quick-link-tile {
+    display: flex; flex-direction: column; gap: 0.3rem; padding: 1.5rem 1.25rem; border-radius: 0.9rem;
+    text-decoration: none; color: var(--fg); transition: transform var(--dur-fast) var(--ease-out);
+  }
+  .quick-link-tile:hover { transform: translateY(-3px); }
+  .quick-link-tile--0 { background: color-mix(in srgb, var(--primary) 16%, var(--card)); }
+  .quick-link-tile--1 { background: color-mix(in srgb, var(--secondary) 20%, var(--card)); }
+  .quick-link-tile--2 { background: color-mix(in srgb, var(--accent) 16%, var(--card)); }
+  .quick-link-eyebrow { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.08em; color: color-mix(in srgb, var(--fg) 65%, transparent); }
+  .quick-link-label { font-family: var(--font-heading); font-size: 1.15rem; font-weight: 700; }
 
   .location-banner { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 0.5rem; padding-top: 2rem; padding-bottom: 2rem; }
   .location-eyebrow { text-transform: uppercase; letter-spacing: 0.18em; font-size: 0.75rem; color: color-mix(in srgb, var(--fg) 55%, transparent); }
