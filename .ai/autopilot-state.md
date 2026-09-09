@@ -265,6 +265,15 @@ mission's top-priority ask this round.
 
 ## COMPLETED
 
+- **Demo-app: dashboard export button** (2026-09-09, same loop) —
+  closed the "only reachable via CLI script" gap from earlier: a real
+  "Vite/React/WebGL-Vorschau" button on the lead detail page
+  (`ExportReactDemoButton` → `exportReactDemo()` server action →
+  `exportLeadDataForReactApp()`), linking straight to
+  `localhost:5173/<slug>` on success. Verified live on KP21 — real
+  export ran (confirmed via file mtime), correct link, zero console
+  errors. `npm run export:react-demo` still works too, now just an
+  alternative, not the only path.
 - **Awwwards research: Anwalt/law firm done, 2 features shipped from it**
   (2026-09-09, same loop) — ario.law logged in
   `.ai/design-inspiration-playbook.md` (scattered-letters-assemble-on-
