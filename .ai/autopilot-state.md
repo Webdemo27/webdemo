@@ -4,6 +4,33 @@ Read this file, `CLAUDE.md`, `git log --oneline -20`, and `git status` at the
 start of every new session on this project before doing anything else. Then
 go straight to NEXT ACTION — don't wait for a new task description.
 
+**CRITICAL FIX (2026-09-09, same session as the shared-Cloudflare-project
+migration): the shared-project fix itself was broken until this fix.**
+After moving every lead to one shared Cloudflare Pages project
+(`webdemo-demos`) to escape the 21-project account cap, publishing a
+NEW lead (Joachim Langner, Zahnarzt) still failed with the exact same
+`8000027` "reached the limit of projects" error — a real, live
+regression caught because the user was independently testing the
+dashboard and sent a screenshot. Root cause: `wrangler pages project
+create <name>` returns that error unconditionally whenever the account
+is AT its project cap, regardless of whether `<name>` already exists —
+it checks the account-wide count before checking for a name collision.
+Freeing exactly one slot to create `webdemo-demos` put the account
+right back at the same cap (20 old projects + 1 new one = 21 again), so
+the old "always call create, tolerate 'already exists' in the error
+text" pattern hard-failed on every single subsequent publish — the
+"already exists" branch was never reached. **Fixed properly**: added
+`projectExists()` in `cloudflare-publisher.ts` (`wrangler pages project
+list --json`, checked before ever calling `create`) so `create` is only
+invoked on the one genuine first-time case, never redundantly. Verified
+live: republished Joachim Langner successfully to
+`https://webdemo-demos.pages.dev/joachim-langner/` right after the fix.
+**Lesson for future sessions**: after this fix, do not assume the
+Cloudflare project-limit problem is permanently behind us just because
+`webdemo-demos` exists — if a *different* wrangler command starts
+failing with 8000027 again, check whether it's unconditionally calling
+`project create` the same way, rather than re-diagnosing from scratch.
+
 **UPDATE (2026-09-09, new session, first action taken):** the git-push
 hang below is now RESOLVED for this stretch — `git fetch origin --quiet`
 showed `origin/main` still at `c7e7b01` (8 commits behind local `HEAD`);

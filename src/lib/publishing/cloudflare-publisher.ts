@@ -80,6 +80,46 @@ async function mirrorIntoStaging(slug: string, directory: string): Promise<void>
   await fs.cp(directory, target, { recursive: true });
 }
 
+/** Real incident (2026-09-09): `wrangler pages project create` returns
+ * the same account-wide "reached the limit of projects" error (8000027)
+ * regardless of whether the name being created already exists — it does
+ * NOT check for a name collision first, it checks the account's total
+ * project count first. The shared-project design's account sits exactly
+ * at that cap (freeing one slot only made room for one creation, not an
+ * ongoing cushion), so the old "always call create, tolerate 'already
+ * exists' in the error text" pattern now hard-fails on *every single
+ * publish* — the "already exists" text is never reached because the
+ * limit error fires first. Checking existence via `project list --json`
+ * up front and skipping `create` entirely when found avoids ever calling
+ * the broken endpoint on the common path. */
+async function projectExists(projectName: string): Promise<boolean> {
+  const result = await runWrangler(["pages", "project", "list", "--json"]);
+  if (result.code !== 0) return false;
+
+  const tryParse = (text: string): unknown => {
+    try {
+      return JSON.parse(text);
+    } catch {
+      return null;
+    }
+  };
+
+  let projects = tryParse(result.output);
+  if (!Array.isArray(projects)) {
+    const start = result.output.indexOf("[");
+    const end = result.output.lastIndexOf("]");
+    if (start !== -1 && end > start) projects = tryParse(result.output.slice(start, end + 1));
+  }
+  if (Array.isArray(projects)) {
+    return projects.some((p) => p && typeof p === "object" && (p as Record<string, unknown>)["Project Name"] === projectName);
+  }
+
+  // Parsing failed entirely (unexpected output shape) — fall back to a
+  // plain substring check rather than assuming "doesn't exist", since a
+  // false negative here means calling the broken create endpoint again.
+  return result.output.includes(`"${projectName}.pages.dev"`) || result.output.includes(`${projectName}.pages.dev`);
+}
+
 /** Cloudflare Pages project names must be DNS-label-safe; the slug from
  * demo-generator/slug.ts is already lowercase/hyphenated, this just caps
  * the length to Cloudflare's limit. */
@@ -199,24 +239,28 @@ export class CloudflarePagesPublisher implements DemoPublisher {
     try {
       const projectName = sharedProjectName();
 
-      // Explicit, non-interactive project creation up front. `pages
-      // deploy` against a project that doesn't exist yet would
-      // otherwise prompt "Would you like to create one?" — with no TTY
-      // attached that prompt can never be answered. "already exists" is
-      // the normal, expected outcome on every deploy after the first —
-      // in the shared-project design that's now every single deploy.
-      const create = await runWrangler([
-        "pages",
-        "project",
-        "create",
-        projectName,
-        "--production-branch=main",
-      ]);
-      if (create.code !== 0 && !/already exists/i.test(create.output)) {
-        return {
-          ok: false,
-          error: `Cloudflare-Projekt konnte nicht angelegt werden: ${create.output.slice(0, 500)}`,
-        };
+      // Only create the project on the (now rare, ideally one-time)
+      // occasion it's actually missing — see projectExists's doc
+      // comment for why unconditionally calling `create` and tolerating
+      // "already exists" in the error text stopped working. `pages
+      // deploy` against a genuinely missing project would otherwise
+      // prompt "Would you like to create one?", which can never be
+      // answered with no TTY attached — hence still creating it
+      // explicitly for that one real first-time case.
+      if (!(await projectExists(projectName))) {
+        const create = await runWrangler([
+          "pages",
+          "project",
+          "create",
+          projectName,
+          "--production-branch=main",
+        ]);
+        if (create.code !== 0 && !/already exists/i.test(create.output)) {
+          return {
+            ok: false,
+            error: `Cloudflare-Projekt konnte nicht angelegt werden: ${create.output.slice(0, 500)}`,
+          };
+        }
       }
 
       await ensureStagingRoot();
