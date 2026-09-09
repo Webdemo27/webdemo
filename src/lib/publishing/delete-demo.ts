@@ -11,8 +11,11 @@ export interface DeleteDemoOutcome {
 }
 
 /**
- * Deletes one demo completely: tears down its Cloudflare Pages project
- * (if it was ever published there), removes the local
+ * Deletes one demo completely: removes it from the shared Cloudflare
+ * Pages deployment (if it was ever published there — see
+ * CloudflarePagesPublisher.deleteProject, which now removes just this
+ * lead's subfolder and redeploys rather than tearing down a whole
+ * project, since every lead shares one project), removes the local
  * public/demos/<slug>/ directory, and removes the Demo row (cascading
  * DemoAsset rows per the schema). The lead itself is untouched — only
  * its demo goes away, reverting it to "no demo yet" rather than

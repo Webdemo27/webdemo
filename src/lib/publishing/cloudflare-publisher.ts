@@ -1,4 +1,5 @@
 import { spawn } from "node:child_process";
+import { promises as fs } from "node:fs";
 import path from "node:path";
 import type { DemoPublisher, PublishInput, PublishResult } from "./types";
 
@@ -27,6 +28,56 @@ const WRANGLER_ENV = {
 
 export function isCloudflareConfigured(): boolean {
   return Boolean(process.env.CLOUDFLARE_API_TOKEN && process.env.CLOUDFLARE_ACCOUNT_ID);
+}
+
+/** Cloudflare Pages' free plan caps an account at 100 projects total —
+ * hit for real on 2026-09-09 (`wrangler` error 8000027) after the
+ * original one-project-per-lead design accumulated leads across many
+ * research runs. Every lead now shares this single project instead,
+ * living at its own path (`https://<project>.pages.dev/<slug>/`) — a
+ * project name is a one-time, account-wide choice, so it's read from
+ * `.env` (defaulting to "webdemo-demos") rather than derived per lead.
+ * This also incidentally helps the *other* known risk logged in
+ * `.ai/autopilot-state.md` (recipients' mail gateways blocklisting the
+ * shared `*.pages.dev` suffix): with one project, only one custom domain
+ * needs to be attached to protect every demo's sender reputation, not
+ * one per lead. */
+function sharedProjectName(): string {
+  return toProjectName(process.env.CLOUDFLARE_PAGES_PROJECT || "webdemo-demos");
+}
+
+/** Every already-published lead's demo lives here, one subfolder per
+ * slug, and this whole tree is what actually gets deployed to Cloudflare
+ * (see publish()) — kept separate from `public/demos/` (which holds
+ * *every* generated demo, published or not) so a lead never becomes
+ * publicly reachable just because some other lead was published. Not
+ * committed to git (see .gitignore) — same "per-lead output" treatment
+ * as public/demos and public/screenshots. */
+const STAGING_ROOT = path.join(process.cwd(), ".cloudflare-deploy");
+
+/** A visitor landing on the bare project domain (no slug) sees this
+ * instead of Cloudflare's raw 404 — cheap, and it also guarantees
+ * STAGING_ROOT is never completely empty (an empty directory would make
+ * `wrangler pages deploy` fail), e.g. right after deleteProject() removes
+ * the last remaining lead's subfolder. */
+async function ensureStagingRoot(): Promise<void> {
+  await fs.mkdir(STAGING_ROOT, { recursive: true });
+  await fs.writeFile(
+    path.join(STAGING_ROOT, "index.html"),
+    "<!doctype html><html lang=\"de\"><head><meta charset=\"utf-8\" /><title>Webdemo</title></head>" +
+      "<body style=\"font-family:system-ui,sans-serif;padding:4rem;color:#334;max-width:32rem;margin:0 auto;\">" +
+      "<p>Diese Übersicht ist nicht öffentlich. Bitte den direkten Demo-Link verwenden.</p></body></html>",
+    "utf8"
+  );
+}
+
+/** Full replace, not a merge — guarantees no stale asset file lingers in
+ * the staged copy after a regeneration changes which files exist (e.g. a
+ * different colorway/variant produces different image filenames). */
+async function mirrorIntoStaging(slug: string, directory: string): Promise<void> {
+  const target = path.join(STAGING_ROOT, slug);
+  await fs.rm(target, { recursive: true, force: true });
+  await fs.cp(directory, target, { recursive: true });
 }
 
 /** Cloudflare Pages project names must be DNS-label-safe; the slug from
@@ -102,19 +153,39 @@ function runWrangler(args: string[]): Promise<WranglerRun> {
     let output = "";
     child.stdout.on("data", (d: Buffer) => (output += d.toString()));
     child.stderr.on("data", (d: Buffer) => (output += d.toString()));
-    // Strips ANSI color codes so a raw wrangler error stays readable if
-    // it's ever shown in the dashboard UI.
-    const stripAnsi = (s: string) => s.replace(/\x1b\[[0-9;]*m/g, "");
+    // Cleans wrangler's raw output so it's safe to both display in the
+    // dashboard and hand to logActivity() (which persists it via
+    // Prisma/SQLite). Real incident (2026-09-09): wrangler's output uses
+    // emoji liberally (✘, ⛅️, ✨, …) and Prisma's query-engine transport
+    // throws "unexpected end of hex escape" once a later `.slice(0, N)`
+    // call site (see truncateSafely) risked cutting a surrogate pair in
+    // half — a lone surrogate can't round-trip through JSON encoding
+    // cleanly. Rather than depend on every truncation call site getting
+    // that exactly right, this strips ANSI (both OSC hyperlinks and
+    // general CSI sequences, not just SGR color codes) AND every
+    // non-ASCII/non-printable character up front: wrangler's own CLI
+    // chrome is purely decorative diagnostic text, never business data
+    // (lead names etc. never flow through this subprocess), so there's
+    // nothing lost by keeping only plain ASCII from it.
+    const stripAnsi = (s: string) =>
+      s
+        .replace(/\x1b\][^\x07\x1b]*(?:\x07|\x1b\\)/g, "")
+        .replace(/\x1b\[[0-9;?]*[ -/]*[@-~]/g, "")
+        .replace(/[^\x09\x0a\x0d\x20-\x7e]/g, "");
     child.on("close", (code) => resolve({ code: code ?? 1, output: stripAnsi(output) }));
     child.on("error", (err) => resolve({ code: 1, output: output + `\n${err.message}` }));
   });
 }
 
 /**
- * Publishes one demo as its own Cloudflare Pages project via `wrangler
- * pages deploy`, so each lead gets a stable, dedicated public URL
- * (`https://<slug>.pages.dev`) without exposing the dashboard, database,
- * or other leads' demos.
+ * Publishes every lead's demo into one shared Cloudflare Pages project
+ * via `wrangler pages deploy`, each at its own stable public path
+ * (`https://<project>.pages.dev/<slug>/`) — avoids the free plan's
+ * 100-projects-per-account cap that a one-project-per-lead design runs
+ * into (see sharedProjectName's doc comment) while still keeping every
+ * lead's demo independently addressable and never exposing the
+ * dashboard, database, or other leads' *unpublished* demos (see
+ * STAGING_ROOT).
  */
 export class CloudflarePagesPublisher implements DemoPublisher {
   async publish({ slug, directory }: PublishInput): Promise<PublishResult> {
@@ -126,13 +197,14 @@ export class CloudflarePagesPublisher implements DemoPublisher {
     }
 
     try {
-      const projectName = toProjectName(slug);
+      const projectName = sharedProjectName();
 
       // Explicit, non-interactive project creation up front. `pages
       // deploy` against a project that doesn't exist yet would
       // otherwise prompt "Would you like to create one?" — with no TTY
       // attached that prompt can never be answered. "already exists" is
-      // the normal, expected outcome on every deploy after the first.
+      // the normal, expected outcome on every deploy after the first —
+      // in the shared-project design that's now every single deploy.
       const create = await runWrangler([
         "pages",
         "project",
@@ -147,10 +219,13 @@ export class CloudflarePagesPublisher implements DemoPublisher {
         };
       }
 
+      await ensureStagingRoot();
+      await mirrorIntoStaging(slug, directory);
+
       const deploy = await runWrangler([
         "pages",
         "deploy",
-        directory,
+        STAGING_ROOT,
         `--project-name=${projectName}`,
         "--branch=main",
         "--commit-dirty=true",
@@ -172,8 +247,9 @@ export class CloudflarePagesPublisher implements DemoPublisher {
       // stable alias Cloudflare points at whatever the current
       // production deployment is — since this deploy targeted
       // production-branch "main" via --branch=main, that's this
-      // deployment, and the alias only needs to propagate once per
-      // project (at creation) rather than on every republish.
+      // deployment, and the alias only needs to propagate once for the
+      // whole project's lifetime (at its first-ever deploy) rather than
+      // per lead, since every lead now shares this one project/domain.
       const deployedOk = /https:\/\/[a-z0-9.-]+\.pages\.dev\S*/i.test(deploy.output);
       if (!deployedOk) {
         return {
@@ -183,7 +259,7 @@ export class CloudflarePagesPublisher implements DemoPublisher {
         };
       }
 
-      return { ok: true, publicUrl: `https://${projectName}.pages.dev` };
+      return { ok: true, publicUrl: `https://${projectName}.pages.dev/${slug}/` };
     } catch (e) {
       return {
         ok: false,
@@ -192,30 +268,47 @@ export class CloudflarePagesPublisher implements DemoPublisher {
     }
   }
 
-  /** Tears down the whole Cloudflare Pages project (all its deployments,
-   * the `<project>.pages.dev` domain) — the counterpart to publish(),
-   * for cleaning up a demo that's no longer wanted. `--yes` is required:
-   * this command normally prompts for confirmation, and stdin is closed
-   * immediately on every wrangler call (see runWrangler), so an
-   * unconfirmed prompt would otherwise just fail on EOF instead of
-   * actually deleting anything. A project that's already gone (or never
-   * existed on Cloudflare — e.g. a demo that was never published) is
-   * treated as success, same "already exists" tolerance as create(). */
+  /** The counterpart to publish() for a demo that's no longer wanted.
+   * In the shared-project design there's no longer a whole project to
+   * tear down per lead (deleting the *project* would take every other
+   * published lead offline with it) — instead this removes just that
+   * lead's subfolder from the staged tree and redeploys, so its path
+   * stops resolving while every other lead's stays live. A lead that was
+   * never published (no local staging folder) is treated as success,
+   * same "nothing to do" tolerance the old per-project version had for
+   * "already gone on Cloudflare". */
   async deleteProject(slug: string): Promise<{ ok: boolean; error?: string }> {
     if (!isCloudflareConfigured()) {
       return { ok: false, error: "Cloudflare ist nicht konfiguriert (CLOUDFLARE_API_TOKEN/CLOUDFLARE_ACCOUNT_ID fehlen in .env)." };
     }
     try {
-      const projectName = toProjectName(slug);
-      const result = await runWrangler(["pages", "project", "delete", projectName, "--yes"]);
-      if (result.code !== 0 && !/not found|does not exist|couldn.?t find/i.test(result.output)) {
-        return { ok: false, error: `Cloudflare-Projekt konnte nicht gelöscht werden: ${result.output.slice(0, 500)}` };
+      const target = path.join(STAGING_ROOT, slug);
+      const existed = await fs
+        .access(target)
+        .then(() => true)
+        .catch(() => false);
+      if (!existed) return { ok: true };
+
+      await fs.rm(target, { recursive: true, force: true });
+      await ensureStagingRoot();
+
+      const projectName = sharedProjectName();
+      const deploy = await runWrangler([
+        "pages",
+        "deploy",
+        STAGING_ROOT,
+        `--project-name=${projectName}`,
+        "--branch=main",
+        "--commit-dirty=true",
+      ]);
+      if (deploy.code !== 0) {
+        return { ok: false, error: `Konnte nicht neu deployt werden, um "${slug}" zu entfernen: ${deploy.output.slice(0, 500)}` };
       }
       return { ok: true };
     } catch (e) {
       return {
         ok: false,
-        error: e instanceof Error ? e.message : "Unbekannter Fehler beim Löschen des Cloudflare-Projekts.",
+        error: e instanceof Error ? e.message : "Unbekannter Fehler beim Entfernen des Demos aus dem Cloudflare-Deployment.",
       };
     }
   }

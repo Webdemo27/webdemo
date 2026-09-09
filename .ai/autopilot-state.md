@@ -4,6 +4,20 @@ Read this file, `CLAUDE.md`, `git log --oneline -20`, and `git status` at the
 start of every new session on this project before doing anything else. Then
 go straight to NEXT ACTION — don't wait for a new task description.
 
+**UPDATE (2026-09-09, new session, first action taken):** the git-push
+hang below is now RESOLVED for this stretch — `git fetch origin --quiet`
+showed `origin/main` still at `c7e7b01` (8 commits behind local `HEAD`);
+a single fresh `git push origin main` succeeded immediately with normal
+non-blocking output (`c7e7b01..b985c68  main -> main`), no hang, no
+GCM prompt observed. Consistent with the KNOWN ISSUE note's own
+observation that GCM's cached token "periodically allows a push through,
+just unpredictably" — this was one of the unpredictable successes, not a
+fix to GCM itself. **Still don't assume every future push will be
+instant** — keep checking `git rev-parse origin/main HEAD` before/after
+and backing off to one attempt at a time per the guidance below, since
+the underlying GCM behavior hasn't changed, only this particular
+instance's luck.
+
 Last updated: 2026-09-09, very late in an extremely long single session
 covering (in order): the CEO quality audit, Cloudflare rebuild, first
 real Cloudflare publish, first GitHub push, the multi-page Demo Engine
@@ -72,6 +86,106 @@ re-auth, which likely unsticks this for every session afterward too).
 Standing push authorization ([[feedback-github-push-no-ask]] memory)
 is still fully active — this is a technical blocker to mention plainly
 when reporting status, not something to ask permission about.
+
+## UPDATE (2026-09-09, same session): Cloudflare Pages architecture changed — shared project, not one-per-lead
+
+**Real production incident, not a hypothetical:** the user hit
+`wrangler` error `8000027` ("You have reached the limit of projects you
+can have on your account") live in the dashboard while publishing a
+lead. The account was capped at **21** projects, not the documented
+free-tier 100 — likely a newer-account restriction — because the
+original design (`CloudflarePagesPublisher`) created one brand-new
+Cloudflare Pages project per lead via `wrangler pages project create`.
+
+**Fix shipped:** every lead now deploys into ONE shared project
+(`webdemo-demos`, overridable via `CLOUDFLARE_PAGES_PROJECT` in `.env`)
+at its own path — `https://webdemo-demos.pages.dev/<slug>/` instead of
+`https://<slug>.pages.dev`. This works with zero changes to the demo
+HTML itself because every asset/nav reference in generated demos was
+already relative (`assets/foo.jpg`, `index.html`, confirmed in
+`asset-pipeline.ts`/`template.ts`) — demo output was always portable.
+
+- `src/lib/publishing/cloudflare-publisher.ts`: `sharedProjectName()`
+  replaces per-lead `toProjectName(slug)` for the CF project name;
+  `STAGING_ROOT` (`.cloudflare-deploy/`, git-ignored) holds one
+  subfolder per *published* lead — `mirrorIntoStaging()` does a full
+  rm+cp on each publish so a regeneration's changed asset filenames
+  never leave stale orphans; the whole `STAGING_ROOT` (not just the one
+  lead's directory) is what actually gets deployed each time, since a
+  Pages deployment is always a full-tree replace. `ensureStagingRoot()`
+  writes a small "not public" placeholder at the root so `/` never 404s
+  and the deploy dir is never empty (deploying an empty dir would fail).
+  `deleteProject(slug)` (called from `delete-demo.ts`) no longer tears
+  down a whole CF project — it removes just that lead's subfolder from
+  staging and redeploys, since deleting the *project* would take every
+  other published lead offline with it.
+- Bonus: this also mitigates the earlier-logged KNOWN RISK below
+  (`*.pages.dev` getting blocklisted by a recipient's mail gateway) —
+  with one shared project, only ONE eventual custom domain protects
+  every demo's reputation instead of needing one per lead.
+- **Real bug found and fixed while live-testing this**: the very first
+  test crashed `logActivity()` with a Prisma/SQLite error ("unexpected
+  end of hex escape") — traced to `runWrangler`'s ANSI-strip regex only
+  handling SGR color codes (`ESC[...m`), not the emoji (✘, ⛅️, ✨) newer
+  `wrangler` versions print liberally in terminal output; a non-ASCII
+  character landing exactly on the `.slice(0, 500)` truncation boundary
+  produced a lone UTF-16 surrogate that broke Prisma's JSON-based engine
+  transport on write. Fixed at the source (`stripAnsi` in
+  cloudflare-publisher.ts now strips OSC hyperlink escapes, general CSI
+  sequences, and any non-ASCII/non-printable byte from wrangler's output
+  — it's pure diagnostic CLI text, never business data, so nothing of
+  value is lost) AND defensively at the `logActivity()` boundary itself
+  (`src/lib/db/activity.ts` now strips stray control characters from
+  every `message` before insert — a general hardening, not just a
+  one-off patch, since any future caller could hand it raw external
+  text again).
+- **Real bootstrap problem found and resolved live, with the user's
+  explicit sign-off**: even creating the first-ever shared project
+  failed with the same 8000027 error, because the account was ALREADY
+  at its 21-project cap from the old one-project-per-lead design.
+  Investigated via `wrangler pages project list` + a DB cross-check:
+  9 of the 21 existing projects were fully orphaned (no Lead/Demo record
+  in the current `dev.db` references them at all — the local DB was
+  apparently reset at some point while these Cloudflare projects
+  persisted independently). Of those 9, three (`meisterschnitt`,
+  `hotel-zum-riesen`, `junker-immobilien`) were flagged and deliberately
+  **left alone** since they may still have a real, unsent Gmail draft
+  referencing their link (per this file's own prior history) even
+  though no local DB row proves it either way anymore. Asked the user
+  directly which orphan to sacrifice rather than deciding unilaterally
+  on a live external account; they approved deleting
+  `rechtsanwalt-bocionek` (a pure in-session QA test fixture, confirmed
+  orphaned). Freed the slot, `webdemo-demos` created successfully.
+- **Verified live end-to-end**: published lead "KP21" — real project
+  creation, real deploy, real HTTPS+content-match verification, all the
+  way to `https://webdemo-demos.pages.dev/kp21/` rendering correctly
+  (confirmed both `.../kp21/ueber-uns.html` and the bare `.../kp21/`
+  directory-index form), and the bare `https://webdemo-demos.pages.dev/`
+  root showing the "not public" placeholder instead of a raw 404.
+- **Not independently live-tested**: the `deleteProject()` teardown path
+  (remove one lead's subfolder + redeploy) — its logic reuses the exact
+  same proven `wrangler pages deploy STAGING_ROOT` call, just preceded
+  by an `fs.rm`, so it's covered by type-check + lint but wasn't
+  exercised against a real lead (doing so would have required actually
+  deleting KP21's demo record just to test infra, which wasn't worth the
+  risk). Worth a real test the next time a demo is deleted through the
+  normal dashboard flow.
+- **Pre-existing leads with the OLD `https://<slug>.pages.dev` URL
+  format are untouched** — e.g. `cafe-aroma`, `basic-coffee`, and the
+  other 9 currently-DB-tracked published leads from the wrangler list
+  keep working exactly as before; they were not migrated/republished
+  under the new shared path. Only future publishes (and any future
+  republish) use the new shared-project URL shape.
+- **Separately noticed, not yet fixed**: `cafe-aroma`'s stored
+  `Demo.publicUrl` (`https://cafe-aroma.pages.dev`) doesn't match its
+  actual live Cloudflare domain (`https://cafe-aroma-ezb.pages.dev` —
+  Cloudflare appended a suffix because the bare name was already taken
+  by an unrelated Cloudflare account elsewhere, since `*.pages.dev` is a
+  globally shared namespace). This predates today's changes and is
+  irrelevant going forward (the shared-project design no longer creates
+  a new `<slug>.pages.dev` domain per lead at all), but if `cafe-aroma`'s
+  message was ever sent with that stored link, the link is dead. Not
+  investigated further — flagging for awareness only.
 
 ## CURRENT OBJECTIVE
 
@@ -291,6 +405,26 @@ mission's top-priority ask this round.
     real addresses; a generated demo's map embed URL contained the exact
     right coordinates and rendered as a genuine interactive map, not a
     placeholder.
+
+- **Editorial gallery WOW/interaction moment** (mission sections 11 + 12,
+  before the Cloudflare fire drill above): every editorial photo now
+  opens full-screen in a real lightbox on click, with its own real
+  caption (the same copy already printed inline — nothing invented),
+  keyboard (arrows/Escape) and pointer navigation between every
+  editorial image on that page, and focus correctly restored to the
+  trigger on close. The gallery gets an industry-honest name instead of
+  one generic label for every business — "Atmosphäre" for hospitality
+  (Restaurant/Café/Bäckerei/Hotel), "Galerie" for elegant trades
+  (Friseur/Blumenladen), "Werkstatt-Einblicke" for automotive
+  (Fahrradladen/Autowerkstatt), "Einblicke" default elsewhere (see
+  `galleryLabelFor` in template.ts). Purely additive: the lightbox
+  script only gets injected into a page's HTML when that page's body
+  actually contains a trigger. Verified live on lead "KP21" (Luxury
+  Minimal variant): eyebrow label renders, click opens the lightbox with
+  the correct caption, next-arrow advances to the second image and
+  caption, Escape closes AND restores focus to the original trigger
+  (confirmed via visible focus ring), zero console errors, confirmed
+  again working correctly on the real published Cloudflare URL.
 
 ## IN PROGRESS
 

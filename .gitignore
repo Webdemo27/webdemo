@@ -57,6 +57,11 @@ next-env.d.ts
 /public/screenshots/*
 !/public/screenshots/.gitkeep
 
+# staged tree actually deployed to the shared Cloudflare Pages project
+# (see cloudflare-publisher.ts) — mirrors published leads' demo output,
+# not source
+/.cloudflare-deploy/
+
 # editor
 .vscode/*
 !.vscode/extensions.json
