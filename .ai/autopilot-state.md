@@ -252,14 +252,35 @@ mission's top-priority ask this round.
     mechanism. Verified live on both an expressive profile (staggered
     delays confirmed via computed style) and a `motion: "none"` profile
     (renders as plain static text, zero visual difference).
+  - **Magnetic CTA interaction moment** (mission section 11): the hero's
+    primary button subtly attracts toward the cursor within a ~70px
+    radius, springing back once the cursor leaves — rAF-throttled,
+    hover+pointer:fine gated, respects reduced motion, reuses the
+    button's existing transform transition. Verified live by dispatching
+    a synthetic mousemove and reading back the resulting `translate()`.
+  - **Shared-element page transition** on the brand mark
+    (`view-transition-name: demo-brand-mark`) — extends the existing
+    `@view-transition { navigation: auto; }` rule so the logo morphs
+    across page navigation instead of a plain crossfade, in browsers
+    that support the View Transitions API. Pure progressive enhancement.
 
 ## IN PROGRESS
 
 Nothing mid-implementation. All work above is complete, type-checked,
-linted, verified live, and building cleanly (`npm run build`).
+linted, verified live (except the shared-element transition, which is a
+small, low-risk CSS-only addition confirmed by build/lint only — not
+independently observed mid-transition in the browser), and building
+cleanly (`npm run build`).
+
 **What's actually blocked is pushing to GitHub** — see the KNOWN ISSUE
 note near the top of this file (a technical git-push hang, not a policy
-hold — standing push authorization is active).
+hold — standing push authorization is active). This has now happened on
+essentially every push attempt this stretch (5+ consecutive hangs, one
+of which eventually succeeded after several minutes). If you're a fresh
+session: there are likely several commits ahead of `origin/main` by the
+time you read this — check `git rev-parse origin/main HEAD` and push
+once; if it hangs, let it run in the background rather than stacking
+more attempts, and keep building in the meantime.
 
 ## BLOCKED
 
@@ -274,13 +295,12 @@ authorization, keep working without waiting for prompts):
 1. **Resolve/retry the git push hang** — see the KNOWN ISSUE note near
    the top. Check `git rev-parse origin/main HEAD` first; if a push is
    already in flight, wait rather than stacking another.
-2. **Interaction moments** (mission section 11) — not yet built. Each
-   demo should have at least one deliberately-designed interaction
-   beyond the color picker (which is functional, not concept-specific):
-   e.g. a magnetic CTA (button subtly attracted toward the cursor within
-   a small radius) would fit broadly and is a contained, well-scoped
-   addition — pure JS mousemove + transform, no new assets needed. Only
-   wire it where it actually fits the concept, not universally.
+2. ~~Interaction moments~~ **Done**: magnetic CTA on the hero's primary
+   button (mission section 11) — see COMPLETED. Could still add a
+   second, more industry-specific interaction (e.g. an interactive
+   before/after or image-cursor-preview) but the baseline requirement
+   (at least one deliberate interaction) is now met for every demo with
+   a real hero CTA.
 3. **Per-industry WOW moments** (mission section 12) — not yet
    deliberately designed per industry (Restaurant: Atmosphäre/Menü;
    Immobilien: Visualisierung/Lage; Anwalt: Autorität/Case Story; etc.).
