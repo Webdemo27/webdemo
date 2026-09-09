@@ -106,6 +106,24 @@ function heroActions(ctaIntensity: CtaIntensity, contactHref: string, secondaryH
     </div>`;
 }
 
+/** Splits the hero headline into per-word masked spans instead of one
+ * plain text node — a genuine kinetic-typography technique (each word
+ * clips inside `overflow:hidden` and slides up from below on reveal),
+ * not just fading the whole line in at once. Gated the same as the rest
+ * of the reveal system (see [data-reveal].is-visible .kinetic-word-inner
+ * in buildMotionCss) — with motion off, this degrades to plain visible
+ * text since the mask transform never applies in the first place. */
+function kineticWords(text: string): string {
+  return text
+    .split(" ")
+    .filter(Boolean)
+    .map(
+      (word, i) =>
+        `<span class="kinetic-word"><span class="kinetic-word-inner" style="transition-delay:${i * 45}ms">${escapeHtml(word)}</span></span>`
+    )
+    .join(" ");
+}
+
 function heroSection(
   name: string,
   tagline: string,
@@ -137,7 +155,7 @@ function heroSection(
     <div class="hero-bg">${visual}</div>
     ${scrim}
     <div class="hero-content">
-      <h1 data-reveal style="--stagger-index:0">${escapeHtml(name)}</h1>
+      <h1 data-reveal style="--stagger-index:0">${kineticWords(name)}</h1>
       <p class="hero-tagline" data-reveal style="--stagger-index:1">${escapeHtml(tagline)}</p>
       <div data-reveal style="--stagger-index:2">${heroActions(ctaIntensity, contactHref, secondaryHref, secondaryLabel)}</div>
     </div>
@@ -333,6 +351,18 @@ function buildMotionCss(level: MotionLevel, flavor: MotionFlavor, structure: Mot
   @view-transition { navigation: auto; }
   ${revealRule}
 
+  /* Kinetic typography: each hero headline word masks and slides up on
+   * its own, staggered — real word-reveal, not the whole line fading in
+   * as one block. Independent of which reveal mechanism the outer
+   * [data-reveal] uses (plain transition or the punch keyframe) since it
+   * only keys off the shared .is-visible class. */
+  .kinetic-word { display: inline-block; overflow: hidden; vertical-align: top; padding-bottom: 0.12em; margin-bottom: -0.12em; }
+  .kinetic-word-inner {
+    display: inline-block; transform: translateY(115%);
+    transition: transform 650ms var(--ease-out);
+  }
+  [data-reveal].is-visible .kinetic-word-inner { transform: none; }
+
   [data-reveal] .editorial-image, [data-reveal] .service-media, [data-reveal] .detail-image, [data-reveal] .environment-image {
     clip-path: inset(0 0 100% 0);
     transition: clip-path 650ms var(--ease-in-out);
@@ -381,7 +411,7 @@ function buildMotionCss(level: MotionLevel, flavor: MotionFlavor, structure: Mot
   }
 
   @media (prefers-reduced-motion: reduce) {
-    [data-reveal], [data-reveal] .editorial-image, [data-reveal] .service-media, [data-reveal] .detail-image, [data-reveal] .environment-image {
+    [data-reveal], [data-reveal] .editorial-image, [data-reveal] .service-media, [data-reveal] .detail-image, [data-reveal] .environment-image, .kinetic-word-inner {
       transition: none !important; animation: none !important; transform: none !important; filter: none !important; clip-path: none !important; opacity: 1 !important;
     }
     .btn-primary::after, .header-cta::after { display: none; }
