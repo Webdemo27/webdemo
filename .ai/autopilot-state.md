@@ -265,6 +265,16 @@ mission's top-priority ask this round.
 
 ## COMPLETED
 
+- **Demo-app: real multi-page routing shipped** (2026-09-09, same loop) —
+  replaced the single long page with real routes matching the static
+  engine's index/leistungen/ueber-uns/kontakt split (`routes/Layout.tsx`
+  + per-page components, React Router `<Outlet context>`), NavLink
+  active-state styling. Also closed a gap this same routing change
+  exposed: ported the brand-promise pull-quote to the React About page
+  too (added `brandPromise` to the exported LeadData JSON, reusing
+  `buildBrandPromise()` — no logic duplicated between engines). Verified
+  live across all four routes for KP21, zero console errors, clean
+  build.
 - **Autonomous /loop mission started (2026-09-09)**: user asked for ~3
   days of self-paced autonomous work (playbooks, gallery images/videos
   with a "Demo" watermark, Awwwards per-industry research). Shipped so
