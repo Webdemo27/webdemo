@@ -202,34 +202,50 @@ external integration is real and verified.
 
 ## NEXT ACTION
 
-1. **Publish real links for more approved leads** — Meisterschnitt, Hotel
+1. **Push the pending commits once the user is back** (see PENDING note
+   at the top) — this is the single most important next step, everything
+   else is genuinely optional polish from here.
+2. **Publish real links for more approved leads** — Meisterschnitt, Hotel
    Zum Riesen, and Junker Immobilien have real public URLs; any
    newly-approved lead still needs someone to click "Öffentlich
-   bereitstellen" — this doesn't happen automatically, and since this
-   session the resulting link is auto-inserted into the approved message
-   afterward (see COMPLETED / `insertDemoLink`).
-2. **Demo Engine motion pass is done for the core mechanics** (nav,
-   buttons, reveals, stagger, hero) — verified live across an expressive
-   and a "no motion" profile, desktop and mobile. Not yet done: applying
-   the same motion-flavor thinking to the hero visual itself (e.g. a
-   subtle parallax/idle float on `hero-color-block` or 3D variants) and
-   to page-to-page navigation (no page-transition animation between the
-   static multi-page files yet — would need a tiny shared-element/fade
-   script, not attempted this session, judge whether it's worth the
-   added JS for a static demo before building it).
-3. Per the master mission's Demo Engine ask (≥30 named creative
-   directions, a formal variant registry with similarity detection):
-   the multi-page work + this session's motion pass are the structural
-   and motion pieces; the registry itself (tracking variantId/concept/
-   industry/etc. and rejecting near-duplicate variants) is still not
-   built — separate, deliberate design work, don't start it
-   speculatively mid-session.
-4. The `.agents/skills/` emilkowalski animation pack (animate,
+   bereitstellen" — this doesn't happen automatically, and the resulting
+   link is auto-inserted into the approved message afterward (see
+   `insertDemoLink`). Do NOT retroactively regenerate/republish those
+   three specific leads' demos — see the KNOWN LIMITATION on
+   `insertDemoLink` further down (it can't replace an existing link, only
+   fill a missing one) and Meisterschnitt's real, unsent Gmail draft
+   built around its current link.
+3. **Demo Engine motion pass is now done, including the two items this
+   file previously flagged as missing**: hero parallax (cinematic-story
+   / immersive-visual's `cinematic-parallax` motionStructure, real GSAP
+   ScrollTrigger) and page-to-page transitions (`@view-transition {
+   navigation: auto; }`, a free win in browsers that support the View
+   Transitions API). What's left, if picked up: applying GSAP to more
+   than just hero-parallax/scroll-scrub-zoom (e.g. pinned sections, a
+   true horizontal-scroll gallery) — judge case-by-case whether the
+   added complexity earns its weight, per the animate skill's own "cheapest
+   tool that works" rule.
+4. Per the master mission's Demo Engine ask (≥30 named creative
+   directions, a formal variant registry with similarity detection): now
+   at 12 ConceptVariants (was 8), each with a genuinely distinct
+   MotionStructure — real progress, not yet 30. The registry itself
+   (tracking variantId/concept/industry/etc. and rejecting near-duplicate
+   variants) is still not built — separate, deliberate design work.
+5. The `.agents/skills/` emilkowalski animation pack (animate,
    animation-vocabulary, emil-design-eng, improve-animations,
-   review-animations, find-animation-opportunities, etc.) is now
-   actually applied (see COMPLETED), not just installed — reach for it
-   again for any further motion/polish work rather than inventing
-   patterns from scratch.
+   review-animations, find-animation-opportunities, etc.) has now been
+   applied across two full motion passes — reach for it again for any
+   further motion/polish work rather than inventing patterns from
+   scratch.
+6. **QA gap**: the 12-variant × GSAP-motion-structure combination has
+   only been spot-checked on one lead (Café Klingelhöfer, a Café/subtle-
+   motion industry) plus one "none"-motion fix verified by code review
+   only (no live lead of a `motion: "none"` industry existed in the DB
+   at the time — the user had deleted the test Rechtsanwalt leads).
+   Worth a live check across a `motion: "none"` industry (Rechtsanwalt/
+   Steuerberater) and a `motion: "standard"` one the next time either
+   exists as a real lead, to directly confirm the GSAP gating fix
+   (`ca41d9c`) with a live page, not just reasoning about the code.
 
 ## KNOWN BUGS
 
