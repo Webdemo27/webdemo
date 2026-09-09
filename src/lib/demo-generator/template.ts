@@ -1,5 +1,6 @@
 import type { VisualProfile, MotionLevel, ColorWorld } from "../visual-director/types";
 import type { ConceptVariant, HeroStyle, CtaIntensity, SectionKey, MotionStructure, NavigationConcept } from "../visual-director/variants";
+import { swatchPreviewColor } from "../visual-director/colorway";
 import { pickVariant } from "../messaging/templates";
 import { toAssetView, groupByRole, type DemoAssetView } from "./asset-view";
 
@@ -571,12 +572,12 @@ function colorPickerWidget(options: ColorWorld[], activeIndex: number): string {
   const swatches = options
     .map(
       (c, i) =>
-        `<button type="button" class="color-swatch${i === activeIndex ? " is-active" : ""}" data-index="${i}" style="--swatch-color:${c.primary}" aria-label="Farbvariante ${i + 1} von ${options.length}"></button>`
+        `<button type="button" class="color-swatch${i === activeIndex ? " is-active" : ""}" data-index="${i}" style="--swatch-color:${swatchPreviewColor(c.primary)}" aria-label="Farbvariante ${i + 1} von ${options.length}"></button>`
     )
     .join("");
   return `
   <div class="color-picker">
-    <button type="button" class="color-picker-trigger" aria-expanded="false" aria-haspopup="true" aria-label="Farbe der Demo wählen" style="--swatch-color:${options[activeIndex].primary}"></button>
+    <button type="button" class="color-picker-trigger" aria-expanded="false" aria-haspopup="true" aria-label="Farbe der Demo wählen" style="--swatch-color:${swatchPreviewColor(options[activeIndex].primary)}"></button>
     <div class="color-picker-panel" role="group" aria-label="Farbe der Demo wählen">
       <span class="color-picker-label">Farbe wählen</span>
       <div class="color-picker-grid">${swatches}</div>
@@ -591,10 +592,16 @@ function colorPickerScript(options: ColorWorld[], activeIndex: number): string {
     secondary: c.secondary,
     accent: c.accent,
   }));
+  // The trigger's own preview dot must stay as visually distinguishable
+  // as the swatch grid after a selection — see swatchPreviewColor's doc
+  // comment (dark/near-black brand colors, e.g. the luxury profile,
+  // would otherwise make every selection look like the same black dot).
+  const previewColors = options.map((c) => swatchPreviewColor(c.primary));
   return `
   <script>
     (function () {
       var palettes = ${JSON.stringify(palettes)};
+      var previewColors = ${JSON.stringify(previewColors)};
       var root = document.documentElement;
       var STORAGE_KEY = 'demoColorway';
       var picker = document.querySelector('.color-picker');
@@ -614,7 +621,7 @@ function colorPickerScript(options: ColorWorld[], activeIndex: number): string {
         document.querySelectorAll('.color-swatch').forEach(function (btn, i) {
           btn.classList.toggle('is-active', i === index);
         });
-        if (trigger) trigger.style.setProperty('--swatch-color', palette.primary);
+        if (trigger) trigger.style.setProperty('--swatch-color', previewColors[index] || palette.primary);
         try { localStorage.setItem(STORAGE_KEY, String(index)); } catch (e) {}
       }
 

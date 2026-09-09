@@ -122,6 +122,24 @@ export function applyColorway(colors: ColorWorld, seed: string): ColorWorld {
   return buildPalette(colors, PICKER_SHIFTS[index]);
 }
 
+/** Real bug (2026-09-09, caught live on a luxury-profile lead): a small
+ * color-picker swatch needs every option visibly distinguishable even
+ * when the underlying real brand color is very dark or barely saturated
+ * — the luxury profile's primary (`#1C1917`, "viel Schwarz/Gold" by
+ * design) has ~10% lightness, so a pure hue rotation on it produces 20
+ * technically-different hex values that all read as plain black in a
+ * 24px dot. This boosts lightness/saturation for DISPLAY ONLY — the
+ * swatch's little color dot — never the actual applied theme color
+ * (colorPickerScript's `apply()` uses the real, unboosted palette from
+ * colorwayOptions() directly), so clicking a swatch still sets the
+ * exact tuned brand color it always did. */
+export function swatchPreviewColor(hex: string): string {
+  const [h, s, l] = hexToHsl(hex);
+  const displayS = Math.max(s, 0.45);
+  const displayL = Math.min(Math.max(l, 0.38), 0.62);
+  return hslToHex(h, displayS, displayL);
+}
+
 /** All 20 colorways a lead can preview via the on-demo color picker —
  * the full hue wheel, not just the modest range applyColorway() picks
  * from. Same hue-rotation rule (see buildPalette): saturation/lightness
