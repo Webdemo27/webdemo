@@ -49,6 +49,10 @@ const ICONS = {
   mail: `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 6-10 7L2 6"/></svg>`,
   pin: `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>`,
   check: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>`,
+  zoom: `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>`,
+  close: `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>`,
+  arrowLeft: `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>`,
+  arrowRight: `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>`,
 };
 
 function pictureTag(asset: DemoAssetView, className: string, eager = false): string {
@@ -198,7 +202,10 @@ function editorialRow(asset: DemoAssetView, index: number, headline: string, bod
   const reversed = index % 2 === 1;
   return `
   <div class="editorial-row ${reversed ? "editorial-row--reverse" : ""}" data-reveal>
-    <div class="editorial-media">${pictureTag(asset, "editorial-image")}</div>
+    <button type="button" class="editorial-media editorial-lightbox-trigger" data-lightbox-group="editorial" data-headline="${escapeHtml(headline)}" data-body="${escapeHtml(body)}" aria-label="${escapeHtml(headline)} – Bild vergrößern">
+      ${pictureTag(asset, "editorial-image")}
+      <span class="lightbox-zoom-hint" aria-hidden="true">${ICONS.zoom}</span>
+    </button>
     <div class="editorial-text">
       <h3>${escapeHtml(headline)}</h3>
       <p>${escapeHtml(body)}</p>
@@ -206,7 +213,15 @@ function editorialRow(asset: DemoAssetView, index: number, headline: string, bod
   </div>`;
 }
 
-function editorialSection(assets: DemoAssetView[], name: string, location: string): string {
+/** The editorial gallery's "WOW moment" (mission sections 11 + 12): a
+ * real interaction, not just a static row of images. Every editorial
+ * photo opens full-screen with its own real caption (the same copy
+ * already printed beside it inline — nothing invented for the lightbox)
+ * and keyboard/pointer navigation between every editorial image on that
+ * page. `galleryLabel` gives the gallery an industry-honest name —
+ * "Atmosphäre" for hospitality, "Galerie" for elegant trades, etc. (see
+ * galleryLabelFor) — instead of one generic label for every business. */
+function editorialSection(assets: DemoAssetView[], name: string, location: string, galleryLabel: string): string {
   if (assets.length === 0) return "";
   const headlines = ["Ein Ort mit Charakter", "Erfahrung, die man sieht", "Details, die zählen"];
   const bodies = [
@@ -217,7 +232,96 @@ function editorialSection(assets: DemoAssetView[], name: string, location: strin
   const rows = assets
     .map((asset, i) => editorialRow(asset, i, headlines[i % headlines.length], bodies[i % bodies.length]))
     .join("");
-  return `<section class="editorial">${rows}</section>`;
+  return `<section class="editorial">
+    <span class="editorial-eyebrow" data-reveal>${escapeHtml(galleryLabel)}</span>
+    ${rows}
+  </section>
+  ${lightboxMarkup(galleryLabel)}`;
+}
+
+function lightboxMarkup(label: string): string {
+  return `
+  <div class="lightbox" id="lightbox" role="dialog" aria-modal="true" aria-hidden="true" aria-label="${escapeHtml(label)}">
+    <button type="button" class="lightbox-close" aria-label="Schließen">${ICONS.close}</button>
+    <button type="button" class="lightbox-nav lightbox-prev" aria-label="Vorheriges Bild">${ICONS.arrowLeft}</button>
+    <button type="button" class="lightbox-nav lightbox-next" aria-label="Nächstes Bild">${ICONS.arrowRight}</button>
+    <figure class="lightbox-figure">
+      <img class="lightbox-image" src="" alt="" />
+      <figcaption>
+        <span class="lightbox-caption-title"></span>
+        <span class="lightbox-caption-body"></span>
+      </figcaption>
+    </figure>
+  </div>`;
+}
+
+/** Purely additive: with no `.editorial-lightbox-trigger` on the page
+ * (rendered only when this page actually includes the editorial section
+ * — see the bodyHtml check at the renderPage call site) this script is
+ * never even injected. */
+function lightboxScript(): string {
+  return `
+  <script>
+    (function () {
+      var triggers = Array.prototype.slice.call(document.querySelectorAll('.editorial-lightbox-trigger'));
+      var lightbox = document.getElementById('lightbox');
+      if (triggers.length === 0 || !lightbox) return;
+      var img = lightbox.querySelector('.lightbox-image');
+      var titleEl = lightbox.querySelector('.lightbox-caption-title');
+      var bodyEl = lightbox.querySelector('.lightbox-caption-body');
+      var closeBtn = lightbox.querySelector('.lightbox-close');
+      var prevBtn = lightbox.querySelector('.lightbox-prev');
+      var nextBtn = lightbox.querySelector('.lightbox-next');
+      if (triggers.length <= 1) {
+        prevBtn.style.display = 'none';
+        nextBtn.style.display = 'none';
+      }
+      var activeIndex = 0;
+      var lastFocused = null;
+
+      function show(index) {
+        activeIndex = (index + triggers.length) % triggers.length;
+        var trigger = triggers[activeIndex];
+        var sourceImg = trigger.querySelector('img');
+        img.setAttribute('src', sourceImg.currentSrc || sourceImg.src);
+        img.setAttribute('alt', sourceImg.getAttribute('alt') || '');
+        titleEl.textContent = trigger.getAttribute('data-headline') || '';
+        bodyEl.textContent = trigger.getAttribute('data-body') || '';
+      }
+
+      function open(index) {
+        lastFocused = document.activeElement;
+        show(index);
+        lightbox.classList.add('is-open');
+        lightbox.setAttribute('aria-hidden', 'false');
+        document.body.style.overflow = 'hidden';
+        closeBtn.focus();
+      }
+
+      function close() {
+        lightbox.classList.remove('is-open');
+        lightbox.setAttribute('aria-hidden', 'true');
+        document.body.style.overflow = '';
+        if (lastFocused && lastFocused.focus) lastFocused.focus();
+      }
+
+      triggers.forEach(function (trigger, i) {
+        trigger.addEventListener('click', function () { open(i); });
+      });
+      closeBtn.addEventListener('click', close);
+      prevBtn.addEventListener('click', function () { show(activeIndex - 1); });
+      nextBtn.addEventListener('click', function () { show(activeIndex + 1); });
+      lightbox.addEventListener('click', function (e) {
+        if (e.target === lightbox) close();
+      });
+      document.addEventListener('keydown', function (e) {
+        if (!lightbox.classList.contains('is-open')) return;
+        if (e.key === 'Escape') close();
+        if (e.key === 'ArrowLeft') show(activeIndex - 1);
+        if (e.key === 'ArrowRight') show(activeIndex + 1);
+      });
+    })();
+  </script>`;
 }
 
 /** A real embedded map — OpenStreetMap's own free export/embed, no API
@@ -902,6 +1006,29 @@ function secondaryPageLabel(industryKey: string): string {
   return SECONDARY_PAGE_LABELS[industryKey] ?? "Leistungen";
 }
 
+/** Industry-honest name for the editorial lightbox gallery (mission
+ * section 12: a WOW moment should read as built for that specific
+ * business, not a generic template) — "Atmosphäre" for hospitality
+ * trades where ambiance is the actual selling point, "Galerie" for
+ * elegant/craft trades showcasing real work, "Werkstatt-Einblicke" for
+ * automotive/technical trades, and a neutral "Einblicke" default for
+ * everyone else (e.g. professional-services profiles, which still get
+ * real editorial photos, just fewer of them and less ambiance-driven). */
+const GALLERY_LABELS: Record<string, string> = {
+  Restaurant: "Atmosphäre",
+  Café: "Atmosphäre",
+  Bäckerei: "Atmosphäre",
+  Hotel: "Atmosphäre",
+  Friseur: "Galerie",
+  Blumenladen: "Galerie",
+  Fahrradladen: "Werkstatt-Einblicke",
+  Autowerkstatt: "Werkstatt-Einblicke",
+};
+
+function galleryLabelFor(industryKey: string): string {
+  return GALLERY_LABELS[industryKey] ?? "Einblicke";
+}
+
 function pageFilename(slug: PageSlug): string {
   return slug === "" ? "index.html" : `${slug}.html`;
 }
@@ -960,7 +1087,7 @@ export function renderDemoSite(
 
   const nonHeroSections: Partial<Record<Exclude<SectionKey, "hero">, string>> = {
     services: services.length > 0 ? servicesSection(services, serviceAssets, secondaryPageLabel(profile.industryKey)) : "",
-    editorial: editorialSection(editorialAssets, lead.companyName, location),
+    editorial: editorialSection(editorialAssets, lead.companyName, location, galleryLabelFor(profile.industryKey)),
     detail: detailStrip(detailAssets) + environmentSection(environmentAsset),
     location: lead.location ? locationBanner(lead.location, lead.latitude, lead.longitude) : "",
     about: aboutSection(lead.companyName, location, profile.brandImpression, seed),
@@ -1226,6 +1353,62 @@ export function renderDemoSite(
   .editorial-image { width: 100%; height: auto; border-radius: 1rem; aspect-ratio: 3 / 2; object-fit: cover; }
   .editorial-text h3 { font-size: clamp(1.3rem, 2.4vw, 1.8rem); margin-bottom: 0.75rem; }
   .editorial-text p { color: color-mix(in srgb, var(--fg) 75%, transparent); max-width: 34rem; }
+  .editorial-eyebrow {
+    display: block; text-transform: uppercase; letter-spacing: 0.18em; font-size: 0.75rem; font-weight: 600;
+    color: color-mix(in srgb, var(--primary) 80%, var(--fg) 20%); margin-bottom: clamp(1.5rem, 4vw, 2.5rem);
+  }
+
+  /* The editorial gallery's WOW/interaction moment (mission section 11):
+     each real photo opens full-screen with its own caption via #lightbox
+     (markup: lightboxMarkup, behavior: lightboxScript). */
+  .editorial-lightbox-trigger {
+    display: block; width: 100%; border: none; margin: 0; padding: 0; background: none; font: inherit;
+    text-align: inherit; cursor: zoom-in; position: relative; border-radius: 1rem; overflow: hidden;
+  }
+  .lightbox-zoom-hint {
+    position: absolute; top: 0.85rem; right: 0.85rem; display: flex; align-items: center; justify-content: center;
+    width: 2.5rem; height: 2.5rem; border-radius: 999px; color: #fff;
+    background: color-mix(in srgb, #000 45%, transparent); opacity: 0;
+    transition: opacity var(--dur-base) var(--ease-out), transform var(--dur-base) var(--ease-out);
+    transform: scale(0.85);
+  }
+  .editorial-lightbox-trigger:hover .lightbox-zoom-hint,
+  .editorial-lightbox-trigger:focus-visible .lightbox-zoom-hint { opacity: 1; transform: scale(1); }
+  .editorial-lightbox-trigger:focus-visible { outline: 2px solid var(--primary); outline-offset: 3px; }
+
+  .lightbox {
+    position: fixed; inset: 0; z-index: 100;
+    display: flex; align-items: center; justify-content: center; padding: clamp(1.5rem, 6vw, 4rem);
+    background: color-mix(in srgb, #000 88%, transparent);
+    visibility: hidden; opacity: 0;
+    transition: opacity var(--dur-base) var(--ease-out), visibility 0s linear var(--dur-base);
+  }
+  .lightbox.is-open { visibility: visible; opacity: 1; transition-delay: 0s; }
+  .lightbox-figure { margin: 0; max-width: min(90vw, 60rem); display: flex; flex-direction: column; gap: 1rem; }
+  .lightbox-image { width: 100%; max-height: 70vh; object-fit: contain; border-radius: 0.75rem; }
+  .lightbox-figure figcaption { color: #fff; text-align: center; display: flex; flex-direction: column; gap: 0.35rem; }
+  .lightbox-caption-title { font-family: var(--font-heading); font-size: 1.1rem; }
+  .lightbox-caption-body { font-size: 0.9rem; opacity: 0.75; max-width: 34rem; margin: 0 auto; }
+  .lightbox-close, .lightbox-nav {
+    position: absolute; border: 1px solid color-mix(in srgb, #fff 35%, transparent); background: transparent;
+    color: #fff; border-radius: 999px; cursor: pointer; display: flex; align-items: center; justify-content: center;
+    transition: background-color var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out);
+  }
+  .lightbox-close:hover, .lightbox-nav:hover { background: color-mix(in srgb, #fff 14%, transparent); }
+  .lightbox-close { top: clamp(1rem, 4vw, 2rem); right: clamp(1rem, 4vw, 2rem); width: 2.75rem; height: 2.75rem; }
+  .lightbox-close:hover { transform: rotate(90deg); }
+  .lightbox-nav { top: 50%; transform: translateY(-50%); width: 3rem; height: 3rem; }
+  .lightbox-nav:hover { transform: translateY(-50%) scale(1.08); }
+  .lightbox-prev { left: clamp(0.5rem, 3vw, 1.75rem); }
+  .lightbox-next { right: clamp(0.5rem, 3vw, 1.75rem); }
+  @media (max-width: 640px) {
+    .lightbox-nav { width: 2.5rem; height: 2.5rem; }
+    .lightbox-prev { left: 0.35rem; }
+    .lightbox-next { right: 0.35rem; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .lightbox, .lightbox-zoom-hint { transition-duration: 1ms !important; }
+  }
 
   .location-banner { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 0.5rem; padding-top: 2rem; padding-bottom: 2rem; }
   .location-eyebrow { text-transform: uppercase; letter-spacing: 0.18em; font-size: 0.75rem; color: color-mix(in srgb, var(--fg) 55%, transparent); }
@@ -1332,6 +1515,8 @@ export function renderDemoSite(
       previewAssetFor,
     });
 
+    const bodyHtml = bodyFor(slug);
+
     const html = `<!doctype html>
 <html lang="de">
 <head>
@@ -1348,7 +1533,7 @@ export function renderDemoSite(
 <body>
   ${headerHtml}
 
-  ${bodyFor(slug)}
+  ${bodyHtml}
 
   <footer>
     <div>Unverbindliches Demo-Konzept — kein offizieller Auftritt von ${name}.</div>
@@ -1362,6 +1547,7 @@ export function renderDemoSite(
   ${headerScrollScript()}
   ${variant.navigationConcept === "fullscreen-overlay" ? fullscreenMenuScript() : ""}
   ${slug === "" && profile.motion !== "none" ? magneticCtaScript() : ""}
+  ${bodyHtml.includes("editorial-lightbox-trigger") ? lightboxScript() : ""}
   ${colorPickerScript(colorwayOptions, activeColorwayIndex)}
   ${slug === "" && profile.use3d ? three3dScript(profile.colors.accent) : ""}
   ${profile.motion !== "none" && (variant.motionStructure === "scroll-scrub" || (slug === "" && variant.motionStructure === "cinematic-parallax")) ? gsapMotionScript(variant.motionStructure) : ""}
