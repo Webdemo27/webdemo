@@ -35,6 +35,8 @@ export interface LeadData {
   aboutText: string;
   brandPromise: string;
   servicesLabel: string;
+  latitude: number | null;
+  longitude: number | null;
   colors: LeadColors;
   typography: LeadTypography;
   heroImage: string;

@@ -1,0 +1,30 @@
+{
+  "slug": "senger-bau-und-immobilien-consult",
+  "companyName": "Senger Bau - und Immobilien Consult",
+  "industry": "Immobilienmakler",
+  "location": "Mainz",
+  "address": "Alte Mainzer Straße 3, 55129 Mainz",
+  "contactEmail": "info@senger-consult.de",
+  "contactPhone": "+49 6131 3295245",
+  "tagline": "Für alle in Mainz, denen ein exklusiv, hochwertig und zurückhaltend selbstbewusst wirkender Auftritt wichtig ist",
+  "aboutText": "In Mainz zeigt sich Senger Bau - und Immobilien Consult exklusiv, hochwertig und zurückhaltend selbstbewusst — und immer persönlich. Inhalte und Bilder werden im nächsten Schritt gemeinsam final abgestimmt.",
+  "brandPromise": "Das Versprechen von Senger Bau - und Immobilien Consult: exklusiv, hochwertig und zurückhaltend selbstbewusst, ohne Kompromisse.",
+  "servicesLabel": "Leistungen",
+  "latitude": 49.9608701,
+  "longitude": 8.2804484,
+  "colors": {
+    "primary": "#1c1b17",
+    "primaryDark": "#0c0b09",
+    "secondary": "#44403C",
+    "accent": "#a19007",
+    "background": "#FAFAF9",
+    "foreground": "#0C0A09"
+  },
+  "typography": {
+    "heading": "Cinzel",
+    "body": "Josefin Sans",
+    "googleFontsHref": "https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700&family=Josefin+Sans:wght@300;400;500;600;700&display=swap"
+  },
+  "heroImage": "/data/senger-bau-und-immobilien-consult/hero.webp",
+  "services": []
+}

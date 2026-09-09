@@ -88,6 +88,8 @@ export async function exportLeadDataForReactApp(leadId: string): Promise<{ slug:
     aboutText: buildAboutText(lead.companyName, location, profile.brandImpression, seed),
     brandPromise: buildBrandPromise(lead.companyName, profile.brandImpression, seed),
     servicesLabel: secondaryPageLabel(profile.industryKey),
+    latitude: lead.latitude,
+    longitude: lead.longitude,
     colors: {
       primary: profile.colors.primary,
       primaryDark: profile.colors.primaryDark,
