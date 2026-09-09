@@ -265,6 +265,18 @@ mission's top-priority ask this round.
 
 ## COMPLETED
 
+- **Awwwards research: Anwalt/law firm done, 2 features shipped from it**
+  (2026-09-09, same loop) — ario.law logged in
+  `.ai/design-inspiration-playbook.md` (scattered-letters-assemble-on-
+  click hero, real named-partner video intro as the honest target for
+  the mission's "Anwalt: Autorität" WOW moment, real-number stat cards
+  blocked by data availability — not invented). Shipped the one
+  directly-buildable technique: a scroll-scrubbed two-tone reveal on the
+  brand-promise pull-quote (`promiseWords()` + a new scroll-scrub effect
+  in `gsapMotionScript`), wired only into the existing `scroll-scrub`
+  motionStructure so every other variant is unaffected. Verified live on
+  Joachim Langner (Architectural Grid) — genuine scroll-scrub, reverses
+  correctly when scrolling back up.
 - **Demo-app: real multi-page routing shipped** (2026-09-09, same loop) —
   replaced the single long page with real routes matching the static
   engine's index/leistungen/ueber-uns/kontakt split (`routes/Layout.tsx`
