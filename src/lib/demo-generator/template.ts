@@ -1,5 +1,5 @@
 import type { VisualProfile, MotionLevel, ColorWorld } from "../visual-director/types";
-import type { ConceptVariant, HeroStyle, CtaIntensity, SectionKey, MotionStructure } from "../visual-director/variants";
+import type { ConceptVariant, HeroStyle, CtaIntensity, SectionKey, MotionStructure, NavigationConcept } from "../visual-director/variants";
 import { pickVariant } from "../messaging/templates";
 import { toAssetView, groupByRole, type DemoAssetView } from "./asset-view";
 
@@ -508,6 +508,128 @@ function headerScrollScript(): string {
   </script>`;
 }
 
+/** Three genuinely different navigation systems, not one bar re-skinned:
+ * "capsule" (the rounded segmented-control track), "floating-glass" (an
+ * inset, heavier-blur panel — same link markup as capsule, different
+ * header shell), and "fullscreen-overlay" (brand + trigger only; opening
+ * it reveals a full-viewport scene with large typographic links and a
+ * hover-swapped preview image — see fullscreenMenuScript). Which one a
+ * variant gets is fixed per ConceptVariant (visual-director/variants.ts)
+ * so it stays paired with the rest of that concept's character. */
+function renderHeader(params: {
+  navConcept: NavigationConcept;
+  navPages: Array<{ slug: PageSlug; filename: string; label: string }>;
+  currentSlug: PageSlug;
+  name: string;
+  initial: string;
+  contactHref: string;
+  showHeaderCta: boolean;
+  previewAssetFor: Partial<Record<PageSlug, string>>;
+}): string {
+  const { navConcept, navPages, currentSlug, name, initial, contactHref, showHeaderCta, previewAssetFor } = params;
+
+  if (navConcept === "fullscreen-overlay") {
+    const overlayLinks = navPages
+      .map((p) => {
+        const preview = previewAssetFor[p.slug];
+        return `<a href="${p.filename}"${p.slug === currentSlug ? ' class="is-active" aria-current="page"' : ""}${preview ? ` data-preview="${preview}"` : ""}>${escapeHtml(p.label)}</a>`;
+      })
+      .join("\n        ");
+    const firstPreview = previewAssetFor[currentSlug] || Object.values(previewAssetFor).find(Boolean) || "";
+
+    return `
+  <header class="site-header site-header--minimal">
+    <div class="brand">
+      <span class="brand-mark">${initial}</span>
+      <span>${name}</span>
+    </div>
+    <button type="button" class="fullscreen-menu-trigger" aria-expanded="false" aria-controls="fullscreen-menu" aria-label="Menü öffnen">
+      <span></span><span></span><span></span>
+    </button>
+  </header>
+  <div class="fullscreen-menu" id="fullscreen-menu" aria-hidden="true">
+    <button type="button" class="fullscreen-menu-close" aria-label="Menü schließen">✕</button>
+    <nav class="fullscreen-menu-links" aria-label="Hauptnavigation">
+      ${overlayLinks}
+    </nav>
+    ${firstPreview ? `<div class="fullscreen-menu-preview"><img class="fullscreen-menu-preview-img" src="${firstPreview}" alt="" /></div>` : ""}
+  </div>`;
+  }
+
+  const navLinksHtml = navPages
+    .map(
+      (p) =>
+        `<a href="${p.filename}"${p.slug === currentSlug ? ' class="is-active" aria-current="page"' : ""}>${escapeHtml(p.label)}</a>`
+    )
+    .join("\n      ");
+  const headerClass = navConcept === "floating-glass" ? "site-header site-header--floating" : "site-header";
+
+  return `
+  <header class="${headerClass}">
+    <div class="brand">
+      <span class="brand-mark">${initial}</span>
+      <span>${name}</span>
+    </div>
+    <nav class="site-nav" id="site-nav">
+      ${navLinksHtml}
+    </nav>
+    <button type="button" class="nav-toggle" aria-expanded="false" aria-controls="site-nav" aria-label="Menü öffnen">
+      <span></span><span></span><span></span>
+    </button>
+    ${showHeaderCta ? `<a class="header-cta" href="${contactHref}">Kontakt</a>` : ""}
+  </header>`;
+}
+
+/** Powers the fullscreen-overlay nav concept: open/close (trigger, close
+ * button, Escape, clicking a link), a body scroll-lock while open, and a
+ * crossfaded preview-image swap on link hover. Purely progressive —
+ * without JS the trigger button just does nothing, same fail-safe
+ * posture as every other interactive script in this file. */
+function fullscreenMenuScript(): string {
+  return `
+  <script>
+    (function () {
+      var trigger = document.querySelector('.fullscreen-menu-trigger');
+      var menu = document.getElementById('fullscreen-menu');
+      if (!trigger || !menu) return;
+      var closeBtn = menu.querySelector('.fullscreen-menu-close');
+
+      function setOpen(open) {
+        menu.classList.toggle('is-open', open);
+        menu.setAttribute('aria-hidden', open ? 'false' : 'true');
+        trigger.setAttribute('aria-expanded', open ? 'true' : 'false');
+        document.body.style.overflow = open ? 'hidden' : '';
+      }
+
+      trigger.addEventListener('click', function () {
+        setOpen(!menu.classList.contains('is-open'));
+      });
+      if (closeBtn) closeBtn.addEventListener('click', function () { setOpen(false); });
+      document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') setOpen(false);
+      });
+      menu.querySelectorAll('.fullscreen-menu-links a').forEach(function (a) {
+        a.addEventListener('click', function () { setOpen(false); });
+      });
+
+      var previewImg = menu.querySelector('.fullscreen-menu-preview-img');
+      if (previewImg) {
+        menu.querySelectorAll('a[data-preview]').forEach(function (a) {
+          a.addEventListener('mouseenter', function () {
+            var src = a.getAttribute('data-preview');
+            if (!src || previewImg.getAttribute('src') === src) return;
+            previewImg.style.opacity = '0';
+            window.setTimeout(function () {
+              previewImg.setAttribute('src', src);
+              previewImg.style.opacity = '1';
+            }, 180);
+          });
+        });
+      }
+    })();
+  </script>`;
+}
+
 function reduceMotionScript(): string {
   return `
   <script>
@@ -738,6 +860,17 @@ export function renderDemoSite(
   const pageSlugs: PageSlug[] = ["", ...activeSecondary.map((g) => g.slug)];
   const navPages = pageSlugs.map((slug) => ({ slug, filename: pageFilename(slug), label: pageNavLabel(slug, profile.industryKey) }));
 
+  // Which real image represents each page, for the fullscreen-overlay
+  // nav's hover preview — falls back gracefully (no data-preview
+  // attribute, so that link just doesn't swap the image) rather than
+  // inventing a placeholder photo for a page that has none.
+  const previewAssetFor: Partial<Record<PageSlug, string>> = {
+    "": heroAsset?.src,
+    leistungen: serviceAssets[0]?.src ?? editorialAssets[0]?.src,
+    "ueber-uns": editorialAssets[0]?.src ?? detailAssets[0]?.src ?? environmentAsset?.src,
+    kontakt: environmentAsset?.src ?? detailAssets[0]?.src,
+  };
+
   const hasLeistungen = activeSecondary.some((g) => g.slug === "leistungen");
   const hasUeberUns = activeSecondary.some((g) => g.slug === "ueber-uns");
   const hasKontakt = activeSecondary.some((g) => g.slug === "kontakt");
@@ -806,6 +939,16 @@ export function renderDemoSite(
 
   .site-header { position: sticky; top: 0; z-index: 20; display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 1rem 1.75rem; background: color-mix(in srgb, var(--card) 92%, transparent); backdrop-filter: blur(8px); border-bottom: 1px solid var(--border); transition: box-shadow var(--dur-base) ease, background var(--dur-base) ease; }
   .site-header.is-scrolled { box-shadow: 0 8px 24px -16px rgba(0,0,0,0.35); background: color-mix(in srgb, var(--card) 97%, transparent); }
+  /* Floating-glass nav concept: an inset panel rather than a flush-docked
+   * bar — reads as floating above the content instead of part of it. */
+  .site-header--floating {
+    top: 1rem; margin: 0 1rem; border-radius: 1.25rem; border: 1px solid var(--border);
+    box-shadow: 0 14px 34px -18px rgba(0,0,0,0.3); backdrop-filter: blur(16px);
+  }
+  .site-header--floating.is-scrolled { top: 0.6rem; box-shadow: 0 18px 40px -16px rgba(0,0,0,0.4); }
+  @media (max-width: 640px) { .site-header--floating { margin: 0 0.6rem; border-radius: 1rem; } }
+  /* Fullscreen-overlay nav concept: brand + trigger only, no inline links. */
+  .site-header--minimal { justify-content: space-between; }
   .brand { display: flex; align-items: center; gap: 0.6rem; font-family: var(--font-heading); font-weight: 700; font-size: 1.1rem; flex-shrink: 0; }
   .brand-mark { display: flex; align-items: center; justify-content: center; width: 2.2rem; height: 2.2rem; border-radius: 0.5rem; background: var(--primary); color: #fff; font-weight: 700; flex-shrink: 0; }
   .header-cta {
@@ -846,6 +989,62 @@ export function renderDemoSite(
     .site-nav:not(.is-open) { visibility: hidden; pointer-events: none; }
     .site-nav a { width: 100%; padding: 0.7rem 0.9rem; white-space: normal; }
     .site-nav a.is-active { background: color-mix(in srgb, var(--primary) 10%, transparent); }
+  }
+
+  /* Fullscreen-overlay nav concept: the menu itself is the moment, not
+   * just a means to navigate — large typographic links over a full
+   * dark scene, with a preview image that swaps to match the hovered
+   * link (see fullscreenMenuScript). Works identically at every
+   * viewport size, so there's no separate mobile treatment here. */
+  .fullscreen-menu-trigger {
+    display: flex; flex-direction: column; justify-content: center; gap: 5px;
+    width: 1.6rem; height: 1.6rem; background: none; border: none; padding: 0; cursor: pointer; flex-shrink: 0;
+  }
+  .fullscreen-menu-trigger span {
+    display: block; height: 2px; width: 100%; background: var(--fg); border-radius: 2px;
+    transition: transform var(--dur-base) var(--ease-out), opacity var(--dur-fast) var(--ease-out);
+  }
+  .fullscreen-menu-trigger[aria-expanded="true"] span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+  .fullscreen-menu-trigger[aria-expanded="true"] span:nth-child(2) { opacity: 0; }
+  .fullscreen-menu-trigger[aria-expanded="true"] span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+
+  .fullscreen-menu {
+    position: fixed; inset: 0; z-index: 90;
+    display: flex; align-items: center; justify-content: space-between; gap: clamp(1.5rem, 6vw, 5rem);
+    padding: clamp(2rem, 8vw, 6rem);
+    background: var(--fg); color: var(--bg);
+    visibility: hidden; opacity: 0;
+    transition: opacity var(--dur-base) var(--ease-out), visibility 0s linear var(--dur-base);
+  }
+  .fullscreen-menu.is-open { visibility: visible; opacity: 1; transition-delay: 0s; }
+  .fullscreen-menu-close {
+    position: absolute; top: clamp(1.25rem, 4vw, 2.5rem); right: clamp(1.25rem, 4vw, 2.5rem);
+    width: 2.75rem; height: 2.75rem; border-radius: 999px;
+    border: 1px solid color-mix(in srgb, var(--bg) 35%, transparent);
+    background: transparent; color: var(--bg); font-size: 1.1rem; cursor: pointer;
+    transition: transform var(--dur-fast) var(--ease-out), background-color var(--dur-fast) var(--ease-out);
+  }
+  .fullscreen-menu-close:hover { background: color-mix(in srgb, var(--bg) 12%, transparent); transform: rotate(90deg); }
+  .fullscreen-menu-links { display: flex; flex-direction: column; gap: 0.5rem; }
+  .fullscreen-menu-links a {
+    font-family: var(--font-heading); font-weight: 700; text-decoration: none; color: var(--bg);
+    font-size: clamp(2rem, 6vw, 4.2rem); line-height: 1.15;
+    opacity: 0; transform: translateY(14px);
+    transition: opacity var(--dur-base) var(--ease-out), transform var(--dur-base) var(--ease-out), color var(--dur-base) var(--ease-out);
+  }
+  .fullscreen-menu.is-open .fullscreen-menu-links a { opacity: 0.55; transform: none; }
+  .fullscreen-menu.is-open .fullscreen-menu-links a:hover,
+  .fullscreen-menu.is-open .fullscreen-menu-links a.is-active { opacity: 1; color: var(--secondary); }
+  .fullscreen-menu.is-open .fullscreen-menu-links a:nth-child(1) { transition-delay: 40ms; }
+  .fullscreen-menu.is-open .fullscreen-menu-links a:nth-child(2) { transition-delay: 90ms; }
+  .fullscreen-menu.is-open .fullscreen-menu-links a:nth-child(3) { transition-delay: 140ms; }
+  .fullscreen-menu.is-open .fullscreen-menu-links a:nth-child(4) { transition-delay: 190ms; }
+  .fullscreen-menu-preview { flex-shrink: 0; width: min(30vw, 26rem); aspect-ratio: 3 / 4; border-radius: 1rem; overflow: hidden; display: none; }
+  .fullscreen-menu-preview-img { width: 100%; height: 100%; object-fit: cover; transition: opacity 220ms ease; }
+  @media (min-width: 860px) { .fullscreen-menu-preview { display: block; } }
+  @media (max-width: 640px) { .fullscreen-menu { flex-direction: column; justify-content: center; align-items: flex-start; } }
+  @media (prefers-reduced-motion: reduce) {
+    .fullscreen-menu, .fullscreen-menu-links a { transition-duration: 1ms !important; }
   }
 
   .hero { position: relative; min-height: 88vh; display: flex; overflow: hidden; background: linear-gradient(150deg, color-mix(in srgb, var(--primary) 30%, var(--bg)), var(--bg)); }
@@ -999,12 +1198,16 @@ export function renderDemoSite(
 
   function renderPage(slug: PageSlug): DemoPage {
     const title = slug === "" ? `${name}${lead.location ? ` — ${escapeHtml(lead.location)}` : ""}` : `${pageNavLabel(slug, profile.industryKey)} — ${name}`;
-    const navHtml = navPages
-      .map(
-        (p) =>
-          `<a href="${p.filename}"${p.slug === slug ? ' class="is-active" aria-current="page"' : ""}>${escapeHtml(p.label)}</a>`
-      )
-      .join("\n      ");
+    const headerHtml = renderHeader({
+      navConcept: variant.navigationConcept,
+      navPages,
+      currentSlug: slug,
+      name,
+      initial,
+      contactHref,
+      showHeaderCta,
+      previewAssetFor,
+    });
 
     const html = `<!doctype html>
 <html lang="de">
@@ -1020,19 +1223,7 @@ export function renderDemoSite(
 </style>
 </head>
 <body>
-  <header class="site-header">
-    <div class="brand">
-      <span class="brand-mark">${initial}</span>
-      <span>${name}</span>
-    </div>
-    <nav class="site-nav" id="site-nav">
-      ${navHtml}
-    </nav>
-    <button type="button" class="nav-toggle" aria-expanded="false" aria-controls="site-nav" aria-label="Menü öffnen">
-      <span></span><span></span><span></span>
-    </button>
-    ${showHeaderCta ? `<a class="header-cta" href="${contactHref}">Kontakt</a>` : ""}
-  </header>
+  ${headerHtml}
 
   ${bodyFor(slug)}
 
@@ -1046,6 +1237,7 @@ export function renderDemoSite(
 
   ${reduceMotionScript()}
   ${headerScrollScript()}
+  ${variant.navigationConcept === "fullscreen-overlay" ? fullscreenMenuScript() : ""}
   ${colorPickerScript(colorwayOptions, activeColorwayIndex)}
   ${slug === "" && profile.use3d ? three3dScript(profile.colors.accent) : ""}
   ${profile.motion !== "none" && (variant.motionStructure === "scroll-scrub" || (slug === "" && variant.motionStructure === "cinematic-parallax")) ? gsapMotionScript(variant.motionStructure) : ""}

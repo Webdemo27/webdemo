@@ -33,6 +33,24 @@ export type MotionStructure =
   | "none";
 
 /**
+ * A genuinely different navigation SYSTEM, not a color/spacing variant
+ * of the same bar — each has its own markup shape, its own interaction
+ * model, and (for fullscreen-overlay) its own menu experience:
+ * - "capsule": a rounded segmented-control track, links always visible,
+ *   the active one lifted onto a solid pill. Compact, calm, works on
+ *   any density of content — the safe default for restrained concepts.
+ * - "floating-glass": the header is inset from the viewport edge (not
+ *   flush), heavier blur, tightens/shrinks further once scrolled —
+ *   reads as a floating panel rather than a docked bar.
+ * - "fullscreen-overlay": the header shows only the brand mark and a
+ *   menu trigger; opening it reveals a full-viewport scene with large
+ *   typographic links (staggered in) and a preview image that swaps to
+ *   match whichever link is hovered — the menu itself is the moment,
+ *   not just a means to navigate.
+ */
+export type NavigationConcept = "capsule" | "floating-glass" | "fullscreen-overlay";
+
+/**
  * A named creative concept — a genuinely different structural strategy,
  * not a palette swap. "Demo neu erstellen" cycles through these (see
  * pickNextVariant) so repeated regeneration produces real variety
@@ -49,6 +67,7 @@ export interface ConceptVariant {
   layoutDirectionOverride?: LayoutDirection;
   motionOverride?: MotionLevel;
   motionStructure: MotionStructure;
+  navigationConcept: NavigationConcept;
   forceUse3d?: boolean;
 }
 
@@ -63,6 +82,7 @@ export const CONCEPT_VARIANTS: ConceptVariant[] = [
     ctaIntensity: "standard",
     whitespaceScale: 1,
     motionStructure: "editorial-fade",
+    navigationConcept: "floating-glass",
   },
   {
     id: "bold-conversion",
@@ -75,6 +95,7 @@ export const CONCEPT_VARIANTS: ConceptVariant[] = [
     whitespaceScale: 0.78,
     layoutDirectionOverride: "bold-blocks",
     motionStructure: "kinetic-stagger",
+    navigationConcept: "capsule",
   },
   {
     id: "immersive-visual",
@@ -87,6 +108,7 @@ export const CONCEPT_VARIANTS: ConceptVariant[] = [
     whitespaceScale: 1.25,
     layoutDirectionOverride: "immersive-storytelling",
     motionStructure: "cinematic-parallax",
+    navigationConcept: "fullscreen-overlay",
   },
   {
     id: "luxury-minimal",
@@ -99,6 +121,7 @@ export const CONCEPT_VARIANTS: ConceptVariant[] = [
     whitespaceScale: 1.6,
     motionOverride: "subtle",
     motionStructure: "editorial-fade",
+    navigationConcept: "floating-glass",
   },
   {
     id: "interactive-3d",
@@ -110,6 +133,7 @@ export const CONCEPT_VARIANTS: ConceptVariant[] = [
     ctaIntensity: "standard",
     whitespaceScale: 1,
     motionStructure: "kinetic-stagger",
+    navigationConcept: "capsule",
     forceUse3d: true,
   },
   {
@@ -124,6 +148,7 @@ export const CONCEPT_VARIANTS: ConceptVariant[] = [
     layoutDirectionOverride: "grid-clean",
     motionOverride: "none",
     motionStructure: "none",
+    navigationConcept: "capsule",
   },
   {
     id: "asymmetric",
@@ -136,6 +161,7 @@ export const CONCEPT_VARIANTS: ConceptVariant[] = [
     whitespaceScale: 0.95,
     layoutDirectionOverride: "editorial-asymmetric",
     motionStructure: "scroll-scrub",
+    navigationConcept: "floating-glass",
   },
   {
     id: "product-focused",
@@ -148,6 +174,7 @@ export const CONCEPT_VARIANTS: ConceptVariant[] = [
     whitespaceScale: 0.9,
     layoutDirectionOverride: "grid-clean",
     motionStructure: "kinetic-stagger",
+    navigationConcept: "capsule",
   },
   {
     id: "cinematic-story",
@@ -160,6 +187,7 @@ export const CONCEPT_VARIANTS: ConceptVariant[] = [
     whitespaceScale: 1.3,
     layoutDirectionOverride: "immersive-storytelling",
     motionStructure: "cinematic-parallax",
+    navigationConcept: "fullscreen-overlay",
   },
   {
     id: "architectural-grid",
@@ -172,6 +200,7 @@ export const CONCEPT_VARIANTS: ConceptVariant[] = [
     whitespaceScale: 0.85,
     layoutDirectionOverride: "grid-clean",
     motionStructure: "scroll-scrub",
+    navigationConcept: "floating-glass",
   },
   {
     id: "dynamic-energy",
@@ -183,6 +212,7 @@ export const CONCEPT_VARIANTS: ConceptVariant[] = [
     ctaIntensity: "aggressive",
     whitespaceScale: 0.7,
     motionStructure: "energetic-punch",
+    navigationConcept: "fullscreen-overlay",
   },
   {
     id: "quiet-confidence",
@@ -195,6 +225,7 @@ export const CONCEPT_VARIANTS: ConceptVariant[] = [
     whitespaceScale: 1.4,
     motionOverride: "subtle",
     motionStructure: "editorial-fade",
+    navigationConcept: "floating-glass",
   },
 ];
 
