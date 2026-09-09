@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma, logActivity, updateLeadStatus } from "@/lib/db";
-import { runAnalysisAndScoring, runDemoGeneration, runMessageGeneration } from "@/lib/pipeline/steps";
+import { runAnalysisAndScoring, runDemoGeneration, runMessageGeneration, reformulateSentMessage } from "@/lib/pipeline/steps";
 import { safeRecordError } from "@/lib/research";
 import { publishDemoPublicly, type PublishDemoOutcome } from "@/lib/publishing";
 import {
@@ -172,6 +172,21 @@ export async function prepareGmailDraft(leadId: string): Promise<GmailDraftOutco
       gmailConfigured,
       error: e instanceof Error ? e.message : "Unbekannter Fehler.",
     };
+  }
+}
+
+/** Creates a brand-new draft for a lead whose message was already sent
+ * — a follow-up, or wanting to try a different angle. See
+ * reformulateSentMessage's own doc comment for why moving status back
+ * to WAITING_FOR_REVIEW here is safe and deliberate. The new draft
+ * still requires its own fresh approval before anything can be sent. */
+export async function reformulateMessage(leadId: string): Promise<{ ok: boolean; error?: string }> {
+  try {
+    await reformulateSentMessage(leadId);
+    refresh(leadId);
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Unbekannter Fehler." };
   }
 }
 

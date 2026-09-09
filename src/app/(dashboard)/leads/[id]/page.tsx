@@ -26,6 +26,7 @@ import {
   markMessageSent,
   prepareGmailDraft,
   publishLeadDemo,
+  reformulateMessage,
 } from "./actions";
 
 export const dynamic = "force-dynamic";
@@ -158,6 +159,7 @@ export default async function LeadDetailPage({
               generateAction={generateLeadMessage}
               markSentAction={markMessageSent}
               gmailDraftAction={prepareGmailDraft}
+              reformulateAction={reformulateMessage}
             />
           </div>
         </div>

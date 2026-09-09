@@ -2,6 +2,7 @@ import {
   prisma,
   logActivity,
   advancePipelineStatus,
+  updateLeadStatus,
   saveWebsiteAnalysis,
   saveLeadScore,
   saveContactDiscovery,
@@ -14,6 +15,25 @@ import { scoreLead, isQualified } from "../scoring";
 import { generateDemo } from "../demo-generator";
 import { generateMessage } from "../messaging";
 import type { WebsiteAnalysisData } from "../types";
+import type { WebsiteAnalysis } from "@prisma/client";
+
+function analysisRowToData(analysis: WebsiteAnalysis): WebsiteAnalysisData {
+  return fromJson<WebsiteAnalysisData>({
+    design: analysis.design,
+    mobileUx: analysis.mobileUx,
+    navigation: analysis.navigation,
+    performance: analysis.performance,
+    content: analysis.content,
+    cta: analysis.cta,
+    trust: analysis.trust,
+    contactExperience: analysis.contactExperience,
+    accessibility: analysis.accessibility,
+    conversionPotential: analysis.conversionPotential,
+    strengths: analysis.strengths,
+    weaknesses: analysis.weaknesses,
+    opportunities: analysis.opportunities,
+  });
+}
 
 /** The individual, reusable pipeline steps. Both the dashboard's manual
  * per-lead buttons (src/app/(dashboard)/leads/[id]/actions.ts) and the
@@ -95,25 +115,9 @@ export async function runMessageGeneration(leadId: string) {
     );
   }
 
-  const analysisData = fromJson<WebsiteAnalysisData>({
-    design: lead.analysis.design,
-    mobileUx: lead.analysis.mobileUx,
-    navigation: lead.analysis.navigation,
-    performance: lead.analysis.performance,
-    content: lead.analysis.content,
-    cta: lead.analysis.cta,
-    trust: lead.analysis.trust,
-    contactExperience: lead.analysis.contactExperience,
-    accessibility: lead.analysis.accessibility,
-    conversionPotential: lead.analysis.conversionPotential,
-    strengths: lead.analysis.strengths,
-    weaknesses: lead.analysis.weaknesses,
-    opportunities: lead.analysis.opportunities,
-  });
-
   const { subject, body } = generateMessage(
     { companyName: lead.companyName, location: lead.location, demoUrl: lead.demo.publicUrl },
-    analysisData,
+    analysisRowToData(lead.analysis),
     leadId
   );
 
@@ -125,4 +129,55 @@ export async function runMessageGeneration(leadId: string) {
 
   await logActivity(leadId, "MESSAGE_DRAFTED", "Nachrichtenentwurf erstellt");
   await advancePipelineStatus(leadId, "WAITING_FOR_REVIEW", "Nachricht bereit — wartet auf manuelle Prüfung");
+}
+
+/** Lets a human request a brand-new draft for a lead whose message was
+ * already sent — a follow-up, or wanting to try a different angle.
+ * Unlike runMessageGeneration, this deliberately targets the one case
+ * that function refuses (a decided message) and only that case: it
+ * still refuses a message that's merely approved-but-unsent or
+ * rejected, since those are exactly what the normal review flow (edit/
+ * approve/reject) already covers. Moving status back to
+ * WAITING_FOR_REVIEW bypasses advancePipelineStatus's forward-only
+ * guard on purpose — that guard exists to stop automated/accidental
+ * regressions (a stray re-analysis, /loop re-entering a lead), not an
+ * explicit human request for exactly this. The new draft still goes
+ * through the same approval gate as any other message — nothing is
+ * ever sent without a fresh, separate approval. */
+export async function reformulateSentMessage(leadId: string) {
+  const lead = await prisma.lead.findUnique({
+    where: { id: leadId },
+    include: { analysis: true, demo: true, message: true },
+  });
+  if (!lead) throw new Error("Lead nicht gefunden.");
+  if (!lead.analysis) throw new Error("Für diesen Lead liegt keine Website-Analyse vor.");
+  if (!lead.demo) throw new Error("Für diesen Lead wurde noch keine Demo erstellt.");
+  if (!lead.message?.sentAt) {
+    throw new Error("Neu formulieren ist nur für eine bereits versendete Nachricht vorgesehen.");
+  }
+
+  // A fresh nonce in the seed, not just the leadId, so the reformulated
+  // draft actually picks a different opener/bridge/closing combination
+  // than the one that was sent — a plain re-roll of the same
+  // deterministic seed would very likely land on the exact same text.
+  const { subject, body } = generateMessage(
+    { companyName: lead.companyName, location: lead.location, demoUrl: lead.demo.publicUrl },
+    analysisRowToData(lead.analysis),
+    `${leadId}:reformulate:${Date.now()}`
+  );
+
+  await prisma.message.update({
+    where: { leadId },
+    data: { subject, body, editedByUser: false, approvedAt: null, rejectedAt: null, sentAt: null },
+  });
+  await updateLeadStatus(
+    leadId,
+    "WAITING_FOR_REVIEW",
+    "Neue Nachricht formuliert (vorherige war bereits versendet) — wartet auf manuelle Prüfung"
+  );
+  await logActivity(
+    leadId,
+    "MESSAGE_REFORMULATED",
+    "Neuer Nachrichtenentwurf erstellt, nachdem die vorherige Nachricht bereits versendet wurde"
+  );
 }

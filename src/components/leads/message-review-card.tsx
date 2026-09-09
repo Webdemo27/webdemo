@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input, Label, Textarea } from "@/components/ui/input";
-import { PencilSimple, Check, X, Sparkle, Copy, PaperPlaneTilt, EnvelopeSimple } from "@phosphor-icons/react";
+import { PencilSimple, Check, X, Sparkle, Copy, PaperPlaneTilt, EnvelopeSimple, ArrowClockwise } from "@phosphor-icons/react";
 import type { PreflightResult } from "@/lib/email";
 
 interface MessageData {
@@ -27,6 +27,7 @@ export function MessageReviewCard({
   generateAction,
   markSentAction,
   gmailDraftAction,
+  reformulateAction,
 }: {
   leadId: string;
   message: MessageData | null;
@@ -43,6 +44,7 @@ export function MessageReviewCard({
     gmailConfigured: boolean;
     error?: string;
   }>;
+  reformulateAction: (leadId: string) => Promise<{ ok: boolean; error?: string }>;
 }) {
   const [editing, setEditing] = useState(false);
   const [pending, startTransition] = useTransition();
@@ -286,6 +288,31 @@ export function MessageReviewCard({
                 {gmailResult.error ? <p className="text-xs text-destructive">{gmailResult.error}</p> : null}
               </div>
             ) : null}
+          </div>
+        ) : null}
+
+        {message.sentAt ? (
+          <div className="space-y-2 border-t border-border pt-3">
+            <p className="text-xs text-muted-foreground">
+              Diese Nachricht wurde bereits versendet. Für ein Follow-up oder einen neuen Ansatz
+              kann hier ein komplett neuer Entwurf erstellt werden — er durchläuft erneut die
+              volle Freigabe, bevor er versendet werden kann.
+            </p>
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={pending}
+              onClick={() =>
+                startTransition(async () => {
+                  setError(null);
+                  const result = await reformulateAction(leadId);
+                  if (!result.ok) setError(result.error ?? "Fehler beim Neuformulieren.");
+                })
+              }
+            >
+              <ArrowClockwise size={14} aria-hidden="true" />
+              Nachricht neu formulieren
+            </Button>
           </div>
         ) : null}
       </CardContent>
