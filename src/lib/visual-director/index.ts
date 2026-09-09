@@ -1,4 +1,5 @@
 import { getVisualProfile } from "./profiles";
+import { applyColorway } from "./colorway";
 import type { VisualProfile } from "./types";
 import type { ConceptVariant } from "./variants";
 
@@ -49,6 +50,14 @@ export function buildVisualProfile(
   }
 
   profile.use3d = base.use3d && Boolean(variant?.forceUse3d);
+
+  // Layout/motion already change with the variant on every "Demo neu
+  // erstellen" click; color didn't, since it used to be purely
+  // industry-tied. This keeps it industry-authentic (same saturation/
+  // lightness — see colorway.ts) while still giving repeated
+  // regenerations a genuinely different color mood, tied to which
+  // variant got picked so the pairing stays deterministic.
+  profile.colors = applyColorway(profile.colors, variant?.id ?? profile.industryKey);
 
   return profile;
 }
