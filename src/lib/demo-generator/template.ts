@@ -1,4 +1,4 @@
-import type { VisualProfile } from "../visual-director/types";
+import type { VisualProfile, MotionLevel } from "../visual-director/types";
 import type { ConceptVariant, HeroStyle, CtaIntensity, SectionKey } from "../visual-director/variants";
 import { pickVariant } from "../messaging/templates";
 import { toAssetView, groupByRole, type DemoAssetView } from "./asset-view";
@@ -136,24 +136,24 @@ function heroSection(
   <section class="${heroClass}">
     <div class="hero-bg">${visual}</div>
     ${scrim}
-    <div class="hero-content" data-reveal>
-      <h1>${escapeHtml(name)}</h1>
-      <p class="hero-tagline">${escapeHtml(tagline)}</p>
-      ${heroActions(ctaIntensity, contactHref, secondaryHref, secondaryLabel)}
+    <div class="hero-content">
+      <h1 data-reveal style="--stagger-index:0">${escapeHtml(name)}</h1>
+      <p class="hero-tagline" data-reveal style="--stagger-index:1">${escapeHtml(tagline)}</p>
+      <div data-reveal style="--stagger-index:2">${heroActions(ctaIntensity, contactHref, secondaryHref, secondaryLabel)}</div>
     </div>
   </section>`;
 }
 
-function serviceCard(label: string, asset: DemoAssetView | undefined, featured: boolean): string {
+function serviceCard(label: string, asset: DemoAssetView | undefined, featured: boolean, index: number): string {
   if (asset) {
     return `
-    <li class="service-card service-card--media ${featured ? "service-card--featured" : ""}" data-reveal>
+    <li class="service-card service-card--media ${featured ? "service-card--featured" : ""}" data-reveal style="--stagger-index:${index}">
       ${pictureTag(asset, "service-media")}
       <div class="service-card-label"><span>${ICONS.check}</span>${escapeHtml(label)}</div>
     </li>`;
   }
   return `
-    <li class="service-card" data-reveal>
+    <li class="service-card" data-reveal style="--stagger-index:${index}">
       <span class="service-icon">${ICONS.check}</span>
       <span>${escapeHtml(label)}</span>
     </li>`;
@@ -161,7 +161,7 @@ function serviceCard(label: string, asset: DemoAssetView | undefined, featured: 
 
 function servicesSection(services: string[], assets: DemoAssetView[], heading: string): string {
   const cards = services
-    .map((label, i) => serviceCard(label, assets[i], i === 0 && assets.length > 0))
+    .map((label, i) => serviceCard(label, assets[i], i === 0 && assets.length > 0, i))
     .join("");
   return `
   <section id="leistungen" class="services">
@@ -207,8 +207,8 @@ function locationBanner(location: string): string {
 function detailStrip(assets: DemoAssetView[]): string {
   if (assets.length === 0) return "";
   return `
-  <section class="detail-strip" data-reveal>
-    ${assets.map((a) => `<div class="detail-item">${pictureTag(a, "detail-image")}</div>`).join("")}
+  <section class="detail-strip">
+    ${assets.map((a, i) => `<div class="detail-item" data-reveal style="--stagger-index:${i}">${pictureTag(a, "detail-image")}</div>`).join("")}
   </section>`;
 }
 
@@ -262,6 +262,92 @@ function contactSection(lead: DemoData): string {
       <h2>Kontakt</h2>
       <div class="contact-wrap">${contactCard}</div>
     </section>`;
+}
+
+/* Three real reveal treatments (not just one fade), picked per lead from
+ * the seed so demos genuinely differ from each other rather than all
+ * sharing the exact same scroll animation. Every treatment still
+ * resolves to a plain, instant "visible" state when profile.motion is
+ * "none" (buildMotionCss returns "") or the visitor prefers reduced
+ * motion — see the @media block below. */
+const MOTION_FLAVORS = ["fade-up", "fade-scale", "fade-blur"] as const;
+type MotionFlavor = (typeof MOTION_FLAVORS)[number];
+
+function revealTransformCss(flavor: MotionFlavor): { hidden: string; filterTransition: string; filterReset: string } {
+  if (flavor === "fade-scale") {
+    return { hidden: "transform: translateY(10px) scale(0.97);", filterTransition: "", filterReset: "" };
+  }
+  if (flavor === "fade-blur") {
+    return {
+      hidden: "transform: translateY(10px); filter: blur(6px);",
+      filterTransition: "filter var(--dur-reveal) var(--ease-out), ",
+      filterReset: "filter: blur(0);",
+    };
+  }
+  return { hidden: "transform: translateY(16px);", filterTransition: "", filterReset: "" };
+}
+
+function buildMotionCss(level: MotionLevel, flavor: MotionFlavor): string {
+  if (level === "none") return "";
+  const { hidden, filterTransition, filterReset } = revealTransformCss(flavor);
+  return `
+  [data-reveal] {
+    --stagger-index: 0;
+    opacity: 0;
+    ${hidden}
+    transition: opacity var(--dur-reveal) var(--ease-out), ${filterTransition}transform var(--dur-reveal) var(--ease-out);
+    transition-delay: calc(min(var(--stagger-index), 6) * 70ms);
+  }
+  [data-reveal].is-visible { opacity: 1; transform: none; ${filterReset} }
+
+  [data-reveal] .editorial-image, [data-reveal] .service-media, [data-reveal] .detail-image, [data-reveal] .environment-image {
+    clip-path: inset(0 0 100% 0);
+    transition: clip-path 650ms var(--ease-in-out);
+    transition-delay: calc(min(var(--stagger-index), 6) * 70ms);
+  }
+  [data-reveal].is-visible .editorial-image, [data-reveal].is-visible .service-media, [data-reveal].is-visible .detail-image, [data-reveal].is-visible .environment-image {
+    clip-path: inset(0 0 0 0);
+  }
+
+  .site-nav a { position: relative; padding-bottom: 0.3rem; }
+  .site-nav a::after {
+    content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 2px; border-radius: 2px;
+    background: var(--primary); transform: scaleX(0); transform-origin: left;
+    transition: transform var(--dur-base) var(--ease-out);
+  }
+  .site-nav a:hover::after, .site-nav a.is-active::after { transform: scaleX(1); }
+
+  .btn-primary, .header-cta { position: relative; overflow: hidden; isolation: isolate; }
+  .btn-primary::after, .header-cta::after {
+    content: ""; position: absolute; inset: 0; pointer-events: none;
+    background: linear-gradient(115deg, transparent 30%, rgba(255,255,255,0.4) 48%, rgba(255,255,255,0.4) 54%, transparent 72%);
+    transform: translateX(-130%);
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .btn-primary:hover::after, .header-cta:hover::after { transform: translateX(130%); transition: transform 700ms var(--ease-in-out); }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    [data-reveal], [data-reveal] .editorial-image, [data-reveal] .service-media, [data-reveal] .detail-image, [data-reveal] .environment-image {
+      transition: none !important; transform: none !important; filter: none !important; clip-path: none !important; opacity: 1 !important;
+    }
+    .btn-primary::after, .header-cta::after { display: none; }
+  }`;
+}
+
+function headerScrollScript(): string {
+  return `
+  <script>
+    (function () {
+      var header = document.querySelector('.site-header');
+      if (!header) return;
+      var onScroll = function () {
+        header.classList.toggle('is-scrolled', window.scrollY > 8);
+      };
+      window.addEventListener('scroll', onScroll, { passive: true });
+      onScroll();
+    })();
+  </script>`;
 }
 
 function reduceMotionScript(): string {
@@ -472,7 +558,8 @@ export function renderDemoSite(
       ? `<div class="mobile-cta-bar"><a class="btn-primary" href="${contactHref}">Jetzt anfragen</a></div>`
       : "";
   const showHeaderCta = variant.heroStyle !== "minimal";
-  const motionCss = profile.motion === "none" ? "" : `[data-reveal]{opacity:0;transform:translateY(14px);transition:opacity .5s ease,transform .5s ease;} [data-reveal].is-visible{opacity:1;transform:none;}`;
+  const motionFlavor = pickVariant([...MOTION_FLAVORS], seed + ":motionFlavor");
+  const motionCss = buildMotionCss(profile.motion, motionFlavor);
 
   const styleBlock = `
   :root {
@@ -487,6 +574,11 @@ export function renderDemoSite(
     --border: ${profile.colors.border};
     --font-heading: '${profile.typography.heading}', serif;
     --font-body: '${profile.typography.body}', sans-serif;
+    --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+    --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+    --dur-fast: 150ms;
+    --dur-base: 220ms;
+    --dur-reveal: 560ms;
   }
   * { box-sizing: border-box; }
   body { margin: 0; font-family: var(--font-body); background: var(--bg); color: var(--fg); line-height: 1.65; }
@@ -495,7 +587,8 @@ export function renderDemoSite(
   img { display: block; max-width: 100%; }
   ${motionCss}
 
-  .site-header { position: sticky; top: 0; z-index: 20; display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 1rem 1.75rem; background: color-mix(in srgb, var(--card) 92%, transparent); backdrop-filter: blur(8px); border-bottom: 1px solid var(--border); }
+  .site-header { position: sticky; top: 0; z-index: 20; display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 1rem 1.75rem; background: color-mix(in srgb, var(--card) 92%, transparent); backdrop-filter: blur(8px); border-bottom: 1px solid var(--border); transition: box-shadow var(--dur-base) ease, background var(--dur-base) ease; }
+  .site-header.is-scrolled { box-shadow: 0 8px 24px -16px rgba(0,0,0,0.35); background: color-mix(in srgb, var(--card) 97%, transparent); }
   .brand { display: flex; align-items: center; gap: 0.6rem; font-family: var(--font-heading); font-weight: 700; font-size: 1.1rem; flex-shrink: 0; }
   .brand-mark { display: flex; align-items: center; justify-content: center; width: 2.2rem; height: 2.2rem; border-radius: 0.5rem; background: var(--primary); color: #fff; font-weight: 700; flex-shrink: 0; }
   .header-cta { padding: 0.6rem 1.2rem; border-radius: 0.4rem; background: var(--primary); color: #fff; text-decoration: none; font-size: 0.85rem; font-weight: 600; flex-shrink: 0; }
@@ -528,6 +621,10 @@ export function renderDemoSite(
   .hero-tagline { color: rgba(255,255,255,0.95); font-size: clamp(1.05rem, 2vw, 1.35rem); max-width: 34rem; text-shadow: 0 1px 12px rgba(0,0,0,0.4); }
   .hero.hero-color-block .hero-tagline { text-shadow: none; }
   .hero-actions { display: flex; gap: 0.9rem; flex-wrap: wrap; }
+  .btn-primary, .btn-ghost, .header-cta { transition: transform var(--dur-fast) var(--ease-out); }
+  .btn-primary:active, .btn-ghost:active, .header-cta:active { transform: scale(0.97); }
+  .cta-link { transition: opacity var(--dur-fast) var(--ease-out); }
+  .cta-link:active { opacity: 0.75; }
   .btn-primary { padding: 0.85rem 1.7rem; border-radius: 0.5rem; background: var(--accent); color: #fff; text-decoration: none; font-weight: 600; }
   .btn-primary.btn-lg { padding: 1.05rem 2.1rem; font-size: 1.05rem; }
   .btn-ghost { padding: 0.85rem 1.7rem; border-radius: 0.5rem; background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.5); color: #fff; text-decoration: none; font-weight: 600; }
@@ -637,6 +734,7 @@ export function renderDemoSite(
   ${mobileCtaBar}
 
   ${reduceMotionScript()}
+  ${headerScrollScript()}
   ${slug === "" && profile.use3d ? three3dScript(profile.colors.accent) : ""}
 </body>
 </html>
