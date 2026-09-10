@@ -265,6 +265,29 @@ mission's top-priority ask this round.
 
 ## COMPLETED
 
+- **Three more showcase techniques (2026-09-10)**: atmosphere gradient
+  (United Carriers — the playbook's own #1-ranked "highest-value,
+  lowest-effort" technique, added to `gsapMotionScript`'s scroll-scrub
+  branch, no new plumbing), `scriptAside()`/`scriptAsideFontLink()`
+  (Serenity Hair — cursive aside above the headline), `gooeyHeroSection()`
+  (Podium — metaball blob hero via the classic SVG goo filter, real
+  photo in a circular cutout). 5 showcases total now in
+  `scripts/generate-showcase.ts`. Bug caught+fixed during verification:
+  the gooey photo was originally inside the filtered blob container so
+  the goo filter blurred the photo too — moved to a sibling
+  `.gooey-stage` wrapper. Verified live (all 5, fresh checks): correct
+  rendering, 60fps atmosphere scrub confirmed via direct ScrollTrigger
+  progress inspection, zero console errors.
+  **Still queued from the playbook**: Gionatan Nese's scattered-gallery
+  principle (distinct enough from Filmbot's collage to be worth its own
+  showcase — a loosely-scattered, non-grid photo layout), 363 Car &
+  Social Club's neon-accent bottom-bar nav (deprioritized this round —
+  unlike the others, it needs a genuinely new NavigationConcept, not
+  just a spliced body section, so it's a bigger structural change).
+  Podium's percentage preloader and Zero University's "draw a zero"
+  gate are explicitly logged as **not to build** (playbook's own
+  cross-cutting takeaway #4: no gratuitous blocking/friction for
+  ordinary local-business demos).
 - **Neutral showcase demos for playbook techniques + reusable generator**
   (2026-09-09) — explicit user request: "generiere die webseiten die du
   playbook erstellt hast von awwwwards als demos". Asked via
@@ -725,6 +748,21 @@ mission below, in this order:**
     check-ins instead of the previous ~25-minute self-paced cadence —
     use `delaySeconds` around 600 (not 1500-1800) for ScheduleWakeup
     going forward in this mission.
+0d. **Showcase-demo generation — IN PROGRESS, 5 of ~7 techniques built
+    (2026-09-10).** User: "generiere die webseiten die du playbook
+    erstellt hast von awwwwards als demos" → resolved via AskUserQuestion
+    to neutral showcases (see COMPLETED for the full list built so far).
+    **Next up**: Gionatan Nese's scattered-gallery principle (a
+    non-grid, loosely-scattered photo layout — distinct enough from
+    Filmbot's collage to warrant its own showcase) and 363 Car & Social
+    Club's neon-accent bottom-bar nav (needs a genuinely new
+    NavigationConcept + header changes, not just a spliced body
+    section — bigger structural change, budget more time for it). Once
+    those two are done, the playbook's buildable-as-showcase techniques
+    are exhausted (the rest are either already-shipped real features,
+    data-gated, or explicitly flagged as anti-patterns not to build —
+    see COMPLETED for the full breakdown) — return to the older
+    standing-mission priorities below.
 
 Per the active "AUTOPILOT — DEMO CREATIVE LAB" mission (standing
 authorization, keep working without waiting for prompts):
