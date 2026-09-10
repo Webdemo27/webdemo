@@ -344,6 +344,103 @@ export function gooeyHeroSection(hero: DemoAssetView | undefined, name: string, 
   </section>`;
 }
 
+/** Dark full-bleed hero with the headline stacked hard left in heavy
+ * uppercase, a short supporting line set small on the right, and small
+ * meta labels along the bottom — the hero composition from the dentist
+ * reference.
+ *
+ * The headline is broken onto its own lines rather than left to wrap,
+ * because the whole effect depends on the stack reading as a block. */
+export function stackedHeroSection(
+  headline: string,
+  supporting: string,
+  metaLeft: string,
+  metaRight: string,
+  hero: DemoAssetView | undefined
+): string {
+  const lines = headline
+    .toUpperCase()
+    .split(" ")
+    .filter(Boolean)
+    .map((word) => `<span class="stacked-hero-line">${escapeHtml(word)}</span>`)
+    .join("");
+  const media = hero ? pictureTag(hero, "stacked-hero-media", true) : "";
+  return `
+  <section class="stacked-hero">
+    <div class="stacked-hero-bg">${media}</div>
+    <div class="stacked-hero-scrim"></div>
+    <div class="stacked-hero-inner">
+      <h1 class="stacked-hero-headline" data-reveal>${lines}</h1>
+      <p class="stacked-hero-supporting" data-reveal>${escapeHtml(supporting)}</p>
+      <div class="stacked-hero-meta" data-reveal>
+        <span>${escapeHtml(metaLeft)}</span>
+        <span>${escapeHtml(metaRight)}</span>
+      </div>
+    </div>
+  </section>`;
+}
+
+/** Expanding horizontal treatment accordion — the signature section of
+ * the dentist reference the user asked to rebuild: a row of full-height
+ * image panels where the active one widens and the others compress to
+ * slivers, each carrying its own label.
+ *
+ * Panels are <button>s, not divs: this is a real control (it changes
+ * what is shown), so it has to be reachable and operable by keyboard,
+ * and aria-expanded has to say which one is open. Hover activates it
+ * too for pointer users, but hover is never the only way in.
+ *
+ * Labels are the lead's own real service names — the same `services[]`
+ * every other section uses, nothing invented per panel. */
+export function treatmentAccordionSection(
+  items: Array<{ asset: DemoAssetView; label: string }>,
+  heading: string
+): string {
+  if (items.length === 0) return "";
+  const panels = items
+    .map(
+      (item, i) => `
+      <button type="button" class="treatment-panel${i === 0 ? " is-active" : ""}" data-treatment-panel aria-expanded="${i === 0 ? "true" : "false"}">
+        ${pictureTag(item.asset, "treatment-panel-image", i === 0)}
+        <span class="treatment-panel-label">${escapeHtml(item.label)}</span>
+      </button>`
+    )
+    .join("");
+  return `
+  <section class="treatment-accordion" data-reveal>
+    <h2>${kineticWords(heading)}</h2>
+    <div class="treatment-row">${panels}</div>
+  </section>`;
+}
+
+export function treatmentAccordionScript(): string {
+  return `
+  <script>
+    (function () {
+      var panels = Array.prototype.slice.call(document.querySelectorAll('[data-treatment-panel]'));
+      if (panels.length < 2) return;
+
+      function activate(target) {
+        panels.forEach(function (p) {
+          var on = p === target;
+          p.classList.toggle('is-active', on);
+          p.setAttribute('aria-expanded', on ? 'true' : 'false');
+        });
+      }
+
+      panels.forEach(function (panel) {
+        panel.addEventListener('click', function () { activate(panel); });
+        // Focus, not just hover, so keyboard tabbing opens panels the
+        // same way a pointer does.
+        panel.addEventListener('focus', function () { activate(panel); });
+        if (window.matchMedia('(hover: hover) and (pointer: fine)').matches) {
+          panel.addEventListener('mouseenter', function () { activate(panel); });
+        }
+      });
+    })();
+  </script>`;
+}
+
 /** The scrubbed clip as the background of the WHOLE page, not just the
  * hero: one fixed full-viewport layer behind every section, with the
  * entire document's scroll range driving `currentTime`.
@@ -2276,6 +2373,75 @@ export function renderDemoSite(
     .gooey-blob { animation: none; }
   }
 
+  /* Dark stacked hero (stackedHeroSection) — headline hard left in
+     heavy uppercase over a full-bleed image, supporting line small on
+     the right, meta labels along the bottom. */
+  .stacked-hero { position: relative; min-height: 92vh; display: flex; align-items: center; padding: 0; overflow: hidden; background: #0b0d10; }
+  .stacked-hero-bg { position: absolute; inset: 0; }
+  .stacked-hero-media { width: 100%; height: 100%; object-fit: cover; }
+  /* Not optional decoration: the key visual is generated, so its
+     brightness is unknown at build time. Measured against the actual
+     rendered pixels, white type over a bright sky came out at 1.7:1 —
+     this brings the areas that carry text back above 4.5:1 while
+     leaving the centre-right open so the key visual still reads. */
+  .stacked-hero-scrim {
+    position: absolute; inset: 0;
+    background:
+      linear-gradient(90deg, rgba(8,10,14,0.78) 0%, rgba(8,10,14,0.45) 45%, rgba(8,10,14,0.55) 100%),
+      linear-gradient(180deg, rgba(8,10,14,0.30) 0%, rgba(8,10,14,0.25) 45%, rgba(8,10,14,0.70) 100%);
+  }
+  .stacked-hero-inner {
+    position: relative; z-index: 1; width: 100%;
+    padding: clamp(2rem, 6vw, 5rem); display: grid; gap: 1.5rem;
+    grid-template-areas: "headline supporting" "meta meta";
+    grid-template-columns: minmax(0, 1fr) minmax(0, 22rem); align-items: end;
+  }
+  .stacked-hero-headline {
+    grid-area: headline; display: flex; flex-direction: column; margin: 0;
+    font-size: clamp(2.4rem, 7vw, 5.5rem); line-height: 0.95; letter-spacing: -0.01em;
+    font-weight: 700; color: #fff; text-transform: uppercase;
+  }
+  .stacked-hero-line { display: block; }
+  .stacked-hero-supporting { grid-area: supporting; margin: 0; color: rgba(255,255,255,0.78); font-size: 0.95rem; max-width: 22rem; }
+  .stacked-hero-meta {
+    grid-area: meta; display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap;
+    padding-top: clamp(1.5rem, 5vw, 3rem); font-size: 0.72rem; letter-spacing: 0.16em;
+    text-transform: uppercase; color: rgba(255,255,255,0.62);
+  }
+  @media (max-width: 720px) {
+    .stacked-hero-inner { grid-template-areas: "headline" "supporting" "meta"; grid-template-columns: 1fr; }
+  }
+
+  /* Expanding treatment accordion (treatmentAccordionSection): the
+     active panel widens and the rest compress to slivers. flex-grow is
+     the honest property to animate here — scaling instead would distort
+     the photography, which is the whole point of the section. */
+  .treatment-accordion { background: #0b0d10; color: #fff; }
+  .treatment-accordion h2 { color: #fff; text-transform: uppercase; letter-spacing: -0.01em; }
+  .treatment-row { display: flex; gap: 0.6rem; height: clamp(280px, 52vh, 520px); }
+  .treatment-panel {
+    position: relative; flex: 1 1 0; min-width: 0; padding: 0; border: none; cursor: pointer;
+    border-radius: 1rem; overflow: hidden; background: #14171c;
+    transition: flex-grow 520ms var(--ease-out);
+  }
+  .treatment-panel.is-active { flex-grow: 4; }
+  .treatment-panel:focus-visible { outline: 2px solid #fff; outline-offset: 3px; }
+  .treatment-panel-image { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .treatment-panel-label {
+    position: absolute; left: 1rem; bottom: 1rem; z-index: 1;
+    padding: 0.4rem 0.8rem; border-radius: 999px;
+    background: rgba(10,12,16,0.6); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+    color: #fff; font-size: 0.8rem; letter-spacing: 0.04em; white-space: nowrap;
+  }
+  @media (max-width: 720px) {
+    .treatment-row { flex-direction: column; height: auto; }
+    .treatment-panel { height: 200px; flex: none; }
+    .treatment-panel.is-active { height: 320px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .treatment-panel { transition-duration: 1ms !important; }
+  }
+
   /* Page-wide scrubbed video background (pageVideoBackground). The
      layer is fixed behind everything; .page-video-mode then has to undo
      every opaque surface in the document, otherwise the footage is
@@ -2795,6 +2961,7 @@ export function renderDemoSite(
   ${bodyHtml.includes("angled-carousel") ? angledCarouselScript() : ""}
   ${bodyHtml.includes("project-reel") ? projectReelScript() : ""}
   ${bodyHtml.includes("data-scroll-video") || pageVideo ? scrollVideoScript() : ""}
+  ${bodyHtml.includes("data-treatment-panel") ? treatmentAccordionScript() : ""}
   ${bodyHtml.includes("fluid-flow") ? fluidFlowScript() : ""}
   ${colorPickerScript(colorwayOptions, activeColorwayIndex)}
   ${slug === "" && profile.use3d ? three3dScript(profile.colors.accent) : ""}
