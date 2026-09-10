@@ -5,6 +5,8 @@ import { toJson, fromJson } from "../db/json";
 import { renderDemoSite, type DemoData } from "./template";
 import { slugify } from "./slug";
 import { buildVisualProfile, pickNextVariant } from "../visual-director";
+import { getVariant } from "../visual-director/variants";
+import type { VisualProfile } from "../visual-director/types";
 import { reviewDemo } from "../visual-director/review";
 import { buildDemoConcept, preferredVariantFor, buildXray } from "../visual-director/concept";
 import { generateAssetsForLead, type AssetPipelineSummary } from "../images";
@@ -58,6 +60,47 @@ export interface GenerateDemoResult {
  * design rationale, pricing) is assembled for the dashboard. Written
  * under public/demos/<slug>/index.html, isolated from the dashboard.
  */
+/**
+ * Re-renders an existing demo's HTML from its already-stored state —
+ * same VisualProfile, same ConceptVariant, same asset rows — without
+ * touching the asset pipeline or picking a new variant.
+ *
+ * Needed whenever something changes an asset *after* generation (today:
+ * attaching a generated hero video, see lib/video). Calling
+ * generateDemo() there would be wrong twice over: it cycles to a
+ * different concept variant, and it re-runs image generation for assets
+ * that already exist.
+ */
+export async function rerenderDemoFromStoredState(demoId: string): Promise<{ pageCount: number }> {
+  const demo = await prisma.demo.findUnique({
+    where: { id: demoId },
+    include: { lead: true, assets: { orderBy: { order: "asc" } } },
+  });
+  if (!demo) throw new Error("Demo nicht gefunden.");
+
+  const profile = fromJson<VisualProfile>(demo.visualProfile);
+  if (!profile) throw new Error("Diese Demo hat kein gespeichertes VisualProfile — bitte neu generieren.");
+  const variant = getVariant(demo.conceptVariant ?? "");
+
+  const demoData: DemoData = {
+    companyName: demo.lead.companyName,
+    industry: demo.lead.industry,
+    location: demo.lead.location,
+    address: demo.lead.address,
+    contactPhone: demo.lead.contactPhone,
+    contactEmail: demo.lead.contactEmail,
+    latitude: demo.lead.latitude,
+    longitude: demo.lead.longitude,
+  };
+
+  const { pages } = renderDemoSite(demoData, profile, demo.assets, variant);
+  const outputDir = path.join(DEMOS_ROOT, demo.slug);
+  await fs.mkdir(outputDir, { recursive: true });
+  await Promise.all(pages.map((p) => fs.writeFile(path.join(outputDir, p.filename), p.html, "utf8")));
+
+  return { pageCount: pages.length };
+}
+
 export async function generateDemo(leadId: string): Promise<GenerateDemoResult> {
   const lead = await prisma.lead.findUnique({ where: { id: leadId }, include: { analysis: true } });
   if (!lead) throw new Error("Lead nicht gefunden.");

@@ -10,6 +10,12 @@ export interface DemoAssetView {
   srcsetWebp?: string;
   srcsetAvif?: string;
   isVector: boolean;
+  /** Set only when a generated hero video has been attached to this
+   * asset (see lib/video). The image formats stay on the same row and
+   * remain the poster/fallback — the template upgrades to <video> only
+   * when this is present. */
+  videoSrc?: string;
+  videoPoster?: string;
 }
 
 interface RawAsset {
@@ -37,6 +43,16 @@ function largest(formats: Record<string, string> | undefined): string | undefine
 }
 
 export function toAssetView(raw: RawAsset): DemoAssetView {
+  const formats = (raw.formats ?? {}) as {
+    webp?: Record<string, string>;
+    avif?: Record<string, string>;
+    video?: string;
+    poster?: string;
+  };
+  const videoFields = formats.video
+    ? { videoSrc: `assets/${formats.video}`, videoPoster: formats.poster ? `assets/${formats.poster}` : undefined }
+    : {};
+
   if (raw.localPath) {
     return {
       role: raw.role as ImageRole,
@@ -46,10 +62,10 @@ export function toAssetView(raw: RawAsset): DemoAssetView {
       height: raw.height ?? 0,
       src: raw.localPath,
       isVector: raw.localPath.endsWith(".svg"),
+      ...videoFields,
     };
   }
 
-  const formats = (raw.formats ?? {}) as { webp?: Record<string, string>; avif?: Record<string, string> };
   const webpFile = largest(formats.webp);
 
   return {
@@ -62,6 +78,7 @@ export function toAssetView(raw: RawAsset): DemoAssetView {
     srcsetWebp: buildSrcset(formats.webp),
     srcsetAvif: buildSrcset(formats.avif),
     isVector: false,
+    ...videoFields,
   };
 }
 

@@ -147,6 +147,28 @@ function kineticWords(text: string): string {
     .join(" ");
 }
 
+/** A generated hero video (see lib/video) replaces the still image when
+ * one exists on the hero asset. Always muted + playsinline + loop —
+ * an unmuted or non-inline hero video is blocked by every mobile
+ * browser's autoplay policy anyway — and `poster` carries the real
+ * first frame so there's never a blank box before the first frame
+ * decodes. `data-hero-video` lets the reduced-motion script pause it
+ * for visitors who asked for less motion (ui-ux-pro-max: reduced-motion;
+ * a looping background is exactly the kind of decorative motion that
+ * rule exists for), which markup alone cannot express. */
+function heroVisual(hero: DemoAssetView): string {
+  if (!hero.videoSrc) return pictureTag(hero, "hero-media", true);
+  const poster = hero.videoPoster ?? hero.src;
+  // aria-hidden, deliberately: this is a decorative background loop —
+  // the hero heading beside it carries the actual meaning. Reusing the
+  // hero image's alt text here would also be a lie, since that text
+  // describes a photo from the lead's own site while the video is
+  // AI-generated (and carries the burned-in DEMO badge to say so).
+  return `<video class="hero-media hero-video" data-hero-video autoplay muted loop playsinline preload="metadata" poster="${escapeHtml(poster)}" aria-hidden="true" tabindex="-1">
+      <source src="${escapeHtml(hero.videoSrc)}" type="video/mp4" />
+    </video>`;
+}
+
 function heroSection(
   name: string,
   tagline: string,
@@ -167,7 +189,7 @@ function heroSection(
     : isColorBlock
     ? ""
     : hero
-    ? pictureTag(hero, "hero-media", true)
+    ? heroVisual(hero)
     : "";
 
   const scrim = isColorBlock ? "" : `<div class="hero-scrim"></div>`;
@@ -1438,6 +1460,19 @@ function reduceMotionScript(): string {
   <script>
     (function () {
       var prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+      // A looping hero video is decorative motion — freeze it on the
+      // first frame (the poster still shows) rather than letting it run
+      // for visitors who asked the OS for reduced motion. autoplay is a
+      // markup attribute, so this has to be done in script.
+      if (prefersReduced) {
+        document.querySelectorAll('[data-hero-video]').forEach(function (video) {
+          video.autoplay = false;
+          video.removeAttribute('autoplay');
+          video.pause();
+        });
+      }
+
       var els = document.querySelectorAll('[data-reveal]');
       if (prefersReduced || !('IntersectionObserver' in window)) {
         els.forEach(function (el) { el.classList.add('is-visible'); });
