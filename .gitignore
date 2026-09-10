@@ -53,6 +53,21 @@ next-env.d.ts
 /public/demos/*
 !/public/demos/.gitkeep
 
+# ...except the industry showcase demos, which ARE committed: they are
+# the reference set shown to customers, not per-lead output, and they
+# must stay reproducible with the code that produced them.
+!/public/demos/_showcase/
+!/public/demos/_showcase/**
+
+# Their video files are deliberately still excluded. They are ~50MB per
+# industry (473MB across nine, and every regeneration would add another
+# permanent copy to git history, which cannot be removed without
+# rewriting it). The HTML and images — the part that is actually
+# reviewed and versioned — are 7MB in total. Regenerate the clips with
+# scripts/generate-industry-demo.ts, or serve them from the Cloudflare
+# Pages deploy this project already builds.
+/public/demos/_showcase/**/*.mp4
+
 # captured before/after screenshots (per-lead output, not committed)
 /public/screenshots/*
 !/public/screenshots/.gitkeep

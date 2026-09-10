@@ -344,6 +344,99 @@ export function gooeyHeroSection(hero: DemoAssetView | undefined, name: string, 
   </section>`;
 }
 
+const TAB_ICONS: Record<string, string> = {
+  home: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m3 10 9-7 9 7v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 22V12h6v10"/></svg>`,
+  services: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>`,
+  about: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-6 8-6s8 2 8 6"/></svg>`,
+  contact: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 6-10 7L2 6"/></svg>`,
+};
+
+export type TabBarStyle = "light" | "glass" | "dark";
+
+export interface TabBarItem {
+  href: string;
+  label: string;
+  icon: keyof typeof TAB_ICONS;
+  active: boolean;
+}
+
+/** Floating tab bar with a sliding active indicator — rebuilt from the
+ * "Navigation Tabs V3" reference. Three treatments share one mechanism:
+ * the indicator is a single element that moves to sit behind (or above)
+ * whichever tab is active, rather than each tab animating its own
+ * background. That is what makes the movement read as one object
+ * travelling instead of two states cross-fading.
+ *
+ * - light: dot above the active tab, icon and label tint to the accent
+ * - glass: filled circle slides behind the active icon
+ * - dark:  capsule slides and the active tab reveals its label
+ *
+ * Real page links, so this is genuine navigation and not decoration —
+ * and on a phone it doubles as a reachable bottom bar. */
+export function floatingTabBar(items: TabBarItem[], style: TabBarStyle = "dark"): string {
+  if (items.length === 0) return "";
+  const tabs = items
+    .map(
+      (item, i) => `
+      <a class="tab-item${item.active ? " is-active" : ""}" href="${escapeHtml(item.href)}" data-tab-index="${i}"${item.active ? ' aria-current="page"' : ""}>
+        <span class="tab-icon">${TAB_ICONS[item.icon] ?? TAB_ICONS.home}</span>
+        <span class="tab-label">${escapeHtml(item.label)}</span>
+      </a>`
+    )
+    .join("");
+  return `
+  <nav class="tab-bar tab-bar--${style}" aria-label="Schnellnavigation">
+    <span class="tab-indicator" aria-hidden="true"></span>
+    ${tabs}
+  </nav>`;
+}
+
+export function floatingTabBarScript(): string {
+  return `
+  <script>
+    (function () {
+      var bar = document.querySelector('.tab-bar');
+      if (!bar) return;
+      var indicator = bar.querySelector('.tab-indicator');
+      var tabs = Array.prototype.slice.call(bar.querySelectorAll('.tab-item'));
+      if (!indicator || tabs.length === 0) return;
+
+      function moveTo(tab) {
+        // Measured against the bar, not the page, so it stays correct
+        // wherever the bar is positioned or scrolled.
+        var barBox = bar.getBoundingClientRect();
+        var box = tab.getBoundingClientRect();
+        indicator.style.width = box.width + 'px';
+        indicator.style.transform = 'translateX(' + (box.left - barBox.left) + 'px)';
+      }
+
+      var current = bar.querySelector('.tab-item.is-active') || tabs[0];
+
+      // Position without animating on first paint: the indicator should
+      // already be under the current page, not slide in from the left.
+      indicator.style.transition = 'none';
+      moveTo(current);
+      // Two frames, so the no-transition placement is actually painted
+      // before transitions are re-enabled.
+      requestAnimationFrame(function () {
+        requestAnimationFrame(function () { indicator.style.transition = ''; });
+      });
+
+      if (window.matchMedia('(hover: hover) and (pointer: fine)').matches) {
+        tabs.forEach(function (tab) {
+          tab.addEventListener('mouseenter', function () { moveTo(tab); });
+        });
+        bar.addEventListener('mouseleave', function () { moveTo(current); });
+      }
+      tabs.forEach(function (tab) {
+        tab.addEventListener('focus', function () { moveTo(tab); });
+      });
+      bar.addEventListener('focusout', function () { moveTo(current); });
+      window.addEventListener('resize', function () { moveTo(current); });
+    })();
+  </script>`;
+}
+
 /** Dark full-bleed hero with the headline stacked hard left in heavy
  * uppercase, a short supporting line set small on the right, and small
  * meta labels along the bottom — the hero composition from the dentist
@@ -459,11 +552,15 @@ export function pageVideoBackground(asset: DemoAssetView): string {
   const src = asset.videoScrubSrc ?? asset.videoSrc;
   if (!src) return "";
   const poster = asset.videoPoster ?? asset.src;
+  // No <source> in the markup on purpose: the scrub encode is all-intra
+  // and runs to tens of megabytes, which is fine on a desktop that is
+  // about to scrub through it and completely unacceptable on a phone
+  // over cellular. The script attaches the source only on pointer
+  // devices with room for it; everywhere else the poster frame stays,
+  // which costs a normal image and still looks composed.
   return `
   <div class="page-video" aria-hidden="true">
-    <video class="page-video-media" data-scroll-video-media muted playsinline preload="auto" poster="${escapeHtml(poster)}">
-      <source src="${escapeHtml(src)}" type="video/mp4" />
-    </video>
+    <video class="page-video-media" data-scroll-video-media data-video-src="${escapeHtml(src)}" muted playsinline preload="none" poster="${escapeHtml(poster)}"></video>
     <div class="page-video-scrim"></div>
   </div>`;
 }
@@ -512,10 +609,34 @@ export function scrollVideoScript(): string {
       var pageWide = Boolean(pageLayer);
       if (!video || (!pageWide && !section)) return;
 
-      // Reduced motion: leave the poster frame showing and let the
-      // section scroll past normally. Nothing is pinned, nothing moves.
+      // Every reason not to scrub is checked BEFORE the source is
+      // attached, so a visitor who will never see the animation never
+      // pays to download it. Reduced motion and a missing GSAP both
+      // leave the poster frame showing, which is a complete, composed
+      // background on its own.
       if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
       if (typeof gsap === 'undefined' || typeof ScrollTrigger === 'undefined') return;
+
+      // Gate the download itself, not just the animation. The scrub
+      // encode is all-intra and runs to tens of megabytes — fine on a
+      // desktop about to scrub through it, indefensible on a phone over
+      // cellular.
+      //
+      // Pointer type is the load-bearing test: a fine hovering pointer
+      // means a mouse, which means a machine on a desktop connection.
+      // Width is only a floor against a genuinely tiny window — set at
+      // 768 it wrongly starved a 760px-wide desktop window, so it sits
+      // below any real phone in landscape instead.
+      var deserved =
+        window.matchMedia('(min-width: 640px)').matches &&
+        window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+      var deferredSrc = video.getAttribute('data-video-src');
+      if (deferredSrc) {
+        if (!deserved) return; // poster frame stays, nothing downloaded
+        video.setAttribute('preload', 'auto');
+        video.src = deferredSrc;
+        video.load();
+      }
 
       try {
         gsap.registerPlugin(ScrollTrigger);
@@ -2373,6 +2494,76 @@ export function renderDemoSite(
     .gooey-blob { animation: none; }
   }
 
+  /* Floating tab bar with a sliding indicator (floatingTabBar) — three
+     treatments over one mechanism. Fixed to the bottom so it doubles as
+     a reachable bottom bar on a phone. */
+  .tab-bar {
+    position: fixed; left: 50%; bottom: clamp(0.75rem, 3vw, 1.5rem); transform: translateX(-50%);
+    z-index: 40; display: flex; align-items: center; gap: 0.15rem;
+    padding: 0.4rem; border-radius: 999px; max-width: calc(100vw - 1.5rem);
+  }
+  .tab-indicator {
+    position: absolute; left: 0; top: 0.4rem; bottom: 0.4rem; border-radius: 999px;
+    transition: transform 420ms var(--ease-out), width 420ms var(--ease-out);
+    pointer-events: none;
+  }
+  .tab-item {
+    position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center;
+    gap: 0.15rem; padding: 0.55rem 0.9rem; border-radius: 999px; text-decoration: none;
+    font-size: 0.68rem; letter-spacing: 0.02em; white-space: nowrap;
+    transition: color var(--dur-base) var(--ease-out);
+  }
+  .tab-icon { display: flex; }
+  .tab-icon svg { width: 20px; height: 20px; }
+  /* The bar is fixed, so the document has to reserve room for it —
+     otherwise it sits on top of whatever the page ends with (caught on
+     the hero, where it covered the supporting line). */
+  body:has(.tab-bar) { padding-bottom: 6rem; }
+  .tab-item:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
+
+  .tab-bar--light { background: #fff; box-shadow: 0 18px 40px -20px rgba(0,0,0,0.45); }
+  .tab-bar--light .tab-item { color: #4b5563; }
+  .tab-bar--light .tab-item.is-active { color: var(--primary); }
+  /* The dot sits above the active tab rather than behind it. The
+     indicator itself keeps the tab's full width (the script sets it),
+     and the dot is centred inside it — shrinking the indicator to 6px
+     instead made "margin-left: 50%" resolve against the bar's width, so
+     the dot floated over the neighbouring tab. */
+  .tab-bar--light .tab-indicator { top: -0.35rem; bottom: auto; height: 6px; background: transparent; }
+  .tab-bar--light .tab-indicator::before {
+    content: ""; position: absolute; left: 50%; top: 0; width: 6px; height: 6px;
+    border-radius: 999px; background: var(--primary); transform: translateX(-50%);
+  }
+
+  .tab-bar--glass {
+    background: rgba(255,255,255,0.14); border: 1px solid rgba(255,255,255,0.28);
+    backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+  }
+  .tab-bar--glass .tab-item { color: rgba(255,255,255,0.75); }
+  .tab-bar--glass .tab-item.is-active { color: #fff; }
+  .tab-bar--glass .tab-label { display: none; }
+  .tab-bar--glass .tab-indicator { background: var(--primary); box-shadow: 0 8px 20px -8px var(--primary); }
+
+  .tab-bar--dark { background: #0f1216; box-shadow: 0 18px 40px -20px rgba(0,0,0,0.6); }
+  .tab-bar--dark .tab-item { color: rgba(255,255,255,0.65); }
+  .tab-bar--dark .tab-item.is-active { color: #0f1216; }
+  .tab-bar--dark .tab-indicator { background: #fff; }
+  /* Only the active tab shows its label — that expansion is what makes
+     the capsule feel like it grew into place rather than jumped. */
+  .tab-bar--dark .tab-label { display: none; }
+  .tab-bar--dark .tab-item.is-active .tab-label { display: block; }
+
+  @media (max-width: 640px) {
+    .tab-bar { gap: 0; padding: 0.35rem; }
+    .tab-item { padding: 0.5rem 0.7rem; }
+    /* The engine's own mobile CTA bar also pins to the bottom; lift the
+       tab bar above it so they never overlap. */
+    body:has(.mobile-cta-bar) .tab-bar { bottom: 4.6rem; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .tab-indicator { transition-duration: 1ms !important; }
+  }
+
   /* Dark stacked hero (stackedHeroSection) — headline hard left in
      heavy uppercase over a full-bleed image, supporting line small on
      the right, meta labels along the bottom. */
@@ -2970,6 +3161,7 @@ export function renderDemoSite(
   ${bodyHtml.includes("project-reel") ? projectReelScript() : ""}
   ${bodyHtml.includes("data-scroll-video") || pageVideo ? scrollVideoScript() : ""}
   ${bodyHtml.includes("data-treatment-panel") ? treatmentAccordionScript() : ""}
+  ${bodyHtml.includes("tab-indicator") ? floatingTabBarScript() : ""}
   ${bodyHtml.includes("fluid-flow") ? fluidFlowScript() : ""}
   ${colorPickerScript(colorwayOptions, activeColorwayIndex)}
   ${slug === "" && profile.use3d ? three3dScript(profile.colors.accent) : ""}

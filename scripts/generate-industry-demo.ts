@@ -17,7 +17,7 @@ import { getVariant } from "../src/lib/visual-director/variants";
 import { OpenRouterImageProvider } from "../src/lib/images/providers/openrouter-image-provider";
 import { optimizeAndSave } from "../src/lib/images/optimizer";
 import { stampDemoWatermark } from "../src/lib/images/watermark";
-import { toAssetView } from "../src/lib/demo-generator/asset-view";
+import { toAssetView, type DemoAssetView } from "../src/lib/demo-generator/asset-view";
 import {
   renderDemoSite,
   stackedHeroSection,
@@ -27,6 +27,12 @@ import {
   scrollVideoScript,
   deriveServiceLabels,
   secondaryPageLabel,
+  floatingTabBar,
+  floatingTabBarScript,
+  scatteredGallerySection,
+  typographyHeroSection,
+  buildEditorialRows,
+  type TabBarStyle,
   type DemoData,
 } from "../src/lib/demo-generator/template";
 import { OpenRouterVideoProvider } from "../src/lib/video/providers/openrouter-video-provider";
@@ -129,10 +135,59 @@ function slugFor(industry: string): string {
   return industry
     .toLowerCase()
     .replace(/ä/g, "ae").replace(/ö/g, "oe").replace(/ü/g, "ue").replace(/ß/g, "ss")
-    .replace(/[^a-z0-9]+/g, "-");
+    // Accents beyond the umlauts (Café) were dropping to a bare "-",
+    // producing folder names like "branche-caf-".
+    .normalize("NFD").replace(/[̀-ͯ]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
 }
 
-async function buildIndustry(industry: string) {
+/** Rebuilds the raw asset descriptors from what is already on disk, so
+ * a template change costs nothing. optimizeAndSave writes
+ * `<base>-<width>.<ext>`, which is enough to reconstruct the
+ * width-keyed format maps toAssetView expects. */
+interface RawAsset {
+  role: string;
+  altText: string;
+  aspectRatio: string;
+  width: number | null;
+  height: number | null;
+  localPath: string | null;
+  formats: unknown;
+}
+
+function assetsFromDisk(assetsDir: string, company: string): { serviceRaws: RawAsset[]; hasVideo: boolean } {
+  const files = fs.existsSync(assetsDir) ? fs.readdirSync(assetsDir) : [];
+  const bases = Array.from(
+    new Set(
+      files
+        .map((f) => f.match(/^(service-\d+)-\d+\.(webp|avif)$/)?.[1])
+        .filter((b): b is string => Boolean(b))
+    )
+  ).sort();
+
+  const serviceRaws = bases.map((base) => {
+    const formats: { webp: Record<string, string>; avif: Record<string, string> } = { webp: {}, avif: {} };
+    for (const f of files) {
+      const m = f.match(new RegExp(`^${base}-(\\d+)\\.(webp|avif)$`));
+      if (m) formats[m[2] as "webp" | "avif"][m[1]] = f;
+    }
+    return {
+      role: "service",
+      altText: `${company} – ${base} (KI-generiert, openrouter-images)`,
+      aspectRatio: "3:4",
+      width: 0,
+      height: 0,
+      localPath: null,
+      formats,
+    };
+  });
+
+  const hasVideo = files.includes("bg-video-scrub.mp4");
+  return { serviceRaws, hasVideo };
+}
+
+async function buildIndustry(industry: string, htmlOnly = false) {
   const spec = INDUSTRIES[industry];
   if (!spec) throw new Error(`Keine Vorgaben für Branche "${industry}". Bekannt: ${Object.keys(INDUSTRIES).join(", ")}`);
 
@@ -174,31 +229,43 @@ async function buildIndustry(industry: string) {
   // No hero still is generated: the key visual IS the background clip.
   // Rendering both put a static image in front of moving footage, which
   // is the one thing this layout must not do.
-  const serviceRaws = [];
-  for (let i = 0; i < services.length; i++) {
-    serviceRaws.push(
-      await image(
-        `Clean minimal editorial photograph representing "${services[i]}" at a ${industry}, bright airy studio light, pale neutral background, no text`,
-        "3:4",
-        `service-${i + 1}`
-      )
-    );
-  }
+  let serviceRaws: RawAsset[] = [];
+  let videoCost = 0;
 
-  console.log("  Video (Leitmotiv als Hintergrund) …");
-  const video = await new OpenRouterVideoProvider().generateVideo({
-    prompt: `${spec.keyVisual}. Slow cinematic camera orbit around the sculpture, gentle drifting clouds, subtle light shifting across the reflective surface.`,
-    aspectRatio: "16:9",
-    durationSeconds: 8,
-    resolution: "1080p",
-    styleGuide: {
-      artDirection: profile.artDirection,
-      imageryStyle: profile.imageryStyle,
-      colorHints: [profile.colors.primary, profile.colors.secondary, profile.colors.accent],
-    },
-  });
-  const encoded = await watermarkAndEncodeVideo(video.buffer, assetsDir, "bg-video");
-  console.log(`  Video fertig: ${video.durationSeconds}s @ ${video.resolution}, ${video.costUsd != null ? `$${video.costUsd.toFixed(3)}` : "Kosten unbekannt"}`);
+  if (htmlOnly) {
+    const disk = assetsFromDisk(assetsDir, spec.company);
+    if (!disk.hasVideo || disk.serviceRaws.length === 0) {
+      throw new Error(`--nur-html: Für "${industry}" liegen noch keine Assets in ${assetsDir}.`);
+    }
+    serviceRaws = disk.serviceRaws;
+    console.log(`  Assets von der Platte übernommen (${serviceRaws.length} Bilder + Video) — keine Kosten.`);
+  } else {
+    for (let i = 0; i < services.length; i++) {
+      serviceRaws.push(
+        await image(
+          `Clean minimal editorial photograph representing "${services[i]}" at a ${industry}, bright airy studio light, pale neutral background, no text`,
+          "3:4",
+          `service-${i + 1}`
+        )
+      );
+    }
+
+    console.log("  Video (Leitmotiv als Hintergrund) …");
+    const video = await new OpenRouterVideoProvider().generateVideo({
+      prompt: `${spec.keyVisual}. Slow cinematic camera orbit around the sculpture, gentle drifting clouds, subtle light shifting across the reflective surface.`,
+      aspectRatio: "16:9",
+      durationSeconds: 8,
+      resolution: "1080p",
+      styleGuide: {
+        artDirection: profile.artDirection,
+        imageryStyle: profile.imageryStyle,
+        colorHints: [profile.colors.primary, profile.colors.secondary, profile.colors.accent],
+      },
+    });
+    await watermarkAndEncodeVideo(video.buffer, assetsDir, "bg-video");
+    videoCost = video.costUsd ?? 0;
+    console.log(`  Video fertig: ${video.durationSeconds}s @ ${video.resolution}, ${video.costUsd != null ? `$${video.costUsd.toFixed(3)}` : "Kosten unbekannt"}`);
+  }
 
   const demoData: DemoData = {
     companyName: spec.company,
@@ -214,21 +281,55 @@ async function buildIndustry(industry: string) {
   const { pages } = renderDemoSite(demoData, profile, serviceRaws, variant);
   const base = pages.find((p) => p.filename === "index.html") ?? pages[0];
 
-  // undefined hero asset on purpose — the stacked hero is type over the
-  // page-wide clip, with no image of its own.
-  const hero = stackedHeroSection(
-    spec.headline,
-    `${industry} in ${LOCATION}. ${services.join(", ")} — alles an einem Ort.`,
-    spec.company,
-    LOCATION,
-    undefined
-  );
-  const accordion = treatmentAccordionSection(
-    serviceRaws.map((raw, i) => ({ asset: toAssetView(raw), label: services[i] })),
-    secondaryPageLabel(profile.industryKey)
-  );
+  const supporting = `${industry} in ${LOCATION}. ${services.join(", ")} — alles an einem Ort.`;
+  const serviceViews = serviceRaws.map((raw, i) => ({ asset: toAssetView(raw), label: services[i] }));
 
-  let output = base.html.replace(/<section class="hero[^"]*">[\s\S]*?<\/section>/, hero + accordion);
+  /** Three variants per industry, all sharing the same generated video
+   * and images — the expensive part is produced once, so a variant
+   * costs nothing but disk. They differ where it is actually visible:
+   * the opening, how services are presented, and the tab treatment. */
+  const VARIANTS: Array<{ slug: string; name: string; tab: TabBarStyle; build: () => string }> = [
+    {
+      slug: "a-kinetisch",
+      name: "Kinetisch",
+      tab: "dark",
+      build: () =>
+        stackedHeroSection(spec.headline, supporting, spec.company, LOCATION, undefined) +
+        treatmentAccordionSection(serviceViews, secondaryPageLabel(profile.industryKey)),
+    },
+    {
+      slug: "b-editorial",
+      name: "Editorial",
+      tab: "light",
+      build: () =>
+        typographyHeroSection(spec.company, spec.headline, "standard", "#kontakt", null, "") +
+        scatteredGallerySection(
+          serviceViews.map((v, i) => ({
+            asset: v.asset,
+            headline: buildEditorialRows(spec.company, LOCATION, serviceViews.length)[i].headline,
+          })),
+          secondaryPageLabel(profile.industryKey)
+        ),
+    },
+    {
+      slug: "c-galerie",
+      name: "Galerie",
+      tab: "glass",
+      build: () =>
+        stackedHeroSection(spec.headline, supporting, spec.company, LOCATION, undefined) +
+        scatteredGallerySection(
+          serviceViews.map((v, i) => ({ asset: v.asset, headline: services[i] })),
+          secondaryPageLabel(profile.industryKey)
+        ),
+    },
+  ];
+
+  const tabItems = [
+    { href: "#", label: "Start", icon: "home" as const, active: true },
+    { href: "#leistungen", label: secondaryPageLabel(profile.industryKey), icon: "services" as const, active: false },
+    { href: "#ueber-uns", label: "Über uns", icon: "about" as const, active: false },
+    { href: "#kontakt", label: "Kontakt", icon: "contact" as const, active: false },
+  ];
 
   // One long page: the scrubbed background needs real scroll travel,
   // and four short pages give it none.
@@ -236,7 +337,6 @@ async function buildIndustry(industry: string) {
     .filter((p) => p.filename !== base.filename)
     .map((p) => (p.html.match(/<\/header>([\s\S]*?)<footer/) ?? ["", ""])[1])
     .join("\n");
-  output = output.replace(/(\n\s*<footer)/, `\n${extra}$1`);
 
   const videoAsset = toAssetView({
     role: "hero",
@@ -245,18 +345,39 @@ async function buildIndustry(industry: string) {
     width: null,
     height: null,
     localPath: null,
+    // Names are fixed by watermarkAndEncodeVideo's baseName, so an
+    // HTML-only rebuild can address the same files without re-encoding.
     formats: {
-      video: path.basename(encoded.videoPath),
-      poster: path.basename(encoded.posterPath),
-      videoScrub: path.basename(encoded.scrubPath),
+      video: "bg-video.mp4",
+      poster: "bg-video-poster.jpg",
+      videoScrub: "bg-video-scrub.mp4",
     },
   });
-  output = output.replace("<body>", `<body class="page-video-mode">\n  ${pageVideoBackground(videoAsset)}`);
-  output = output.replace("</body>", `${treatmentAccordionScript()}\n${scrollVideoScript()}\n</body>`);
+  const videoLayer = pageVideoBackground(videoAsset);
 
-  fs.writeFileSync(path.join(outDir, "index.html"), output, "utf-8");
-  console.log(`  Geschrieben: ${path.join(outDir, "index.html")}`);
-  return { industry, cost: video.costUsd ?? 0 };
+  for (const v of VARIANTS) {
+    let out = base.html.replace(/<section class="hero[^"]*">[\s\S]*?<\/section>/, v.build());
+    out = out.replace(/(\n\s*<footer)/, `\n${extra}$1`);
+    out = out.replace("<body>", `<body class="page-video-mode">\n  ${videoLayer}`);
+    out = out.replace(
+      "</body>",
+      `${floatingTabBar(tabItems, v.tab)}\n${treatmentAccordionScript()}\n${floatingTabBarScript()}\n${scrollVideoScript()}\n</body>`
+    );
+
+    // Variants live beside each other and share ../assets, so three
+    // pages cost one set of media rather than three.
+    const variantDir = path.join(outDir, v.slug);
+    fs.mkdirSync(variantDir, { recursive: true });
+    out = out.replace(/(src|href|poster)="assets\//g, '$1="../assets/');
+    out = out.replace(/srcset="([^"]*)"/g, (_m, set: string) =>
+      `srcset="${set.replace(/(^|,\s*)assets\//g, "$1../assets/")}"`
+    );
+    out = out.replace(/data-video-src="assets\//g, 'data-video-src="../assets/');
+    fs.writeFileSync(path.join(variantDir, "index.html"), out, "utf-8");
+    console.log(`  Variante ${v.name}: ${path.join(variantDir, "index.html")}`);
+  }
+
+  return { industry, cost: videoCost };
 }
 
 async function main() {
@@ -264,10 +385,12 @@ async function main() {
   const arg = process.argv[2];
   if (!arg) throw new Error(`Aufruf: generate-industry-demo.ts <Branche|--alle>\nBranchen: ${Object.keys(INDUSTRIES).join(", ")}`);
 
-  const list = arg === "--alle" ? Object.keys(INDUSTRIES) : [arg];
+  const flags = process.argv.slice(2).filter((a) => a.startsWith("--"));
+  const htmlOnly = flags.includes("--nur-html");
+  const list = arg === "--alle" || htmlOnly && arg === "--alle" ? Object.keys(INDUSTRIES) : arg.startsWith("--") ? Object.keys(INDUSTRIES) : [arg];
   let total = 0;
   for (const industry of list) {
-    const r = await buildIndustry(industry);
+    const r = await buildIndustry(industry, htmlOnly);
     total += r.cost;
   }
   console.log(`\nFertig: ${list.length} Branche(n). Video-Kosten gesamt: $${total.toFixed(2)}`);

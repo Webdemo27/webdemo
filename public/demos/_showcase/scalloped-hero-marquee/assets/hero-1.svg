@@ -1,0 +1,11 @@
+<svg viewBox="0 0 1200 675" width="1200" height="675" xmlns="http://www.w3.org/2000/svg" role="img" aria-hidden="true">
+    <defs>
+      <filter id="blur" x="-50%" y="-50%" width="200%" height="200%">
+        <feGaussianBlur stdDeviation="108" />
+      </filter>
+    </defs>
+    <rect width="1200" height="675" fill="#FFFBEB" />
+    <g filter="url(#blur)"><circle cx="540" cy="172" r="563" fill="#928f0e" opacity="0.55" />
+<circle cx="881" cy="479" r="573" fill="#aeb409" opacity="0.45" />
+<circle cx="626" cy="250" r="640" fill="#aeb409" opacity="0.35" /></g>
+  </svg>
