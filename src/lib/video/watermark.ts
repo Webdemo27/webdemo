@@ -3,6 +3,7 @@ import { promises as fs } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { promisify } from "node:util";
+import { SCRUB_FPS } from "./encoding-constants";
 
 const execFileAsync = promisify(execFile);
 
@@ -30,17 +31,28 @@ function fontFileArg(): string {
   return chosen.replace(/^([A-Za-z]):/, "$1\\\\:");
 }
 
-/**
- * Burns the same "DEMO" badge the image pipeline stamps
- * (images/watermark.ts) into every frame, and re-encodes to a
- * web-deliverable MP4: H.264 + yuv420p (the only combination every
- * browser reliably decodes), no audio track at all (a hero loop is
- * always muted, and dropping it saves bytes), and +faststart so the
- * moov atom sits at the front for progressive playback.
- *
- * Returns the watermarked MP4 and a real first-frame poster image, so
- * the <video> has something to show before/without autoplay.
- */
+/** Cloudflare Pages rejects any single asset over 25 MiB — a hard
+ * platform limit, not a preference. */
+const SCRUB_LIMIT_BYTES = 25 * 1024 * 1024;
+
+/** What the rate calculation aims for. Below the limit on purpose:
+ * `-b:v` is an average target, and measured on this material x264
+ * overshot it by 5–8% (a 24 MiB target produced 25.2 and 25.9 MiB),
+ * because all-intra frames give rate control very little to trade
+ * against. The margin absorbs that plus container overhead. */
+const SCRUB_BUDGET_BYTES = 22 * 1024 * 1024;
+
+async function probeDurationSeconds(file: string): Promise<number> {
+  const { stdout } = await execFileAsync("ffprobe", [
+    "-v", "error",
+    "-show_entries", "format=duration",
+    "-of", "csv=p=0",
+    file,
+  ]);
+  const seconds = Number(String(stdout).trim());
+  return Number.isFinite(seconds) && seconds > 0 ? seconds : 8;
+}
+
 /**
  * A second encode of the same clip, made seekable frame-by-frame:
  * every frame is a keyframe (`-g 1`), so setting `currentTime` lands
@@ -52,40 +64,39 @@ function fontFileArg(): string {
  * why it is a separate file rather than the default: the ambient hero
  * loop plays linearly and doesn't need it.
  */
-export async function encodeScrubVariant(
-  sourcePath: string,
-  outDir: string,
-  baseName: string
-): Promise<string> {
-  const file = `${baseName}-scrub.mp4`;
+async function runScrubEncode(sourcePath: string, outPath: string, targetKbit: number): Promise<number> {
   await execFileAsync(
     "ffmpeg",
     [
       "-y",
       "-i", sourcePath,
-      // Frame count is what scrubbing smoothness actually depends on.
-      // The models return 24fps, i.e. 96 frames for a 4s clip — spread
-      // over a viewport-sized pin that is one new frame every ~18px of
-      // scroll, which reads as stepping however smoothly the page
-      // itself renders. Motion-compensated interpolation to 60fps gives
-      // 240 frames (~7px per frame), which is what makes it feel like
-      // driving the footage rather than flicking through stills.
-      // mci over blend: blend cross-fades and smears moving subjects,
-      // mci synthesises real intermediate positions. It costs ~20s of
-      // local encode time, which is nothing next to the generation.
-      "-vf", "minterpolate=fps=60:mi_mode=mci:mc_mode=aobmc:vsbmc=1",
+      // Frame count is what scrubbing smoothness depends on. The models
+      // return 24fps, i.e. 96 frames for a 4s clip — over a viewport-
+      // sized scroll that is one new frame every ~18px, which reads as
+      // stepping however smoothly the page itself renders. Motion-
+      // compensated interpolation lifts that; mci over blend because
+      // blend cross-fades and smears moving subjects while mci
+      // synthesises real intermediate positions.
+      "-vf", `minterpolate=fps=${SCRUB_FPS}:mi_mode=mci:mc_mode=aobmc:vsbmc=1`,
       "-an",
       "-c:v", "libx264",
       "-preset", "slow",
-      // Decoding, not downloading, is the binding constraint here, so
-      // this is a bitrate ceiling rather than a quality target. Measured
-      // on a real page: an all-intra 1080p60 clip at CRF 16 came out at
-      // ~65 Mbit/s and the video fell up to 2.4s behind the scroll
-      // because the decoder could not keep up with the seeks. The same
-      // clip at CRF 23 (~42 Mbit/s) tracked scroll position exactly —
-      // 0.00s deviation at every sampled position, forwards and back.
-      // Raise this only against a re-measurement, not by eye.
-      "-crf", "23",
+      // A rate target, not a quality target: the 25 MiB ceiling has to
+      // hold for every clip, and CRF cannot promise that.
+      //
+      // The cap also keeps decoding feasible, which was the earlier
+      // constraint: measured on a real page, an all-intra 1080p60 clip
+      // at ~65 Mbit/s fell up to 2.4s behind the scroll because the
+      // decoder could not keep up with the seeks. ~22 Mbit/s is well
+      // inside what tracked scroll exactly.
+      //
+      // bufsize is one second rather than two: a larger buffer lets the
+      // rate wander further above target on hard frames, and with every
+      // frame an I-frame there are no cheap frames to average it back
+      // down against.
+      "-b:v", `${targetKbit}k`,
+      "-maxrate", `${targetKbit}k`,
+      "-bufsize", `${targetKbit}k`,
       // Biases the encoder toward cheaper decoding, which is exactly the
       // bottleneck when every frame is a keyframe being seeked to.
       "-tune", "fastdecode",
@@ -94,13 +105,76 @@ export async function encodeScrubVariant(
       "-sc_threshold", "0",
       "-pix_fmt", "yuv420p",
       "-movflags", "+faststart",
-      path.join(outDir, file),
+      outPath,
     ],
     { maxBuffer: 64 * 1024 * 1024 }
   );
+  return (await fs.stat(outPath)).size;
+}
+
+export async function encodeScrubVariant(
+  sourcePath: string,
+  outDir: string,
+  baseName: string
+): Promise<string> {
+  const file = `${baseName}-scrub.mp4`;
+  const outPath = path.join(outDir, file);
+  // Encode beside the target and rename into place, never straight onto
+  // it. Two reasons, both hit in practice: ffmpeg refuses outright when
+  // input and output are the same path (re-encoding a clip from itself),
+  // and a process killed mid-write leaves a truncated file where a valid
+  // one used to be — which is exactly how a 0-byte background video got
+  // shipped once. The rename is the only step that touches the target.
+  const tmpPath = path.join(outDir, `.${baseName}-scrub.tmp.mp4`);
+
+  // Size is fixed by the platform, so the only real choice is how to
+  // spend the bits — and measuring beat guessing here. At a 24 MiB
+  // budget for an 8s clip, VMAF against the source came out at 85.3 for
+  // 1080p30, 68.6 for 720p60 and 62.2 for 1080p60. Halving the frame
+  // rate buys a large quality gain because the same bits cover half as
+  // many frames; 62 is visibly mushy. 30fps still gives 240 frames for
+  // an 8s clip, roughly one new frame per 11px of scroll on a typical
+  // page — coarser than 60fps but nowhere near the ~18px where stepping
+  // becomes obvious.
+  const durationSeconds = await probeDurationSeconds(sourcePath);
+  let targetKbit = Math.floor((SCRUB_BUDGET_BYTES * 8) / durationSeconds / 1000);
+
+  // Verify rather than assume. Rate control aims at the target, it does
+  // not promise it, and a clip that lands over 25 MiB cannot be
+  // published at all — a silent failure that would only surface at
+  // deploy time. If it overshoots, scale the rate by exactly how far it
+  // missed and encode again; two corrections is far more than the
+  // observed 5–8% drift needs.
+  try {
+    let size = await runScrubEncode(sourcePath, tmpPath, targetKbit);
+    for (let attempt = 0; attempt < 2 && size > SCRUB_LIMIT_BYTES; attempt++) {
+      targetKbit = Math.floor(targetKbit * (SCRUB_BUDGET_BYTES / size));
+      size = await runScrubEncode(sourcePath, tmpPath, targetKbit);
+    }
+    if (size > SCRUB_LIMIT_BYTES) {
+      throw new Error(
+        `Scrub-Encode von ${baseName} bleibt mit ${(size / 1024 / 1024).toFixed(1)} MiB über dem 25-MiB-Limit von Cloudflare Pages.`
+      );
+    }
+    await fs.rename(tmpPath, outPath);
+  } finally {
+    await fs.rm(tmpPath, { force: true });
+  }
+
   return `assets/${file}`;
 }
 
+/**
+ * Burns the same "DEMO" badge the image pipeline stamps
+ * (images/watermark.ts) into every frame, and re-encodes to a
+ * web-deliverable MP4: H.264 + yuv420p (the only combination every
+ * browser reliably decodes), no audio track at all (a hero loop is
+ * always muted, and dropping it saves bytes), and +faststart so the
+ * moov atom sits at the front for progressive playback.
+ *
+ * Returns the watermarked MP4 and a real first-frame poster image, so
+ * the <video> has something to show before/without autoplay.
+ */
 export async function watermarkAndEncodeVideo(
   input: Buffer,
   outDir: string,

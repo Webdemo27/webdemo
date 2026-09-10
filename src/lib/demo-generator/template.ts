@@ -3,6 +3,7 @@ import type { ConceptVariant, HeroStyle, CtaIntensity, SectionKey, MotionStructu
 import { swatchPreviewColor } from "../visual-director/colorway";
 import { pickVariant } from "../messaging/templates";
 import { toAssetView, groupByRole, type DemoAssetView } from "./asset-view";
+import { SCRUB_FPS } from "../video/encoding-constants";
 
 export interface DemoData {
   companyName: string;
@@ -675,13 +676,15 @@ export function scrollVideoScript(): string {
 
           // Scroll travel is derived from the frame count, not the
           // duration: what a visitor perceives as smooth is how many
-          // pixels pass between two distinct frames. The scrub encode
-          // is interpolated to 60fps, so ~8px per frame keeps stepping
-          // below the threshold where it reads as chunky, while still
-          // giving the section real presence. (Duration alone would
-          // make a longer clip feel coarser, not smoother.)
+          // pixels pass between two distinct frames. ~8px per frame
+          // keeps stepping below the threshold where it reads as
+          // chunky, while still giving the section real presence.
+          // (Duration alone would make a longer clip feel coarser, not
+          // smoother.) The frame rate is injected from SCRUB_FPS in
+          // lib/video/encoding-constants.ts — the encoder's own value,
+          // since no browser API exposes a video's frame rate.
           var PX_PER_FRAME = 8;
-          var frameCount = Math.round(duration * 60);
+          var frameCount = Math.round(duration * ${SCRUB_FPS});
           var distance = Math.max(window.innerHeight, Math.round(frameCount * PX_PER_FRAME));
 
           gsap.to(video, {

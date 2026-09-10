@@ -440,7 +440,14 @@
      the photography, which is the whole point of the section. */
   .treatment-accordion { background: #0b0d10; color: #fff; }
   .treatment-accordion h2 { color: #fff; text-transform: uppercase; letter-spacing: -0.01em; }
-  .treatment-row { display: flex; gap: 0.6rem; height: clamp(280px, 52vh, 520px); }
+  /* Held well inside the viewport on purpose. Full-bleed panels covered
+     the scroll-scrubbed background completely, which is the one thing
+     the page is built around — the panels are content on top of the
+     film, not a replacement for it. */
+  .treatment-row {
+    display: flex; gap: 0.6rem; height: clamp(200px, 34vh, 340px);
+    max-width: 1040px; margin: 0 auto;
+  }
   .treatment-panel {
     position: relative; flex: 1 1 0; min-width: 0; padding: 0; border: none; cursor: pointer;
     border-radius: 1rem; overflow: hidden; background: #14171c;
@@ -551,6 +558,13 @@
   .page-video-mode .header-cta { background: var(--accent); color: #fff; border-color: transparent; }
   .page-video-mode .brand, .page-video-mode .brand-name { color: #fff; }
   .page-video-mode .numbered-feature { border-color: rgba(255,255,255,0.2); }
+  /* Same reasoning as the accordion: over a moving background, content
+     images are held back so the film stays part of the page rather than
+     being papered over section by section. */
+  .page-video-mode .editorial-row,
+  .page-video-mode .scattered-gallery-grid,
+  .page-video-mode .services-grid { max-width: 1040px; margin-left: auto; margin-right: auto; }
+  .page-video-mode .environment-image { max-height: 46vh; object-fit: cover; }
   .page-video-mode .demo-flag { background: rgba(255,255,255,0.14); color: #fff; }
 
   /* Scroll-scrubbed background video (scrollVideoSection) — pinned
@@ -1483,13 +1497,15 @@
 
           // Scroll travel is derived from the frame count, not the
           // duration: what a visitor perceives as smooth is how many
-          // pixels pass between two distinct frames. The scrub encode
-          // is interpolated to 60fps, so ~8px per frame keeps stepping
-          // below the threshold where it reads as chunky, while still
-          // giving the section real presence. (Duration alone would
-          // make a longer clip feel coarser, not smoother.)
+          // pixels pass between two distinct frames. ~8px per frame
+          // keeps stepping below the threshold where it reads as
+          // chunky, while still giving the section real presence.
+          // (Duration alone would make a longer clip feel coarser, not
+          // smoother.) The frame rate is injected from SCRUB_FPS in
+          // lib/video/encoding-constants.ts — the encoder's own value,
+          // since no browser API exposes a video's frame rate.
           var PX_PER_FRAME = 8;
-          var frameCount = Math.round(duration * 60);
+          var frameCount = Math.round(duration * 30);
           var distance = Math.max(window.innerHeight, Math.round(frameCount * PX_PER_FRAME));
 
           gsap.to(video, {

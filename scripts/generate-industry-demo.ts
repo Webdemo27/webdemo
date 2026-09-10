@@ -381,12 +381,15 @@ async function buildIndustry(industry: string, htmlOnly = false) {
 }
 
 async function main() {
-  if (!process.env.OPENROUTER_API_KEY) throw new Error("OPENROUTER_API_KEY fehlt in .env");
   const arg = process.argv[2];
   if (!arg) throw new Error(`Aufruf: generate-industry-demo.ts <Branche|--alle>\nBranchen: ${Object.keys(INDUSTRIES).join(", ")}`);
 
   const flags = process.argv.slice(2).filter((a) => a.startsWith("--"));
   const htmlOnly = flags.includes("--nur-html");
+  // Only the generating path needs a key. --nur-html re-renders from
+  // assets already on disk, costs nothing, and used to be blocked by
+  // this check for a credential it never uses.
+  if (!htmlOnly && !process.env.OPENROUTER_API_KEY) throw new Error("OPENROUTER_API_KEY fehlt in .env");
   const list = arg === "--alle" || htmlOnly && arg === "--alle" ? Object.keys(INDUSTRIES) : arg.startsWith("--") ? Object.keys(INDUSTRIES) : [arg];
   let total = 0;
   for (const industry of list) {
