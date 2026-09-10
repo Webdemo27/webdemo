@@ -731,7 +731,33 @@ verified live.
 
 ## BLOCKED
 
-Nothing blocking, but one piece of environment state to be aware of:
+**Git LFS storage is at ~940 MB of GitHub's 1 GB free quota (measured
+2026-09-10 via `du -sh .git/lfs/objects`, 40 objects).** This is the
+binding constraint on committing anything else video-shaped.
+
+The counter-intuitive part: shrinking the videos made this *worse*, not
+better. Every scrub clip was re-encoded from 26–57 MB down to ~23 MB,
+but LFS keeps every version ever pushed, so the old large ones still
+count. GitHub is explicit that this cannot be undone in place — "After
+you remove files from Git LFS, the Git LFS objects still exist on the
+remote storage and will continue to count toward your Git LFS storage
+quota", and the documented remedy is to delete and recreate the
+repository (or contact support).
+
+Consequence: committing the per-lead demos (124 MB on disk, ~92 MB of
+it mp4) would push past the free quota. Do not do it without deciding
+one of these first:
+  - a $5/month data pack (50 GB) — smallest change, keeps the current
+    setup exactly as the user asked for it ("dann git lfs, ich will die
+    videos so haben");
+  - delete + recreate the repo with a fresh history, so only the ~23 MB
+    encodes are ever stored (~300 MB total). Destructive to the GitHub
+    side of history;
+  - stop tracking videos in git and serve them from Cloudflare instead
+    — publishing already uploads whole demo folders there.
+This is a cost/ownership decision, so it belongs to the user.
+
+One piece of environment state to be aware of:
 
 **The database lost most of its demos (noticed 2026-09-10).** There are
 42 generated demo folders under `public/demos/` but only **2 demo rows**
@@ -1024,11 +1050,36 @@ Checked on both desktop and a 375px mobile viewport.
 
 ## LAST COMMIT
 
-`c31d82a` — Fix: color picker showed 20 identical-looking black swatches
-on dark profiles. **Pushed successfully** — `origin/main` is caught up
-(verified via SSH push, ~2s, no hang). Git push authentication is now
-via SSH (see the top-of-file note), not the old HTTPS+GCM setup, so
-future pushes should be instant and silent going forward.
+`04f354d` — Every scrub video under 25 MB, size now guaranteed rather
+than hoped for. **Pushed successfully** (13 LFS objects, 311 MB).
+
+What was learned there, so it isn't re-derived:
+
+- **At a fixed byte budget, frame rate is the lever, not resolution.**
+  Measured with libvmaf against the source at the same budget: 85.3 for
+  1080p30, 68.6 for 720p60, 62.2 for 1080p60. Halving the frame rate
+  roughly doubles the bits per frame, which matters far more for an
+  all-intra encode than the pixel count does.
+- **`-b:v` is a target, not a promise.** A 24 MiB target produced 25.2
+  and 25.9 MiB on this material — all-intra gives rate control no cheap
+  frames to average against. `encodeScrubVariant()` now measures the
+  finished file and re-encodes with a corrected rate, and throws rather
+  than emitting something unpublishable.
+- **ffmpeg writes to a sibling file and renames.** A killed encode had
+  otherwise left a 0-byte mp4 where a valid one had been (the café clip
+  — recovered from its ambient master). The rename is the only step
+  that touches the target.
+- **Scrub latency, measured on the running server**: 82 seeks forwards
+  and backwards, median 7.9 ms, max 13.1 ms, none over the 33.3 ms
+  budget of a 30fps frame. The earlier 65 Mbit/s file lagged up to
+  2.4 s. Scroll is ~13 px per frame (8 px reads smooth, 18 px steppy).
+- **Verify a scrub without scrolling**: the preview pane dispatches no
+  scroll events for programmatic `scrollTo`, so drive `video.currentTime`
+  directly and time the `seeked` event. That measures the property that
+  actually matters and sidesteps the whole preview-pane artifact.
+
+Git push authentication is via SSH (see the top-of-file note), not the
+old HTTPS+GCM setup, so pushes are instant and silent.
 
 ## NEXT PRIORITY
 
