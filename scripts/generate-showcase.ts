@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { buildVisualProfile } from "../src/lib/visual-director";
-import { CONCEPT_VARIANTS } from "../src/lib/visual-director/variants";
+import { CONCEPT_VARIANTS, getVariant } from "../src/lib/visual-director/variants";
 import { generateAbstractSvg } from "../src/lib/images/abstract-generator";
 import {
   renderDemoSite,
@@ -10,6 +10,9 @@ import {
   scallopedHeroSection,
   marqueeSection,
   typographyHeroSection,
+  scriptAside,
+  scriptAsideFontLink,
+  gooeyHeroSection,
   type DemoData,
 } from "../src/lib/demo-generator/template";
 import { toAssetView } from "../src/lib/demo-generator/asset-view";
@@ -40,8 +43,7 @@ function writeAssetSvgs(dir: string, profile: ReturnType<typeof buildVisualProfi
   return rawAssets;
 }
 
-function buildBasePage(industry: string, outDir: string) {
-  const variant = CONCEPT_VARIANTS[0];
+function buildBasePage(industry: string, outDir: string, variant = CONCEPT_VARIANTS[0]) {
   const profile = buildVisualProfile({ industry }, variant);
   const seed = COMPANY + LOCATION;
   const rawAssets = writeAssetSvgs(outDir, profile, seed);
@@ -130,6 +132,42 @@ async function main() {
   .typo-hero .btn-ghost { background: transparent; border-color: var(--border); color: var(--fg); }
 `
     );
+    fs.writeFileSync(path.join(dir, "index.html"), output, "utf-8");
+    console.log(`Written: ${path.join(dir, "index.html")}`);
+  }
+
+  // Showcase 3: United Carriers scroll-scrubbed atmosphere gradient (Hotel)
+  // — no splicing needed, the "asymmetric" variant's scroll-scrub
+  // motionStructure already triggers gsapMotionScript's new effect.
+  {
+    const dir = path.join(showcaseRoot, "atmosphere-gradient");
+    const variant = getVariant("asymmetric");
+    const { html } = buildBasePage("Hotel", dir, variant);
+    fs.writeFileSync(path.join(dir, "index.html"), html, "utf-8");
+    console.log(`Written: ${path.join(dir, "index.html")}`);
+  }
+
+  // Showcase 4: Serenity Hair handwritten-script aside (Friseur)
+  {
+    const dir = path.join(showcaseRoot, "script-aside");
+    const { html } = buildBasePage("Friseur", dir);
+    let output = html.replace(
+      /(<h1 data-reveal style="--stagger-index:0">)/,
+      `${scriptAside("Willkommen!")}$1`
+    );
+    output = output.replace("</head>", `${scriptAsideFontLink()}\n</head>`);
+    fs.writeFileSync(path.join(dir, "index.html"), output, "utf-8");
+    console.log(`Written: ${path.join(dir, "index.html")}`);
+  }
+
+  // Showcase 5: Podium gooey/metaball blob hero (Fahrradladen, energetic-punch)
+  {
+    const dir = path.join(showcaseRoot, "gooey-hero");
+    const variant = getVariant("dynamic-energy");
+    const { html, rawAssets, tagline } = buildBasePage("Fahrradladen", dir, variant);
+    const heroAsset = rawAssets.find((a) => a.role === "hero");
+    const hero = gooeyHeroSection(heroAsset ? toAssetView(heroAsset) : undefined, COMPANY, tagline);
+    const output = replaceHero(html, hero);
     fs.writeFileSync(path.join(dir, "index.html"), output, "utf-8");
     console.log(`Written: ${path.join(dir, "index.html")}`);
   }

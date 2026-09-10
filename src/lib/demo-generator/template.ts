@@ -252,6 +252,56 @@ export function marqueeSection(words: string[]): string {
   </div>`;
 }
 
+/** A small handwritten-script aside layered above the main headline —
+ * real technique from Serenity Hair (serenityhairblaxland.com.au,
+ * logged in design-inspiration-playbook.md): a cheap, warm personal
+ * touch for approachable/friendly industries, separate from the formal
+ * headline itself. Generic welcoming copy only (never a specific claim
+ * about the business) — same discipline as every other UI-chrome string
+ * already in this file (e.g. heroActions' CTA labels). Loads its own
+ * cursive Google Font since profile.typography never plans for a third
+ * script face. */
+export function scriptAsideFontLink(): string {
+  return `<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@600&display=swap" rel="stylesheet" />`;
+}
+
+export function scriptAside(text = "Willkommen!"): string {
+  return `<span class="hero-script-aside" data-reveal aria-hidden="true">${escapeHtml(text)}</span>`;
+}
+
+/** Gooey/metaball blob hero — real technique from Podium (podium.global,
+ * logged in design-inspiration-playbook.md): blurred circular shapes
+ * merged into one amoeba-like silhouette via the classic SVG
+ * feGaussianBlur+feColorMatrix "goo" filter, with the real hero photo
+ * shown inside a circular cutout centered on the merged shape rather
+ * than a fragile true SVG clip — bold and avant-garde, legitimate for
+ * `energetic-punch` profiles specifically (the playbook itself flags
+ * this as "too loud for most trades"), never the default hero. */
+export function gooeyHeroSection(hero: DemoAssetView | undefined, name: string, tagline: string): string {
+  const photo = hero ? `<div class="gooey-photo">${pictureTag(hero, "gooey-photo-image", true)}</div>` : "";
+  return `
+  <section class="gooey-hero">
+    <svg class="gooey-defs" aria-hidden="true" focusable="false">
+      <filter id="goo">
+        <feGaussianBlur in="SourceGraphic" stdDeviation="18" result="blur" />
+        <feColorMatrix in="blur" mode="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 22 -9" result="goo" />
+      </filter>
+    </svg>
+    <div class="gooey-stage">
+      <div class="gooey-blobs">
+        <span class="gooey-blob gooey-blob--a"></span>
+        <span class="gooey-blob gooey-blob--b"></span>
+        <span class="gooey-blob gooey-blob--c"></span>
+      </div>
+      ${photo}
+    </div>
+    <div class="gooey-hero-text" data-reveal>
+      <h1>${kineticWords(name)}</h1>
+      <p>${escapeHtml(tagline)}</p>
+    </div>
+  </section>`;
+}
+
 /** Mouse-reactive "water-flow" decoration (mission follow-up: "schwebende
  * wasserflow (extremflüssig) einbauen ... es muss wirklich alles animiert
  * werden sogar die texte"). Two real, distinct techniques, not one relabeled
@@ -1462,6 +1512,38 @@ function gsapMotionScript(structure: MotionStructure): string {
             stagger: 0.5,
             scrollTrigger: { trigger: promiseQuote, start: 'top 90%', end: 'bottom 55%', scrub: true },
           });
+        }
+        // Scroll-scrubbed atmosphere gradient (United Carriers,
+        // unitedcarriers.com — design-inspiration-playbook.md's own
+        // cross-cutting takeaway #1: "highest-value, lowest-effort").
+        // The page background physically transitions from a dark
+        // "night" tone into this profile's real --bg color as the
+        // visitor scrolls past the hero — landing on the real brand
+        // background, not an arbitrary color, so it stays on-brand for
+        // every industry/colorway rather than a fixed palette.
+        var atmosphereHero = document.querySelector('.hero');
+        var realBgHex = getComputedStyle(document.documentElement).getPropertyValue('--bg').trim();
+        function hexToRgb(hex) {
+          var h = hex.replace('#', '');
+          if (h.length === 3) h = h.split('').map(function (c) { return c + c; }).join('');
+          var num = parseInt(h, 16);
+          return [(num >> 16) & 255, (num >> 8) & 255, num & 255];
+        }
+        if (atmosphereHero && /^#[0-9a-fA-F]{3,6}$/.test(realBgHex)) {
+          var nightRgb = [10, 12, 16];
+          var targetRgb = hexToRgb(realBgHex);
+          var atmosphereProxy = { t: 0 };
+          gsap.to(atmosphereProxy, {
+            t: 1,
+            ease: 'none',
+            scrollTrigger: { trigger: atmosphereHero, start: 'top top', end: 'bottom top', scrub: true },
+            onUpdate: function () {
+              var r = Math.round(nightRgb[0] + (targetRgb[0] - nightRgb[0]) * atmosphereProxy.t);
+              var g = Math.round(nightRgb[1] + (targetRgb[1] - nightRgb[1]) * atmosphereProxy.t);
+              var b = Math.round(nightRgb[2] + (targetRgb[2] - nightRgb[2]) * atmosphereProxy.t);
+              document.body.style.backgroundColor = 'rgb(' + r + ',' + g + ',' + b + ')';
+            },
+          });
         }`;
 
   return `
@@ -1856,6 +1938,40 @@ export function renderDemoSite(
   @keyframes marquee-scroll { from { transform: translateX(0); } to { transform: translateX(-50%); } }
   @media (prefers-reduced-motion: reduce) {
     .marquee-track { animation-play-state: paused; }
+  }
+
+  /* Handwritten-script hero aside (scriptAside) — real technique from
+     Serenity Hair: a small cursive personal touch above the headline. */
+  .hero-script-aside {
+    display: inline-block; font-family: 'Caveat', cursive; font-size: clamp(1.6rem, 3.5vw, 2.4rem);
+    color: var(--accent); transform: rotate(-4deg); margin-bottom: -0.5rem;
+  }
+
+  /* Gooey/metaball blob hero (gooeyHeroSection) — real technique from
+     Podium: blurred circles merged into one amoeba silhouette via the
+     classic feGaussianBlur+feColorMatrix "goo" filter, real photo shown
+     inside a circular cutout centered on the merged shape. Bold/avant-
+     garde — for energetic-punch profiles only, never a default. */
+  .gooey-defs { position: absolute; width: 0; height: 0; overflow: hidden; }
+  .gooey-hero { position: relative; min-height: 70vh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2rem; overflow: hidden; padding: 3rem 1.5rem; background: var(--bg); }
+  .gooey-stage { position: relative; width: min(60vw, 32rem); aspect-ratio: 1; }
+  .gooey-blobs { position: absolute; inset: 0; filter: url(#goo); }
+  .gooey-blob { position: absolute; border-radius: 50%; background: var(--accent); animation: gooey-float 9s ease-in-out infinite; }
+  .gooey-blob--a { width: 55%; height: 55%; top: 5%; left: 10%; background: var(--primary); animation-delay: 0s; }
+  .gooey-blob--b { width: 40%; height: 40%; bottom: 8%; right: 8%; background: var(--secondary); animation-delay: -3s; }
+  .gooey-blob--c { width: 30%; height: 30%; bottom: 20%; left: 25%; background: var(--accent); animation-delay: -6s; }
+  .gooey-photo { position: absolute; inset: 12%; border-radius: 50%; overflow: hidden; pointer-events: none; }
+  .gooey-photo-image { width: 100%; height: 100%; object-fit: cover; display: block; }
+  @keyframes gooey-float {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    33% { transform: translate(6%, -8%) scale(1.08); }
+    66% { transform: translate(-5%, 6%) scale(0.95); }
+  }
+  .gooey-hero-text { position: relative; text-align: center; max-width: 40rem; }
+  .gooey-hero-text h1 { font-size: clamp(2rem, 5vw, 3.4rem); margin-bottom: 0.75rem; }
+  .gooey-hero-text p { font-size: 1.05rem; color: color-mix(in srgb, var(--fg) 75%, transparent); }
+  @media (prefers-reduced-motion: reduce) {
+    .gooey-blob { animation: none; }
   }
 
   /* Mouse-reactive "water-flow" (fluidFlowLayer/fluidFlowScript): blurred,
