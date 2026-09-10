@@ -15,6 +15,7 @@ import {
   gooeyHeroSection,
   scatteredGallerySection,
   buildEditorialRows,
+  rotatingSealBadge,
   type DemoData,
 } from "../src/lib/demo-generator/template";
 import { toAssetView } from "../src/lib/demo-generator/asset-view";
@@ -190,6 +191,25 @@ async function main() {
     let output = ueberUnsPage.html.replace(editorialRegex, gallery);
     // Drop the now-orphaned lightbox markup (targets .editorial-lightbox-trigger, none left on this page)
     output = output.replace(/<div class="lightbox"[\s\S]*?<\/div>\n/, "");
+    fs.writeFileSync(path.join(dir, "index.html"), output, "utf-8");
+    console.log(`Written: ${path.join(dir, "index.html")}`);
+  }
+
+  // Showcase 7: ERA Residence rotating seal badge + arched section edge
+  // (Immobilienmakler — the industry the source site actually serves)
+  {
+    const dir = path.join(showcaseRoot, "seal-badge-arch");
+    const { html } = buildBasePage("Immobilienmakler", dir);
+    // Seal sits inside the hero (which is position:relative), and the
+    // section right after the hero gets the arched top edge.
+    let output = html.replace(/(<div class="hero-content)/, `${rotatingSealBadge(COMPANY)}\n    $1`);
+    let archApplied = false;
+    output = output.replace(/<section class="(?!hero)([^"]*)"/g, (match, cls: string) => {
+      if (archApplied) return match;
+      archApplied = true;
+      return `<section class="${cls} arched-top"`;
+    });
+    if (!archApplied) throw new Error("Keine Sektion nach dem Hero gefunden, die den Bogen bekommen könnte");
     fs.writeFileSync(path.join(dir, "index.html"), output, "utf-8");
     console.log(`Written: ${path.join(dir, "index.html")}`);
   }

@@ -324,6 +324,53 @@ export function gooeyHeroSection(hero: DemoAssetView | undefined, name: string, 
   </section>`;
 }
 
+/** Rotating circular seal badge — real technique from ERA Residence
+ * (era-residence.com, Awwwards Site of the Month Aug 2026; logged in
+ * design-inspiration-playbook.md). The brand name set on a circle
+ * around a small emblem, rotating slowly. Uses the lead's own real
+ * company name and nothing else — no invented tagline, no fake
+ * "established 1985" ring, which is the usual way seals start lying.
+ *
+ * The name is repeated until it fills the circle so short names don't
+ * leave a bald arc, separated by a diamond. SVG textPath rather than
+ * per-letter rotated spans: one element, correct kerning along the
+ * curve, and it scales cleanly. */
+export function rotatingSealBadge(companyName: string): string {
+  const name = companyName.trim().toUpperCase();
+  const SEPARATOR = "  ✦  ";
+
+  // Fit the text to the ring rather than guessing: the path below has
+  // r=42, so it is 2*pi*42 ≈ 264 user units around. At this weight and
+  // tracking a character advances ≈ 0.71 * fontSize, so 264 units hold
+  // about 41 characters at the 9px base size. Repeat the name as often
+  // as fits (a short name shouldn't leave a bald arc), then shrink the
+  // type if even one lap would overflow — which is what a long company
+  // name would otherwise do, overlapping itself at the 12 o'clock join.
+  const CIRCUMFERENCE = 2 * Math.PI * 42;
+  const ADVANCE_RATIO = 0.71;
+  const BASE_FONT = 9;
+
+  const perRepeat = name.length + SEPARATOR.length;
+  const capacity = Math.floor(CIRCUMFERENCE / (BASE_FONT * ADVANCE_RATIO));
+  const repeats = Math.max(1, Math.min(4, Math.floor(capacity / Math.max(perRepeat, 1))));
+  const ring = Array.from({ length: repeats }, () => name + SEPARATOR).join("");
+  const fontSize = Math.min(BASE_FONT, CIRCUMFERENCE / (ring.length * ADVANCE_RATIO));
+
+  return `
+  <div class="seal-badge" aria-hidden="true">
+    <svg viewBox="0 0 120 120" class="seal-badge-ring">
+      <defs>
+        <path id="seal-ring-path" d="M60,60 m-42,0 a42,42 0 1,1 84,0 a42,42 0 1,1 -84,0" fill="none" />
+      </defs>
+      <text class="seal-badge-text" style="font-size:${fontSize.toFixed(2)}px"><textPath href="#seal-ring-path">${escapeHtml(ring)}</textPath></text>
+    </svg>
+    <svg viewBox="0 0 24 24" class="seal-badge-emblem" fill="currentColor">
+      <circle cx="12" cy="7" r="4.2" /><circle cx="12" cy="17" r="4.2" />
+      <circle cx="7" cy="12" r="4.2" /><circle cx="17" cy="12" r="4.2" />
+    </svg>
+  </div>`;
+}
+
 /** Scattered (non-grid) photo gallery — real principle from Gionatan
  * Nese's draggable mood-board (gionatannese.com, logged in design-
  * inspiration-playbook.md): "a gallery doesn't have to be a rigid
@@ -2045,6 +2092,37 @@ export function renderDemoSite(
   .gooey-hero-text p { font-size: 1.05rem; color: color-mix(in srgb, var(--fg) 75%, transparent); }
   @media (prefers-reduced-motion: reduce) {
     .gooey-blob { animation: none; }
+  }
+
+  /* Rotating circular seal badge (rotatingSealBadge) — real technique
+     from ERA Residence (Awwwards Site of the Month, Aug 2026). Pinned
+     over the hero, rotating slowly; "currentColor" lets it invert
+     against whatever sits behind it. */
+  .seal-badge {
+    position: absolute; top: clamp(1rem, 4vw, 2.5rem); left: clamp(1rem, 4vw, 2.5rem);
+    width: clamp(78px, 11vw, 130px); aspect-ratio: 1; z-index: 2; color: #fff; pointer-events: none;
+  }
+  .seal-badge-ring { width: 100%; height: 100%; animation: seal-spin 24s linear infinite; }
+  .seal-badge-text {
+    font-family: var(--font-body); font-weight: 600; letter-spacing: 0.16em;
+    fill: currentColor; text-transform: uppercase;
+  }
+  .seal-badge-emblem {
+    position: absolute; top: 50%; left: 50%; width: 34%; height: 34%; transform: translate(-50%, -50%);
+  }
+  @keyframes seal-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+  @media (prefers-reduced-motion: reduce) { .seal-badge-ring { animation: none; } }
+
+  /* Arched section top edge (.arched-top) — real technique from ERA
+     Residence: the section after the hero rises on a wide elliptical
+     arc instead of a straight edge, so the boundary reads as a soft
+     horizon rather than a hard cut. Pulled up over the hero by its own
+     arc height so no gap shows through. */
+  .arched-top {
+    position: relative; z-index: 1; background: var(--bg);
+    border-radius: 50% 50% 0 0 / clamp(2rem, 6vw, 5rem) clamp(2rem, 6vw, 5rem) 0 0;
+    margin-top: calc(-1 * clamp(2rem, 6vw, 5rem));
+    padding-top: clamp(3.5rem, 9vw, 7rem);
   }
 
   /* Scattered (non-grid) photo gallery (scatteredGallerySection) — real

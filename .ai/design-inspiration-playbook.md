@@ -456,3 +456,44 @@ reimplements its own vanilla GSAP, never borrows a competitor's code.
 identified (dsgn Interior's pinned project reel) — building it next as
 `projectReelSection()` using a real lead's existing editorial assets,
 the same way the angled carousel used Tobias Grünert's.
+
+## Current Site-of-the-Day winners (2026-09-10)
+
+Pulled from the live `awwwards.com/websites/sites_of_the_day/` list.
+Most of that week's winners are AI platforms, artist pages and agency
+portfolios with no honest local-business analogue. The one direct hit:
+
+### ERA Residence (era-residence.com) — luxury residential, **Site of the Month, Aug 2026**
+
+The highest-ranked entry on the list and a direct industry match
+(Immobilienmakler is one of this project's real industries). Visited
+live; cookie banner declined.
+
+- **Rotating circular seal badge** — the brand name set on a circle
+  around a small emblem, slowly rotating, pinned top-left across every
+  section and recolouring to suit the section behind it. Confirmed
+  rotating by comparing two screenshots. Pure SVG `<textPath>` + one CSS
+  rotation, no library, and it needs nothing but the lead's own real
+  company name → **directly shippable**, built as `rotatingSealBadge()`.
+  Suits the trades where a "seal" reads as quality rather than kitsch:
+  Immobilienmakler, Hotel, Friseur, Restaurant.
+- **Arched section top edge** — the section following the hero rises
+  with a wide elliptical arc instead of a straight edge, so the boundary
+  reads as a soft horizon. One `border-radius` with separate horizontal
+  and vertical radii; cheap → **directly shippable**, built as the
+  `.arched-top` treatment.
+- **Oversized display wordmark bleeding past the viewport edges**, set
+  over the hero photo with a thin circle outline behind it. Related to
+  the typography-hero already built (Rezo Zero), so not rebuilt — noted
+  as a variation, not a separate technique.
+- Rotated giant type at the section edges, and a symmetric label using
+  the brand emblem as the divider ("COSTA ✦ DEL SOL"). The symmetric
+  divider is the same idea as Qissa's symmetric-dash eyebrow already
+  logged; the rotated edge type is decorative-only and skipped.
+
+Not pursued from that week's list, and why: Cerebrium/Sharplink/
+USAvionix/Seasats (AI-platform and aerospace marketing, no local-trade
+analogue), Trevor Noah/Paul Kalkbrenner (personality sites built around
+a famous person's own likeness — nothing transferable), MIU MIU and
+Decathlon (campaign microsites needing bespoke 3D asset production),
+Why Zero / Gionatan Nese / United Carriers (already in this playbook).
