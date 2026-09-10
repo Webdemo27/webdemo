@@ -71,6 +71,13 @@ next-env.d.ts
 /public/screenshots/*
 !/public/screenshots/.gitkeep
 
+# Per-lead exports for the React engine. Same reason the per-lead demos
+# above stay out: they carry a real prospect's company name, address and
+# contact email, and this repository is public. Only the _showcase set
+# (Musterfirma, no real data) is committed.
+/demo-app/public/data/*
+!/demo-app/public/data/.gitkeep
+
 # staged tree actually deployed to the shared Cloudflare Pages project
 # (see cloudflare-publisher.ts) — mirrors published leads' demo output,
 # not source
