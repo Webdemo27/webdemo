@@ -1,1 +1,2 @@
 public/demos/_showcase/**/*.mp4 filter=lfs diff=lfs merge=lfs -text
+public/demos/**/*.mp4 filter=lfs diff=lfs merge=lfs -text
