@@ -332,6 +332,15 @@
     transition: transform 420ms var(--ease-out), width 420ms var(--ease-out);
     pointer-events: none;
   }
+  /* The selected tab glows. The indicator carries the light, so the glow
+     travels with it instead of each tab lighting up and fading out. */
+  .tab-item.is-active { text-shadow: 0 0 18px currentColor; }
+  .tab-item.is-active .tab-icon svg { filter: drop-shadow(0 0 6px currentColor); }
+  /* Safety net: the script sizes the indicator, so before it runs (or if
+     it never does) the active tab must not end up dark-on-dark and
+     invisible. Its own background guarantees it reads on its own. */
+  .tab-bar--dark .tab-item.is-active,
+  .tab-bar--glass .tab-item.is-active { background: rgba(255,255,255,0.14); }
   .tab-item {
     position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center;
     gap: 0.15rem; padding: 0.55rem 0.9rem; border-radius: 999px; text-decoration: none;
@@ -349,15 +358,12 @@
   .tab-bar--light { background: #fff; box-shadow: 0 18px 40px -20px rgba(0,0,0,0.45); }
   .tab-bar--light .tab-item { color: #4b5563; }
   .tab-bar--light .tab-item.is-active { color: var(--primary); }
-  /* The dot sits above the active tab rather than behind it. The
-     indicator itself keeps the tab's full width (the script sets it),
-     and the dot is centred inside it — shrinking the indicator to 6px
-     instead made "margin-left: 50%" resolve against the bar's width, so
-     the dot floated over the neighbouring tab. */
-  .tab-bar--light .tab-indicator { top: -0.35rem; bottom: auto; height: 6px; background: transparent; }
-  .tab-bar--light .tab-indicator::before {
-    content: ""; position: absolute; left: 50%; top: 0; width: 6px; height: 6px;
-    border-radius: 999px; background: var(--primary); transform: translateX(-50%);
+  /* A travelling pill behind the active tab, like the other two
+     treatments — no marker above it. (An earlier version put a dot on
+     top; it read as a stray speck rather than part of the control.) */
+  .tab-bar--light .tab-indicator {
+    background: color-mix(in srgb, var(--primary) 14%, transparent);
+    box-shadow: 0 0 18px 1px color-mix(in srgb, var(--primary) 35%, transparent);
   }
 
   .tab-bar--glass {
@@ -367,12 +373,12 @@
   .tab-bar--glass .tab-item { color: rgba(255,255,255,0.75); }
   .tab-bar--glass .tab-item.is-active { color: #fff; }
   .tab-bar--glass .tab-label { display: none; }
-  .tab-bar--glass .tab-indicator { background: var(--primary); box-shadow: 0 8px 20px -8px var(--primary); }
+  .tab-bar--glass .tab-indicator { background: var(--primary); box-shadow: 0 0 22px 2px var(--primary), 0 8px 20px -8px var(--primary); }
 
   .tab-bar--dark { background: #0f1216; box-shadow: 0 18px 40px -20px rgba(0,0,0,0.6); }
   .tab-bar--dark .tab-item { color: rgba(255,255,255,0.65); }
   .tab-bar--dark .tab-item.is-active { color: #0f1216; }
-  .tab-bar--dark .tab-indicator { background: #fff; }
+  .tab-bar--dark .tab-indicator { background: #fff; box-shadow: 0 0 24px 2px rgba(255,255,255,0.55); }
   /* Only the active tab shows its label — that expansion is what makes
      the capsule feel like it grew into place rather than jumped. */
   .tab-bar--dark .tab-label { display: none; }
@@ -958,40 +964,34 @@
   </header>
 
   
-  
   <section class="stacked-hero">
     <div class="stacked-hero-bg"></div>
     <div class="stacked-hero-scrim"></div>
     <div class="stacked-hero-inner">
-      <h1 class="stacked-hero-headline" data-reveal><span class="stacked-hero-line">FAHREN</span><span class="stacked-hero-line">MIT</span><span class="stacked-hero-line">FREUDE</span></h1>
-      <p class="stacked-hero-supporting" data-reveal>Fahrradladen in Musterstadt. Verkauf, Reparatur &amp; Service, Zubehör — alles an einem Ort.</p>
+      <h1 class="stacked-hero-headline" data-reveal><span class="stacked-hero-line">MUSTERRADLADEN</span></h1>
+      <p class="stacked-hero-supporting" data-reveal>Für alle in Musterstadt, denen ein energiegeladen, kompetent und bodenständig wirkender Auftritt wichtig ist</p>
       <div class="stacked-hero-meta" data-reveal>
         <span>Musterradladen</span>
         <span>Musterstadt</span>
       </div>
     </div>
   </section>
-  <section class="scattered-gallery" data-reveal>
-    <span class="editorial-eyebrow">Leistungen</span>
-    <div class="scattered-gallery-grid">
-      <figure class="scattered-item" data-reveal style="--stagger-index:0">
-        <div class="scattered-item-inner" style="--rot:-6deg;--shift:0px">
-          <picture><source type="image/avif" srcset="../assets/service-1-800.avif 800w" sizes="100vw" /><source type="image/webp" srcset="../assets/service-1-800.webp 800w" sizes="100vw" /><img src="../assets/service-1-800.webp" alt="Musterradladen – service-1 (KI-generiert, openrouter-images)" class="scattered-item-image" loading="lazy" width="0" height="0" /></picture>
-          <figcaption>Verkauf</figcaption>
-        </div>
-      </figure>
-      <figure class="scattered-item" data-reveal style="--stagger-index:1">
-        <div class="scattered-item-inner" style="--rot:4deg;--shift:28px">
-          <picture><source type="image/avif" srcset="../assets/service-2-800.avif 800w" sizes="100vw" /><source type="image/webp" srcset="../assets/service-2-800.webp 800w" sizes="100vw" /><img src="../assets/service-2-800.webp" alt="Musterradladen – service-2 (KI-generiert, openrouter-images)" class="scattered-item-image" loading="lazy" width="0" height="0" /></picture>
-          <figcaption>Reparatur &amp; Service</figcaption>
-        </div>
-      </figure>
-      <figure class="scattered-item" data-reveal style="--stagger-index:2">
-        <div class="scattered-item-inner" style="--rot:-3deg;--shift:-14px">
-          <picture><source type="image/avif" srcset="../assets/service-3-800.avif 800w" sizes="100vw" /><source type="image/webp" srcset="../assets/service-3-800.webp 800w" sizes="100vw" /><img src="../assets/service-3-800.webp" alt="Musterradladen – service-3 (KI-generiert, openrouter-images)" class="scattered-item-image" loading="lazy" width="0" height="0" /></picture>
-          <figcaption>Zubehör</figcaption>
-        </div>
-      </figure></div>
+
+  <section class="treatment-accordion" data-reveal>
+    <h2><span class="kinetic-word"><span class="kinetic-word-inner" style="transition-delay:0ms">Leistungen</span></span></h2>
+    <div class="treatment-row">
+      <button type="button" class="treatment-panel is-active" data-treatment-panel aria-expanded="true">
+        <picture><source type="image/avif" srcset="../assets/service-1-800.avif 800w" sizes="100vw" /><source type="image/webp" srcset="../assets/service-1-800.webp 800w" sizes="100vw" /><img src="../assets/service-1-800.webp" alt="Musterradladen – service-1 (KI-generiert, openrouter-images)" class="treatment-panel-image" loading="eager" width="0" height="0" fetchpriority="high" /></picture>
+        <span class="treatment-panel-label">Verkauf</span>
+      </button>
+      <button type="button" class="treatment-panel" data-treatment-panel aria-expanded="false">
+        <picture><source type="image/avif" srcset="../assets/service-2-800.avif 800w" sizes="100vw" /><source type="image/webp" srcset="../assets/service-2-800.webp 800w" sizes="100vw" /><img src="../assets/service-2-800.webp" alt="Musterradladen – service-2 (KI-generiert, openrouter-images)" class="treatment-panel-image" loading="lazy" width="0" height="0" /></picture>
+        <span class="treatment-panel-label">Reparatur &amp; Service</span>
+      </button>
+      <button type="button" class="treatment-panel" data-treatment-panel aria-expanded="false">
+        <picture><source type="image/avif" srcset="../assets/service-3-800.avif 800w" sizes="100vw" /><source type="image/webp" srcset="../assets/service-3-800.webp 800w" sizes="100vw" /><img src="../assets/service-3-800.webp" alt="Musterradladen – service-3 (KI-generiert, openrouter-images)" class="treatment-panel-image" loading="lazy" width="0" height="0" /></picture>
+        <span class="treatment-panel-label">Zubehör</span>
+      </button></div>
   </section>
 
 
@@ -1057,6 +1057,27 @@
     <span class="demo-flag">Demo-Vorschau</span>
   </footer>
 
+  
+  <nav class="tab-bar tab-bar--glass" aria-label="Schnellnavigation">
+    <span class="tab-indicator" aria-hidden="true"></span>
+    
+      <a class="tab-item is-active" href="index.html" data-tab-index="0" aria-current="page">
+        <span class="tab-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m3 10 9-7 9 7v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 22V12h6v10"/></svg></span>
+        <span class="tab-label">Home</span>
+      </a>
+      <a class="tab-item" href="leistungen.html" data-tab-index="1">
+        <span class="tab-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></span>
+        <span class="tab-label">Leistungen</span>
+      </a>
+      <a class="tab-item" href="ueber-uns.html" data-tab-index="2">
+        <span class="tab-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-6 8-6s8 2 8 6"/></svg></span>
+        <span class="tab-label">Über uns</span>
+      </a>
+      <a class="tab-item" href="kontakt.html" data-tab-index="3">
+        <span class="tab-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 6-10 7L2 6"/></svg></span>
+        <span class="tab-label">Kontakt</span>
+      </a>
+  </nav>
   
   
   <div class="color-picker">
@@ -1172,63 +1193,74 @@
   
   
   
-  
+  <script>
+    (function () {
+      var panels = Array.prototype.slice.call(document.querySelectorAll('[data-treatment-panel]'));
+      if (panels.length < 2) return;
+
+      function activate(target) {
+        panels.forEach(function (p) {
+          var on = p === target;
+          p.classList.toggle('is-active', on);
+          p.setAttribute('aria-expanded', on ? 'true' : 'false');
+        });
+      }
+
+      panels.forEach(function (panel) {
+        panel.addEventListener('click', function () { activate(panel); });
+        // Focus, not just hover, so keyboard tabbing opens panels the
+        // same way a pointer does.
+        panel.addEventListener('focus', function () { activate(panel); });
+        if (window.matchMedia('(hover: hover) and (pointer: fine)').matches) {
+          panel.addEventListener('mouseenter', function () { activate(panel); });
+        }
+      });
+    })();
+  </script>
   
   <script>
     (function () {
-      if (!window.matchMedia('(hover: hover) and (pointer: fine)').matches) return;
-      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-      var hero = document.querySelector('.hero');
-      var blobs = document.querySelectorAll('.fluid-blob');
-      var floatEl = document.querySelector('.hero-content--floating');
-      var displacement = document.querySelector('#fluid-distort feDisplacementMap');
-      if (!hero || blobs.length === 0) return;
+      var bar = document.querySelector('.tab-bar');
+      if (!bar) return;
+      var indicator = bar.querySelector('.tab-indicator');
+      var tabs = Array.prototype.slice.call(bar.querySelectorAll('.tab-item'));
+      if (!indicator || tabs.length === 0) return;
 
-      var targetX = 0.5, targetY = 0.5;
-      var blobDamped = [{x:0.5,y:0.5},{x:0.5,y:0.5},{x:0.5,y:0.5}];
-      var floatDamped = { x: 0, y: 0 };
-      var velocity = 0;
-      var lastMoveAt = performance.now();
-
-      hero.addEventListener('mousemove', function (e) {
-        var rect = hero.getBoundingClientRect();
-        var nx = (e.clientX - rect.left) / rect.width;
-        var ny = (e.clientY - rect.top) / rect.height;
-        velocity = Math.min(1, Math.hypot(nx - targetX, ny - targetY) * 14);
-        targetX = nx;
-        targetY = ny;
-        lastMoveAt = performance.now();
-      }, { passive: true });
-
-      var damping = [0.05, 0.035, 0.02];
-      var reach = [26, 40, 58];
-
-      function tick() {
-        var idleFor = performance.now() - lastMoveAt;
-        var settle = idleFor > 1200 ? 0.4 : 0;
-        for (var i = 0; i < blobs.length; i++) {
-          var d = blobDamped[i];
-          d.x += (targetX - d.x) * damping[i];
-          d.y += (targetY - d.y) * damping[i];
-          var dx = (d.x - 0.5) * reach[i];
-          var dy = (d.y - 0.5) * reach[i];
-          blobs[i].style.transform = 'translate(' + dx.toFixed(1) + 'px, ' + dy.toFixed(1) + 'px)';
-        }
-        if (floatEl) {
-          floatDamped.x += ((targetX - 0.5) * 14 - floatDamped.x) * 0.045;
-          floatDamped.y += ((targetY - 0.5) * 10 - floatDamped.y) * 0.045;
-          floatEl.style.transform = 'translate(' + floatDamped.x.toFixed(2) + 'px, ' + floatDamped.y.toFixed(2) + 'px)';
-        }
-        if (displacement) {
-          var restingScale = 16 + settle * 6;
-          var scale = restingScale + velocity * 42;
-          displacement.setAttribute('scale', scale.toFixed(1));
-        }
-        requestAnimationFrame(tick);
+      function moveTo(tab) {
+        // Measured against the bar, not the page, so it stays correct
+        // wherever the bar is positioned or scrolled.
+        var barBox = bar.getBoundingClientRect();
+        var box = tab.getBoundingClientRect();
+        indicator.style.width = box.width + 'px';
+        indicator.style.transform = 'translateX(' + (box.left - barBox.left) + 'px)';
       }
-      requestAnimationFrame(tick);
+
+      var current = bar.querySelector('.tab-item.is-active') || tabs[0];
+
+      // Position without animating on first paint: the indicator should
+      // already be under the current page, not slide in from the left.
+      indicator.style.transition = 'none';
+      moveTo(current);
+      // Two frames, so the no-transition placement is actually painted
+      // before transitions are re-enabled.
+      requestAnimationFrame(function () {
+        requestAnimationFrame(function () { indicator.style.transition = ''; });
+      });
+
+      if (window.matchMedia('(hover: hover) and (pointer: fine)').matches) {
+        tabs.forEach(function (tab) {
+          tab.addEventListener('mouseenter', function () { moveTo(tab); });
+        });
+        bar.addEventListener('mouseleave', function () { moveTo(current); });
+      }
+      tabs.forEach(function (tab) {
+        tab.addEventListener('focus', function () { moveTo(tab); });
+      });
+      bar.addEventListener('focusout', function () { moveTo(current); });
+      window.addEventListener('resize', function () { moveTo(current); });
     })();
   </script>
+  
   
   <script>
     (function () {

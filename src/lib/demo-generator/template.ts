@@ -2559,6 +2559,15 @@ export function renderDemoSite(
     transition: transform 420ms var(--ease-out), width 420ms var(--ease-out);
     pointer-events: none;
   }
+  /* The selected tab glows. The indicator carries the light, so the glow
+     travels with it instead of each tab lighting up and fading out. */
+  .tab-item.is-active { text-shadow: 0 0 18px currentColor; }
+  .tab-item.is-active .tab-icon svg { filter: drop-shadow(0 0 6px currentColor); }
+  /* Safety net: the script sizes the indicator, so before it runs (or if
+     it never does) the active tab must not end up dark-on-dark and
+     invisible. Its own background guarantees it reads on its own. */
+  .tab-bar--dark .tab-item.is-active,
+  .tab-bar--glass .tab-item.is-active { background: rgba(255,255,255,0.14); }
   .tab-item {
     position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center;
     gap: 0.15rem; padding: 0.55rem 0.9rem; border-radius: 999px; text-decoration: none;
@@ -2576,15 +2585,12 @@ export function renderDemoSite(
   .tab-bar--light { background: #fff; box-shadow: 0 18px 40px -20px rgba(0,0,0,0.45); }
   .tab-bar--light .tab-item { color: #4b5563; }
   .tab-bar--light .tab-item.is-active { color: var(--primary); }
-  /* The dot sits above the active tab rather than behind it. The
-     indicator itself keeps the tab's full width (the script sets it),
-     and the dot is centred inside it — shrinking the indicator to 6px
-     instead made "margin-left: 50%" resolve against the bar's width, so
-     the dot floated over the neighbouring tab. */
-  .tab-bar--light .tab-indicator { top: -0.35rem; bottom: auto; height: 6px; background: transparent; }
-  .tab-bar--light .tab-indicator::before {
-    content: ""; position: absolute; left: 50%; top: 0; width: 6px; height: 6px;
-    border-radius: 999px; background: var(--primary); transform: translateX(-50%);
+  /* A travelling pill behind the active tab, like the other two
+     treatments — no marker above it. (An earlier version put a dot on
+     top; it read as a stray speck rather than part of the control.) */
+  .tab-bar--light .tab-indicator {
+    background: color-mix(in srgb, var(--primary) 14%, transparent);
+    box-shadow: 0 0 18px 1px color-mix(in srgb, var(--primary) 35%, transparent);
   }
 
   .tab-bar--glass {
@@ -2594,12 +2600,12 @@ export function renderDemoSite(
   .tab-bar--glass .tab-item { color: rgba(255,255,255,0.75); }
   .tab-bar--glass .tab-item.is-active { color: #fff; }
   .tab-bar--glass .tab-label { display: none; }
-  .tab-bar--glass .tab-indicator { background: var(--primary); box-shadow: 0 8px 20px -8px var(--primary); }
+  .tab-bar--glass .tab-indicator { background: var(--primary); box-shadow: 0 0 22px 2px var(--primary), 0 8px 20px -8px var(--primary); }
 
   .tab-bar--dark { background: #0f1216; box-shadow: 0 18px 40px -20px rgba(0,0,0,0.6); }
   .tab-bar--dark .tab-item { color: rgba(255,255,255,0.65); }
   .tab-bar--dark .tab-item.is-active { color: #0f1216; }
-  .tab-bar--dark .tab-indicator { background: #fff; }
+  .tab-bar--dark .tab-indicator { background: #fff; box-shadow: 0 0 24px 2px rgba(255,255,255,0.55); }
   /* Only the active tab shows its label — that expansion is what makes
      the capsule feel like it grew into place rather than jumped. */
   .tab-bar--dark .tab-label { display: none; }
@@ -3214,7 +3220,7 @@ export function renderDemoSite(
   ${bodyHtml.includes("project-reel") ? projectReelScript() : ""}
   ${bodyHtml.includes("data-scroll-video") || pageVideo ? scrollVideoScript() : ""}
   ${bodyHtml.includes("data-treatment-panel") ? treatmentAccordionScript() : ""}
-  ${bodyHtml.includes("tab-indicator") ? floatingTabBarScript() : ""}
+  ${tabBarFor(slug) ? floatingTabBarScript() : ""}
   ${bodyHtml.includes("fluid-flow") ? fluidFlowScript() : ""}
   ${colorPickerScript(colorwayOptions, activeColorwayIndex)}
   ${slug === "" && profile.use3d ? three3dScript(profile.colors.accent) : ""}

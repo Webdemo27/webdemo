@@ -111,30 +111,49 @@ export async function generateAssetsForLead(
     errors: [],
   };
 
-  let order = 0;
-  for (const entry of profile.assetPlan) {
-    for (let i = 0; i < entry.count; i++) {
-      order += 1;
-      try {
-        await fillOneSlot({
-          entry,
-          index: i,
-          order,
-          demoId: demo.id,
-          companyName: lead.companyName,
-          destDir,
-          profile,
-          realCandidates,
-          usedReal,
-          provider,
-          summary,
-        });
-      } catch (e) {
-        summary.errors.push(
-          `${entry.role} #${i + 1}: ${e instanceof Error ? e.message : "unbekannter Fehler"}`
-        );
-      }
-    }
+  // Flattened first so the slots can run concurrently. `order` is
+  // assigned here, up front, so the asset ordering stays deterministic
+  // no matter which generation finishes first.
+  const slots = profile.assetPlan.flatMap((entry) =>
+    Array.from({ length: entry.count }, (_, i) => ({ entry, index: i }))
+  ).map((slot, idx) => ({ ...slot, order: idx + 1 }));
+
+  /**
+   * Generated sequentially this took 150s for a six-image plan —
+   * measured on a real lead, ~25s per image, one after the other. That
+   * only became the common case once scraped photos were dropped and
+   * every slot started needing a generation call.
+   *
+   * The slots have no dependency on each other (nothing is shared now
+   * that candidate picking is gone), so they run concurrently, capped
+   * so a twelve-image plan cannot fire twelve calls at an external API
+   * at once.
+   */
+  const CONCURRENCY = 4;
+  for (let i = 0; i < slots.length; i += CONCURRENCY) {
+    await Promise.all(
+      slots.slice(i, i + CONCURRENCY).map(async (slot) => {
+        try {
+          await fillOneSlot({
+            entry: slot.entry,
+            index: slot.index,
+            order: slot.order,
+            demoId: demo.id,
+            companyName: lead.companyName,
+            destDir,
+            profile,
+            realCandidates,
+            usedReal,
+            provider,
+            summary,
+          });
+        } catch (e) {
+          summary.errors.push(
+            `${slot.entry.role} #${slot.index + 1}: ${e instanceof Error ? e.message : "unbekannter Fehler"}`
+          );
+        }
+      })
+    );
   }
 
   return summary;
