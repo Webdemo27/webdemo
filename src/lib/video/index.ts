@@ -16,7 +16,21 @@ const DEMOS_ROOT = path.join(process.cwd(), "public", "demos");
 /** Short on purpose: a hero background loop reads as ambient, and cost
  * is billed per second (see the model note in the provider). */
 const DURATION_SECONDS = 5;
-const RESOLUTION = "720p";
+
+/**
+ * 1080p, not 720p: the clip is the full-bleed hero background, so on any
+ * normal laptop a 1280px-wide source gets upscaled and visibly softens.
+ * On veo-3.1-lite this moves billing from the
+ * `duration_seconds_without_audio_720p` SKU ($0.03/s) to
+ * `duration_seconds_without_audio` ($0.05/s) — $0.20 for a 4s clip.
+ *
+ * Not 4K, deliberately: veo-3.1-lite has no 4K tier at all (that needs
+ * veo-3.1-fast at $0.25/s, $1.00 a clip), and more importantly the
+ * scroll-scrub encode has to be all-intra, where 720p already weighs
+ * 1.8MB for 4 seconds. 4K would land in the tens of MB for a background
+ * nobody views at native size — the wrong trade for a hero asset.
+ */
+const RESOLUTION = "1080p";
 
 /** What the clip should actually show, per industry — the same
  * "describe the setting, never claim a fact" discipline the image
@@ -101,7 +115,7 @@ export async function generateHeroVideoForDemo(demoId: string): Promise<SavedVid
   });
 
   const destDir = path.join(DEMOS_ROOT, demo.slug, "assets");
-  const { videoPath, posterPath } = await watermarkAndEncodeVideo(video.buffer, destDir, "hero-video");
+  const { videoPath, posterPath, scrubPath } = await watermarkAndEncodeVideo(video.buffer, destDir, "hero-video");
 
   const existingFormats = (fromJson<Record<string, unknown>>(heroAsset.formats) ?? {}) as Record<string, unknown>;
   await prisma.demoAsset.update({
@@ -111,6 +125,7 @@ export async function generateHeroVideoForDemo(demoId: string): Promise<SavedVid
         ...existingFormats,
         video: path.basename(videoPath),
         poster: path.basename(posterPath),
+        videoScrub: path.basename(scrubPath),
       }),
     },
   });

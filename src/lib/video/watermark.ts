@@ -41,11 +41,64 @@ function fontFileArg(): string {
  * Returns the watermarked MP4 and a real first-frame poster image, so
  * the <video> has something to show before/without autoplay.
  */
+/**
+ * A second encode of the same clip, made seekable frame-by-frame:
+ * every frame is a keyframe (`-g 1`), so setting `currentTime` lands
+ * instantly instead of decoding forward from a distant I-frame.
+ *
+ * This is what makes scroll-scrubbed video (scrollVideoSection) smooth
+ * — with a normal ~2-second GOP, scrubbing visibly stutters and jumps.
+ * The cost is file size (all-intra is several times larger), which is
+ * why it is a separate file rather than the default: the ambient hero
+ * loop plays linearly and doesn't need it.
+ */
+export async function encodeScrubVariant(
+  sourcePath: string,
+  outDir: string,
+  baseName: string
+): Promise<string> {
+  const file = `${baseName}-scrub.mp4`;
+  await execFileAsync(
+    "ffmpeg",
+    [
+      "-y",
+      "-i", sourcePath,
+      // Frame count is what scrubbing smoothness actually depends on.
+      // The models return 24fps, i.e. 96 frames for a 4s clip — spread
+      // over a viewport-sized pin that is one new frame every ~18px of
+      // scroll, which reads as stepping however smoothly the page
+      // itself renders. Motion-compensated interpolation to 60fps gives
+      // 240 frames (~7px per frame), which is what makes it feel like
+      // driving the footage rather than flicking through stills.
+      // mci over blend: blend cross-fades and smears moving subjects,
+      // mci synthesises real intermediate positions. It costs ~20s of
+      // local encode time, which is nothing next to the generation.
+      "-vf", "minterpolate=fps=60:mi_mode=mci:mc_mode=aobmc:vsbmc=1",
+      "-an",
+      "-c:v", "libx264",
+      "-preset", "slow",
+      // All-intra discards the compression inter-frames buy, so CRF
+      // costs far more detail here than in the ambient encode. This is
+      // the full-bleed hero background and file size is explicitly not
+      // a constraint for it, so this sits near visually lossless.
+      "-crf", "16",
+      "-g", "1",
+      "-keyint_min", "1",
+      "-sc_threshold", "0",
+      "-pix_fmt", "yuv420p",
+      "-movflags", "+faststart",
+      path.join(outDir, file),
+    ],
+    { maxBuffer: 64 * 1024 * 1024 }
+  );
+  return `assets/${file}`;
+}
+
 export async function watermarkAndEncodeVideo(
   input: Buffer,
   outDir: string,
   baseName: string
-): Promise<{ videoPath: string; posterPath: string }> {
+): Promise<{ videoPath: string; posterPath: string; scrubPath: string }> {
   if (!(await isFfmpegAvailable())) {
     throw new Error("ffmpeg wurde nicht gefunden — ohne ffmpeg kann kein DEMO-Wasserzeichen ins Video gebrannt werden.");
   }
@@ -59,6 +112,7 @@ export async function watermarkAndEncodeVideo(
   const posterFile = `${baseName}-poster.jpg`;
   const videoOut = path.join(outDir, videoFile);
   const posterOut = path.join(outDir, posterFile);
+  let scrubPath: string;
 
   // Badge geometry mirrors BADGE_SVG in images/watermark.ts: a small
   // semi-transparent dark plate in the bottom-right corner, not a loud
@@ -92,7 +146,7 @@ export async function watermarkAndEncodeVideo(
         "-an",
         "-c:v", "libx264",
         "-preset", "slow",
-        "-crf", "26",
+        "-crf", "19",
         "-pix_fmt", "yuv420p",
         "-movflags", "+faststart",
         videoOut,
@@ -105,9 +159,14 @@ export async function watermarkAndEncodeVideo(
       ["-y", "-i", videoOut, "-frames:v", "1", "-q:v", "4", posterOut],
       { maxBuffer: 32 * 1024 * 1024 }
     );
+
+    // Built from the already-watermarked file on purpose: the badge has
+    // to be in both encodes, and re-deriving it here keeps the two in
+    // sync automatically.
+    scrubPath = await encodeScrubVariant(videoOut, outDir, baseName);
   } finally {
     await fs.rm(tmpDir, { recursive: true, force: true });
   }
 
-  return { videoPath: `assets/${videoFile}`, posterPath: `assets/${posterFile}` };
+  return { videoPath: `assets/${videoFile}`, posterPath: `assets/${posterFile}`, scrubPath };
 }

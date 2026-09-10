@@ -16,6 +16,10 @@ export interface DemoAssetView {
    * when this is present. */
   videoSrc?: string;
   videoPoster?: string;
+  /** All-intra encode of the same clip, seekable frame-by-frame — used
+   * by the scroll-scrubbed hero (scrollVideoSection), where the normal
+   * encode's sparse keyframes make seeking stutter. */
+  videoScrubSrc?: string;
 }
 
 interface RawAsset {
@@ -48,9 +52,14 @@ export function toAssetView(raw: RawAsset): DemoAssetView {
     avif?: Record<string, string>;
     video?: string;
     poster?: string;
+    videoScrub?: string;
   };
   const videoFields = formats.video
-    ? { videoSrc: `assets/${formats.video}`, videoPoster: formats.poster ? `assets/${formats.poster}` : undefined }
+    ? {
+        videoSrc: `assets/${formats.video}`,
+        videoPoster: formats.poster ? `assets/${formats.poster}` : undefined,
+        videoScrubSrc: formats.videoScrub ? `assets/${formats.videoScrub}` : undefined,
+      }
     : {};
 
   if (raw.localPath) {

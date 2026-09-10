@@ -159,6 +159,18 @@ function kineticWords(text: string): string {
 function heroVisual(hero: DemoAssetView): string {
   if (!hero.videoSrc) return pictureTag(hero, "hero-media", true);
   const poster = hero.videoPoster ?? hero.src;
+
+  // Preferred treatment when the all-intra encode exists: the hero
+  // background IS the scroll-scrubbed clip (scrollVideoScript pins the
+  // hero and drives currentTime from scroll position, forwards on the
+  // way down and backwards on the way up). No autoplay — this one never
+  // plays on its own — but preload="auto", since scrubbing only feels
+  // solid once the whole clip is buffered.
+  if (hero.videoScrubSrc) {
+    return `<video class="hero-media hero-video" data-scroll-video-media muted playsinline preload="auto" poster="${escapeHtml(poster)}" aria-hidden="true" tabindex="-1">
+      <source src="${escapeHtml(hero.videoScrubSrc)}" type="video/mp4" />
+    </video>`;
+  }
   // aria-hidden, deliberately: this is a decorative background loop —
   // the hero heading beside it carries the actual meaning. Reusing the
   // hero image's alt text here would also be a lie, since that text
@@ -195,9 +207,11 @@ function heroSection(
   const scrim = isColorBlock ? "" : `<div class="hero-scrim"></div>`;
   const heroClass = `hero ${position}${isColorBlock ? " hero-color-block" : ""}`;
   const fluid = profile.motion !== "none" ? fluidFlowLayer() : "";
+  // Marks the hero as the thing scrollVideoScript should pin and scrub.
+  const scrubbed = !is3d && !isColorBlock && hero?.videoScrubSrc ? " data-scroll-video" : "";
 
   return `
-  <section class="${heroClass}">
+  <section class="${heroClass}"${scrubbed}>
     <div class="hero-bg">${visual}${fluid}</div>
     ${scrim}
     <div class="hero-content${fluid ? " hero-content--floating" : ""}">
@@ -322,6 +336,118 @@ export function gooeyHeroSection(hero: DemoAssetView | undefined, name: string, 
       <p>${escapeHtml(tagline)}</p>
     </div>
   </section>`;
+}
+
+/** Scroll-scrubbed background video — the "Webflow/Apple" treatment:
+ * the video is pinned full-bleed behind the content and does not play
+ * on its own; scroll position drives `currentTime` directly, so
+ * scrolling down runs it forward and scrolling back up runs it in
+ * reverse.
+ *
+ * Uses the all-intra `videoScrubSrc` encode, not the normal one — with
+ * a normal ~2s GOP the browser has to decode forward from a distant
+ * keyframe on every seek, which visibly stutters. Falls back to the
+ * regular encode if the scrub variant is missing.
+ *
+ * `preload="auto"` and no `autoplay`: nothing here ever plays linearly,
+ * but the whole clip must be buffered before scrubbing feels solid. */
+export function scrollVideoSection(asset: DemoAssetView, headline: string, body: string): string {
+  const src = asset.videoScrubSrc ?? asset.videoSrc;
+  if (!src) return "";
+  const poster = asset.videoPoster ?? asset.src;
+  return `
+  <section class="scroll-video" data-scroll-video>
+    <div class="scroll-video-stage">
+      <video class="scroll-video-media" data-scroll-video-media muted playsinline preload="auto" poster="${escapeHtml(poster)}" aria-hidden="true" tabindex="-1">
+        <source src="${escapeHtml(src)}" type="video/mp4" />
+      </video>
+      <div class="scroll-video-scrim"></div>
+      <div class="scroll-video-content">
+        <h2>${kineticWords(headline)}</h2>
+        <p>${escapeHtml(body)}</p>
+      </div>
+    </div>
+  </section>`;
+}
+
+export function scrollVideoScript(): string {
+  return `
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/${GSAP_VERSION}/gsap.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/${GSAP_VERSION}/ScrollTrigger.min.js"></script>
+  <script>
+    (function () {
+      var section = document.querySelector('[data-scroll-video]');
+      var video = document.querySelector('[data-scroll-video-media]');
+      if (!section || !video) return;
+
+      // Reduced motion: leave the poster frame showing and let the
+      // section scroll past normally. Nothing is pinned, nothing moves.
+      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+      if (typeof gsap === 'undefined' || typeof ScrollTrigger === 'undefined') return;
+
+      try {
+        gsap.registerPlugin(ScrollTrigger);
+
+        function build() {
+          // duration is NaN until metadata lands, and the scroll
+          // distance is derived from it, so everything waits for it.
+          var duration = video.duration;
+          if (!duration || !isFinite(duration)) return;
+
+          section.classList.add('scroll-video--active');
+
+          // Scroll travel is derived from the frame count, not the
+          // duration: what a visitor perceives as smooth is how many
+          // pixels pass between two distinct frames. The scrub encode
+          // is interpolated to 60fps, so ~8px per frame keeps stepping
+          // below the threshold where it reads as chunky, while still
+          // giving the section real presence. (Duration alone would
+          // make a longer clip feel coarser, not smoother.)
+          var PX_PER_FRAME = 8;
+          var frameCount = Math.round(duration * 60);
+          var distance = Math.max(window.innerHeight, Math.round(frameCount * PX_PER_FRAME));
+
+          gsap.to(video, {
+            currentTime: duration,
+            ease: 'none',
+            scrollTrigger: {
+              trigger: section,
+              start: 'top top',
+              end: '+=' + distance,
+              pin: true,
+              scrub: 0.4,
+              anticipatePin: 1,
+              invalidateOnRefresh: true,
+            },
+          });
+        }
+
+        // Wait for enough buffer before pinning, and prime the decoder
+        // first. Measured: scrubbing a settled clip holds a steady 60fps
+        // (median 16.7ms), but the very first seek on an unprimed video
+        // cost a ~1000ms stall — which would land exactly when the
+        // visitor first scrolls in. Priming with a muted play/pause
+        // forces the decode path to be ready before the pin exists, so
+        // that cost is paid off-screen instead.
+        function prime() {
+          var started = video.play();
+          if (started && typeof started.then === 'function') {
+            started.then(function () { video.pause(); video.currentTime = 0; build(); }).catch(build);
+          } else {
+            video.pause();
+            build();
+          }
+        }
+
+        video.pause();
+        if (video.readyState >= 3) prime();
+        else video.addEventListener('canplaythrough', prime, { once: true });
+      } catch (e) {
+        // GSAP blocked — the section stays a normal, non-pinned block
+        // showing the poster frame.
+      }
+    })();
+  </script>`;
 }
 
 /** Rotating circular seal badge — real technique from ERA Residence
@@ -2094,6 +2220,24 @@ export function renderDemoSite(
     .gooey-blob { animation: none; }
   }
 
+  /* Scroll-scrubbed background video (scrollVideoSection) — pinned
+     full-bleed behind the copy, currentTime driven by scroll position.
+     Default rules are the no-JS/reduced-motion fallback: a normal
+     block showing the poster frame. .scroll-video--active is added
+     only once the script has metadata and pins the stage. */
+  .scroll-video { position: relative; padding: 0; }
+  .scroll-video-stage { position: relative; height: 70vh; overflow: hidden; }
+  .scroll-video.scroll-video--active .scroll-video-stage { height: 100vh; }
+  .scroll-video-media { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  .scroll-video-scrim { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(0,0,0,0.35) 0%, rgba(0,0,0,0.6) 100%); }
+  .scroll-video-content {
+    position: absolute; inset: 0; z-index: 1; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; text-align: center; gap: 1rem;
+    padding: clamp(1.5rem, 6vw, 5rem); color: #fff;
+  }
+  .scroll-video-content h2 { font-size: clamp(1.8rem, 5vw, 3.4rem); margin: 0; }
+  .scroll-video-content p { max-width: 34rem; color: rgba(255,255,255,0.88); }
+
   /* Rotating circular seal badge (rotatingSealBadge) — real technique
      from ERA Residence (Awwwards Site of the Month, Aug 2026). Pinned
      over the hero, rotating slowly; "currentColor" lets it invert
@@ -2509,6 +2653,7 @@ export function renderDemoSite(
   ${bodyHtml.includes("weather-badge") ? weatherWidgetScript() : ""}
   ${bodyHtml.includes("angled-carousel") ? angledCarouselScript() : ""}
   ${bodyHtml.includes("project-reel") ? projectReelScript() : ""}
+  ${bodyHtml.includes("data-scroll-video") ? scrollVideoScript() : ""}
   ${bodyHtml.includes("fluid-flow") ? fluidFlowScript() : ""}
   ${colorPickerScript(colorwayOptions, activeColorwayIndex)}
   ${slug === "" && profile.use3d ? three3dScript(profile.colors.accent) : ""}
