@@ -196,9 +196,14 @@ function heroSection(
   const is3d = heroStyle === "3d";
   const isColorBlock = heroStyle === "color-block";
 
+  // With the page-wide video behind everything, the hero must render no
+  // visual of its own: a hero image here would simply cover the very
+  // footage it is meant to reveal.
+  const pageVideoActive = Boolean(hero?.videoScrubSrc);
+
   const visual = is3d
     ? `<canvas id="scene3d" class="hero-canvas" aria-hidden="true"></canvas>`
-    : isColorBlock
+    : isColorBlock || pageVideoActive
     ? ""
     : hero
     ? heroVisual(hero)
@@ -207,8 +212,9 @@ function heroSection(
   const scrim = isColorBlock ? "" : `<div class="hero-scrim"></div>`;
   const heroClass = `hero ${position}${isColorBlock ? " hero-color-block" : ""}`;
   const fluid = profile.motion !== "none" ? fluidFlowLayer() : "";
-  // Marks the hero as the thing scrollVideoScript should pin and scrub.
-  const scrubbed = !is3d && !isColorBlock && hero?.videoScrubSrc ? " data-scroll-video" : "";
+  // The hero is no longer the scrub target — pageVideoBackground owns
+  // the clip now, fixed behind the whole document.
+  const scrubbed = "";
 
   return `
   <section class="${heroClass}"${scrubbed}>
@@ -338,6 +344,33 @@ export function gooeyHeroSection(hero: DemoAssetView | undefined, name: string, 
   </section>`;
 }
 
+/** The scrubbed clip as the background of the WHOLE page, not just the
+ * hero: one fixed full-viewport layer behind every section, with the
+ * entire document's scroll range driving `currentTime`.
+ *
+ * Fixed positioning rather than a pinned section, deliberately — a pin
+ * only holds the video for its own stretch of the page, which is what
+ * makes it read as "a video section" instead of a background. Fixed
+ * means every section scrolls over the same continuous footage.
+ *
+ * Sections have to become transparent for any of this to be visible,
+ * which is what `.page-video-mode` in the stylesheet does, along with
+ * turning cards into glass panels and forcing light type — a moving
+ * background is the one case where the profile's own light-mode colours
+ * cannot stay as they are and still be readable. */
+export function pageVideoBackground(asset: DemoAssetView): string {
+  const src = asset.videoScrubSrc ?? asset.videoSrc;
+  if (!src) return "";
+  const poster = asset.videoPoster ?? asset.src;
+  return `
+  <div class="page-video" aria-hidden="true">
+    <video class="page-video-media" data-scroll-video-media muted playsinline preload="auto" poster="${escapeHtml(poster)}">
+      <source src="${escapeHtml(src)}" type="video/mp4" />
+    </video>
+    <div class="page-video-scrim"></div>
+  </div>`;
+}
+
 /** Scroll-scrubbed background video — the "Webflow/Apple" treatment:
  * the video is pinned full-bleed behind the content and does not play
  * on its own; scroll position drives `currentTime` directly, so
@@ -376,9 +409,11 @@ export function scrollVideoScript(): string {
   <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/${GSAP_VERSION}/ScrollTrigger.min.js"></script>
   <script>
     (function () {
+      var pageLayer = document.querySelector('.page-video');
       var section = document.querySelector('[data-scroll-video]');
       var video = document.querySelector('[data-scroll-video-media]');
-      if (!section || !video) return;
+      var pageWide = Boolean(pageLayer);
+      if (!video || (!pageWide && !section)) return;
 
       // Reduced motion: leave the poster frame showing and let the
       // section scroll past normally. Nothing is pinned, nothing moves.
@@ -388,7 +423,28 @@ export function scrollVideoScript(): string {
       try {
         gsap.registerPlugin(ScrollTrigger);
 
+        function buildPageWide() {
+          var duration = video.duration;
+          if (!duration || !isFinite(duration)) return;
+          // No pin: the layer is already position:fixed, so the whole
+          // document's scroll range maps straight onto the clip and the
+          // footage stays behind every section from top to bottom.
+          gsap.to(video, {
+            currentTime: duration,
+            ease: 'none',
+            scrollTrigger: {
+              trigger: document.documentElement,
+              start: 'top top',
+              end: 'bottom bottom',
+              scrub: 0.4,
+              invalidateOnRefresh: true,
+            },
+          });
+        }
+
         function build() {
+          if (pageWide) return buildPageWide();
+
           // duration is NaN until metadata lands, and the scroll
           // distance is derived from it, so everything waits for it.
           var duration = video.duration;
@@ -2220,6 +2276,87 @@ export function renderDemoSite(
     .gooey-blob { animation: none; }
   }
 
+  /* Page-wide scrubbed video background (pageVideoBackground). The
+     layer is fixed behind everything; .page-video-mode then has to undo
+     every opaque surface in the document, otherwise the footage is
+     simply covered up. Legibility is the whole risk here, so the scrim
+     is heavy and type is forced light — a profile's light-mode palette
+     cannot survive over moving footage unchanged. */
+  .page-video { position: fixed; inset: 0; z-index: 0; overflow: hidden; }
+  .page-video-media { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .page-video-scrim {
+    position: absolute; inset: 0;
+    background: linear-gradient(180deg, rgba(8,10,14,0.62) 0%, rgba(8,10,14,0.78) 100%);
+  }
+  .page-video-mode { background: #0a0c10; color: #fff; }
+  .page-video-mode .site-header,
+  .page-video-mode main,
+  .page-video-mode section,
+  .page-video-mode footer,
+  .page-video-mode .marquee,
+  .page-video-mode .location-map,
+  .page-video-mode .quick-links { position: relative; z-index: 1; }
+  /* Every opaque section surface becomes transparent so one continuous
+     clip shows through the entire page. */
+  .page-video-mode section,
+  .page-video-mode .hero,
+  .page-video-mode .hero-bg,
+  .page-video-mode .typo-hero,
+  .page-video-mode .gooey-hero,
+  .page-video-mode .scroll-video-stage,
+  .page-video-mode footer { background: transparent; }
+  .page-video-mode .hero-scrim,
+  .page-video-mode .fluid-flow { display: none; }
+  .page-video-mode h1,
+  .page-video-mode h2,
+  .page-video-mode h3,
+  .page-video-mode .location-name,
+  .page-video-mode .about-promise p { color: #fff; }
+  .page-video-mode p,
+  .page-video-mode li,
+  .page-video-mode .editorial-text p,
+  .page-video-mode .about-text,
+  .page-video-mode .scattered-item figcaption,
+  .page-video-mode footer { color: rgba(255,255,255,0.82); }
+  .page-video-mode .editorial-eyebrow,
+  .page-video-mode .location-eyebrow,
+  .page-video-mode .numbered-feature-index { color: rgba(255,255,255,0.7); }
+  /* Cards keep their shape but become glass, so they read as panels
+     over the footage instead of opaque holes punched through it. */
+  .page-video-mode .service-card,
+  .page-video-mode .contact-details,
+  .page-video-mode .contact-form,
+  .page-video-mode .weather-badge,
+  .page-video-mode .quick-link-tile {
+    background: rgba(255,255,255,0.10); border-color: rgba(255,255,255,0.22);
+    backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); color: #fff;
+  }
+  .page-video-mode .contact-row,
+  .page-video-mode .service-card { color: #fff; }
+  .page-video-mode .contact-form input,
+  .page-video-mode .contact-form textarea {
+    background: rgba(255,255,255,0.12); border-color: rgba(255,255,255,0.28); color: #fff;
+  }
+  .page-video-mode .contact-form input::placeholder,
+  .page-video-mode .contact-form textarea::placeholder { color: rgba(255,255,255,0.6); }
+  .page-video-mode .site-header {
+    background: rgba(10,12,16,0.55); border-bottom-color: rgba(255,255,255,0.16);
+    backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+  }
+  /* The capsule track is a light --muted tint by default; left as-is it
+     puts white link labels on cream and they wash out. Measured by eye
+     against the rendered page, not assumed. */
+  .page-video-mode .site-nav { background: rgba(255,255,255,0.12); }
+  .page-video-mode .site-nav a { color: rgba(255,255,255,0.92); }
+  /* The active pill keeps its solid light background, so its label has
+     to go back to dark — a blanket "make nav text white" rule renders
+     it white-on-white and the current page disappears. */
+  .page-video-mode .site-nav a.is-active { color: #0a0c10; }
+  .page-video-mode .header-cta { background: var(--accent); color: #fff; border-color: transparent; }
+  .page-video-mode .brand, .page-video-mode .brand-name { color: #fff; }
+  .page-video-mode .numbered-feature { border-color: rgba(255,255,255,0.2); }
+  .page-video-mode .demo-flag { background: rgba(255,255,255,0.14); color: #fff; }
+
   /* Scroll-scrubbed background video (scrollVideoSection) — pinned
      full-bleed behind the copy, currentTime driven by scroll position.
      Default rules are the no-JS/reduced-motion fallback: a normal
@@ -2618,6 +2755,9 @@ export function renderDemoSite(
     });
 
     const bodyHtml = bodyFor(slug);
+    // One fixed clip behind every page of the demo, not just the home
+    // hero — a background that stops at the fold is not a background.
+    const pageVideo = heroAsset?.videoScrubSrc ? pageVideoBackground(heroAsset) : "";
 
     const html = `<!doctype html>
 <html lang="de">
@@ -2632,7 +2772,8 @@ export function renderDemoSite(
 <style>${styleBlock}
 </style>
 </head>
-<body>
+<body${pageVideo ? ' class="page-video-mode"' : ""}>
+  ${pageVideo}
   ${headerHtml}
 
   ${bodyHtml}
@@ -2653,7 +2794,7 @@ export function renderDemoSite(
   ${bodyHtml.includes("weather-badge") ? weatherWidgetScript() : ""}
   ${bodyHtml.includes("angled-carousel") ? angledCarouselScript() : ""}
   ${bodyHtml.includes("project-reel") ? projectReelScript() : ""}
-  ${bodyHtml.includes("data-scroll-video") ? scrollVideoScript() : ""}
+  ${bodyHtml.includes("data-scroll-video") || pageVideo ? scrollVideoScript() : ""}
   ${bodyHtml.includes("fluid-flow") ? fluidFlowScript() : ""}
   ${colorPickerScript(colorwayOptions, activeColorwayIndex)}
   ${slug === "" && profile.use3d ? three3dScript(profile.colors.accent) : ""}
