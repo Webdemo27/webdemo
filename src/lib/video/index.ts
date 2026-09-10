@@ -3,6 +3,7 @@ import { prisma, logActivity } from "../db";
 import { toJson, fromJson } from "../db/json";
 import type { VisualProfile } from "../visual-director/types";
 import { rerenderDemoFromStoredState } from "../demo-generator";
+import { getVariant } from "../visual-director/variants";
 import { OpenRouterVideoProvider, isOpenRouterVideoConfigured } from "./providers/openrouter-video-provider";
 import { watermarkAndEncodeVideo } from "./watermark";
 import type { SavedVideoAsset } from "./types";
@@ -71,6 +72,20 @@ export async function generateHeroVideoForDemo(demoId: string): Promise<SavedVid
 
   const heroAsset = demo.assets.find((a) => a.role === "hero");
   if (!heroAsset) throw new Error("Diese Demo hat kein Hero-Asset, an das ein Video gehängt werden könnte.");
+
+  // Check BEFORE spending: two hero styles deliberately render no
+  // image at all — "color-block" is a solid colour panel and "3d" is a
+  // live canvas — so a video attached to them would be generated,
+  // billed, and then never displayed. Caught the expensive way: a
+  // colour-block demo silently swallowed a paid clip.
+  const variant = getVariant(demo.conceptVariant ?? "");
+  if (variant.heroStyle === "color-block" || variant.heroStyle === "3d") {
+    throw new Error(
+      `Die Konzeptvariante "${variant.name}" nutzt einen ${variant.heroStyle}-Hero ohne Bildfläche — ` +
+        "ein Video würde dort nie angezeigt. Bitte zuerst eine Variante mit Bild-Hero erzeugen " +
+        "(Demo neu erstellen), sonst entstehen Kosten ohne sichtbares Ergebnis."
+    );
+  }
 
   const provider = new OpenRouterVideoProvider();
   const video = await provider.generateVideo({
