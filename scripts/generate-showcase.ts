@@ -13,6 +13,8 @@ import {
   scriptAside,
   scriptAsideFontLink,
   gooeyHeroSection,
+  scatteredGallerySection,
+  buildEditorialRows,
   type DemoData,
 } from "../src/lib/demo-generator/template";
 import { toAssetView } from "../src/lib/demo-generator/asset-view";
@@ -60,7 +62,7 @@ function buildBasePage(industry: string, outDir: string, variant = CONCEPT_VARIA
   const { pages } = renderDemoSite(demoData, profile, rawAssets, variant);
   const indexPage = pages.find((p) => p.filename === "index.html") ?? pages[0];
   const tagline = taglineFor(COMPANY, LOCATION, profile, seed);
-  return { html: indexPage.html, profile, rawAssets, tagline };
+  return { html: indexPage.html, pages, profile, rawAssets, tagline };
 }
 
 function replaceHero(html: string, replacement: string): string {
@@ -168,6 +170,26 @@ async function main() {
     const heroAsset = rawAssets.find((a) => a.role === "hero");
     const hero = gooeyHeroSection(heroAsset ? toAssetView(heroAsset) : undefined, COMPANY, tagline);
     const output = replaceHero(html, hero);
+    fs.writeFileSync(path.join(dir, "index.html"), output, "utf-8");
+    console.log(`Written: ${path.join(dir, "index.html")}`);
+  }
+
+  // Showcase 6: Gionatan Nese scattered (non-grid) gallery (Friseur)
+  // — the editorial section lives on ueber-uns.html, not the homepage.
+  {
+    const dir = path.join(showcaseRoot, "scattered-gallery");
+    const { pages, rawAssets } = buildBasePage("Friseur", dir);
+    const ueberUnsPage = pages.find((p) => p.filename === "ueber-uns.html");
+    if (!ueberUnsPage) throw new Error("Friseur profile has no ueber-uns.html page");
+    const galleryAssets = rawAssets.filter((a) => a.role === "editorial" || a.role === "service").map((a) => toAssetView(a));
+    const rows = buildEditorialRows(COMPANY, LOCATION, galleryAssets.length);
+    const items = galleryAssets.map((asset, i) => ({ asset, headline: rows[i].headline }));
+    const gallery = scatteredGallerySection(items, "Galerie");
+    const editorialRegex = /<section class="editorial">[\s\S]*?<\/section>/;
+    if (!editorialRegex.test(ueberUnsPage.html)) throw new Error("Could not locate editorial section on ueber-uns.html");
+    let output = ueberUnsPage.html.replace(editorialRegex, gallery);
+    // Drop the now-orphaned lightbox markup (targets .editorial-lightbox-trigger, none left on this page)
+    output = output.replace(/<div class="lightbox"[\s\S]*?<\/div>\n/, "");
     fs.writeFileSync(path.join(dir, "index.html"), output, "utf-8");
     console.log(`Written: ${path.join(dir, "index.html")}`);
   }

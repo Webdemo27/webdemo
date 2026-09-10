@@ -302,6 +302,44 @@ export function gooeyHeroSection(hero: DemoAssetView | undefined, name: string, 
   </section>`;
 }
 
+/** Scattered (non-grid) photo gallery — real principle from Gionatan
+ * Nese's draggable mood-board (gionatannese.com, logged in design-
+ * inspiration-playbook.md): "a gallery doesn't have to be a rigid
+ * grid." The full draggable/pannable canvas is too fragile for a local-
+ * business demo (per the playbook's own note), so this keeps only the
+ * static loosely-scattered arrangement — each photo at a slight
+ * alternating rotation/vertical offset, straightening on hover, a
+ * scrapbook feel distinct from Filmbot's uniform-height capsule columns
+ * (scallopedHeroSection) despite both being "non-rectangular" ideas. */
+export interface ScatteredGalleryItem {
+  asset: DemoAssetView;
+  headline: string;
+}
+
+export function scatteredGallerySection(items: ScatteredGalleryItem[], label: string): string {
+  if (items.length === 0) return "";
+  const rotations = [-6, 4, -3, 7, -5, 3];
+  const shifts = [0, 28, -14, 18, -22, 10];
+  const cards = items
+    .map((item, i) => {
+      const rot = rotations[i % rotations.length];
+      const shift = shifts[i % shifts.length];
+      return `
+      <figure class="scattered-item" data-reveal style="--stagger-index:${i}">
+        <div class="scattered-item-inner" style="--rot:${rot}deg;--shift:${shift}px">
+          ${pictureTag(item.asset, "scattered-item-image")}
+          <figcaption>${escapeHtml(item.headline)}</figcaption>
+        </div>
+      </figure>`;
+    })
+    .join("");
+  return `
+  <section class="scattered-gallery" data-reveal>
+    <span class="editorial-eyebrow">${escapeHtml(label)}</span>
+    <div class="scattered-gallery-grid">${cards}</div>
+  </section>`;
+}
+
 /** Mouse-reactive "water-flow" decoration (mission follow-up: "schwebende
  * wasserflow (extremflüssig) einbauen ... es muss wirklich alles animiert
  * werden sogar die texte"). Two real, distinct techniques, not one relabeled
@@ -1972,6 +2010,23 @@ export function renderDemoSite(
   .gooey-hero-text p { font-size: 1.05rem; color: color-mix(in srgb, var(--fg) 75%, transparent); }
   @media (prefers-reduced-motion: reduce) {
     .gooey-blob { animation: none; }
+  }
+
+  /* Scattered (non-grid) photo gallery (scatteredGallerySection) — real
+     principle from Gionatan Nese's mood-board, kept static (no drag). */
+  .scattered-gallery-grid { display: flex; flex-wrap: wrap; justify-content: center; gap: clamp(1.5rem, 4vw, 3rem) clamp(1.5rem, 3vw, 2.5rem); padding-top: 1rem; }
+  .scattered-item { margin: 0; width: clamp(160px, 22vw, 260px); }
+  .scattered-item-inner {
+    display: flex; flex-direction: column; gap: 0.6rem; cursor: default;
+    transform: rotate(var(--rot)) translateY(var(--shift)); transition: transform 260ms var(--ease-out);
+  }
+  .scattered-item:hover .scattered-item-inner, .scattered-item:focus-within .scattered-item-inner {
+    transform: rotate(0deg) translateY(0) scale(1.05); position: relative; z-index: 2;
+  }
+  .scattered-item-image { width: 100%; height: auto; aspect-ratio: 4 / 5; object-fit: cover; border-radius: 0.5rem; box-shadow: 0 16px 32px -18px rgba(0,0,0,0.35); display: block; }
+  .scattered-item figcaption { font-size: 0.85rem; text-align: center; color: color-mix(in srgb, var(--fg) 70%, transparent); }
+  @media (prefers-reduced-motion: reduce) {
+    .scattered-item-inner { transition-duration: 1ms !important; }
   }
 
   /* Mouse-reactive "water-flow" (fluidFlowLayer/fluidFlowScript): blurred,
