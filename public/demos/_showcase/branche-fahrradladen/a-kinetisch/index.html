@@ -3,14 +3,14 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Musterwerkstatt — Musterstadt</title>
+<title>Musterradladen — Musterstadt</title>
 <meta name="robots" content="noindex, nofollow" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;500;600;700&family=Barlow:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
 <style>
   :root {
-    --primary: #dc9326;
+    --primary: #f7f916;
     --primary-dark: #7c6d12;
     --secondary: #f1fb3c;
     --accent: #16a39f;
@@ -48,11 +48,11 @@
   [data-reveal] {
     --stagger-index: 0;
     opacity: 0;
-    transform: translateY(16px);
-    transition: opacity 780ms var(--ease-out), transform 780ms var(--ease-out);
+    transform: translateY(10px); filter: blur(6px);
+    transition: opacity 780ms var(--ease-out), filter 780ms var(--ease-out), transform 780ms var(--ease-out);
     transition-delay: calc(min(var(--stagger-index), 6) * 70ms);
   }
-  [data-reveal].is-visible { opacity: 1; transform: none;  }
+  [data-reveal].is-visible { opacity: 1; transform: none; filter: blur(0); }
 
   /* Kinetic typography: each hero headline word masks and slides up on
    * its own, staggered — real word-reveal, not the whole line fading in
@@ -943,7 +943,7 @@
   <header class="site-header site-header--floating">
     <div class="brand">
       <span class="brand-mark">M</span>
-      <span>Musterwerkstatt</span>
+      <span>Musterradladen</span>
     </div>
     <nav class="site-nav" id="site-nav">
       <a href="index.html" class="is-active" aria-current="page">Home</a>
@@ -963,35 +963,29 @@
     <div class="stacked-hero-bg"></div>
     <div class="stacked-hero-scrim"></div>
     <div class="stacked-hero-inner">
-      <h1 class="stacked-hero-headline" data-reveal><span class="stacked-hero-line">TECHNIK</span><span class="stacked-hero-line">IN</span><span class="stacked-hero-line">GUTEN</span><span class="stacked-hero-line">HÄNDEN</span></h1>
-      <p class="stacked-hero-supporting" data-reveal>Autowerkstatt in Musterstadt. Inspektion, Reparatur, Reifenservice — alles an einem Ort.</p>
+      <h1 class="stacked-hero-headline" data-reveal><span class="stacked-hero-line">FAHREN</span><span class="stacked-hero-line">MIT</span><span class="stacked-hero-line">FREUDE</span></h1>
+      <p class="stacked-hero-supporting" data-reveal>Fahrradladen in Musterstadt. Verkauf, Reparatur &amp; Service, Zubehör — alles an einem Ort.</p>
       <div class="stacked-hero-meta" data-reveal>
-        <span>Musterwerkstatt</span>
+        <span>Musterradladen</span>
         <span>Musterstadt</span>
       </div>
     </div>
   </section>
-  <section class="scattered-gallery" data-reveal>
-    <span class="editorial-eyebrow">Leistungen</span>
-    <div class="scattered-gallery-grid">
-      <figure class="scattered-item" data-reveal style="--stagger-index:0">
-        <div class="scattered-item-inner" style="--rot:-6deg;--shift:0px">
-          <picture><source type="image/avif" srcset="../assets/service-1-800.avif 800w" sizes="100vw" /><source type="image/webp" srcset="../assets/service-1-800.webp 800w" sizes="100vw" /><img src="../assets/service-1-800.webp" alt="Musterwerkstatt – service-1 (KI-generiert, openrouter-images)" class="scattered-item-image" loading="lazy" width="0" height="0" /></picture>
-          <figcaption>Inspektion</figcaption>
-        </div>
-      </figure>
-      <figure class="scattered-item" data-reveal style="--stagger-index:1">
-        <div class="scattered-item-inner" style="--rot:4deg;--shift:28px">
-          <picture><source type="image/avif" srcset="../assets/service-2-800.avif 800w" sizes="100vw" /><source type="image/webp" srcset="../assets/service-2-800.webp 800w" sizes="100vw" /><img src="../assets/service-2-800.webp" alt="Musterwerkstatt – service-2 (KI-generiert, openrouter-images)" class="scattered-item-image" loading="lazy" width="0" height="0" /></picture>
-          <figcaption>Reparatur</figcaption>
-        </div>
-      </figure>
-      <figure class="scattered-item" data-reveal style="--stagger-index:2">
-        <div class="scattered-item-inner" style="--rot:-3deg;--shift:-14px">
-          <picture><source type="image/avif" srcset="../assets/service-3-800.avif 800w" sizes="100vw" /><source type="image/webp" srcset="../assets/service-3-800.webp 800w" sizes="100vw" /><img src="../assets/service-3-800.webp" alt="Musterwerkstatt – service-3 (KI-generiert, openrouter-images)" class="scattered-item-image" loading="lazy" width="0" height="0" /></picture>
-          <figcaption>Reifenservice</figcaption>
-        </div>
-      </figure></div>
+  <section class="treatment-accordion" data-reveal>
+    <h2><span class="kinetic-word"><span class="kinetic-word-inner" style="transition-delay:0ms">Leistungen</span></span></h2>
+    <div class="treatment-row">
+      <button type="button" class="treatment-panel is-active" data-treatment-panel aria-expanded="true">
+        <picture><source type="image/avif" srcset="../assets/service-1-800.avif 800w" sizes="100vw" /><source type="image/webp" srcset="../assets/service-1-800.webp 800w" sizes="100vw" /><img src="../assets/service-1-800.webp" alt="Musterradladen – service-1 (KI-generiert, openrouter-images)" class="treatment-panel-image" loading="eager" width="0" height="0" fetchpriority="high" /></picture>
+        <span class="treatment-panel-label">Verkauf</span>
+      </button>
+      <button type="button" class="treatment-panel" data-treatment-panel aria-expanded="false">
+        <picture><source type="image/avif" srcset="../assets/service-2-800.avif 800w" sizes="100vw" /><source type="image/webp" srcset="../assets/service-2-800.webp 800w" sizes="100vw" /><img src="../assets/service-2-800.webp" alt="Musterradladen – service-2 (KI-generiert, openrouter-images)" class="treatment-panel-image" loading="lazy" width="0" height="0" /></picture>
+        <span class="treatment-panel-label">Reparatur &amp; Service</span>
+      </button>
+      <button type="button" class="treatment-panel" data-treatment-panel aria-expanded="false">
+        <picture><source type="image/avif" srcset="../assets/service-3-800.avif 800w" sizes="100vw" /><source type="image/webp" srcset="../assets/service-3-800.webp 800w" sizes="100vw" /><img src="../assets/service-3-800.webp" alt="Musterradladen – service-3 (KI-generiert, openrouter-images)" class="treatment-panel-image" loading="lazy" width="0" height="0" /></picture>
+        <span class="treatment-panel-label">Zubehör</span>
+      </button></div>
   </section>
 
 
@@ -1007,16 +1001,16 @@
     <h2 data-reveal><span class="kinetic-word"><span class="kinetic-word-inner" style="transition-delay:0ms">Leistungen</span></span></h2>
     <ul class="services-grid">
     <li class="service-card service-card--media service-card--featured" data-reveal style="--stagger-index:0">
-      <picture><source type="image/avif" srcset="../assets/service-1-800.avif 800w" sizes="100vw" /><source type="image/webp" srcset="../assets/service-1-800.webp 800w" sizes="100vw" /><img src="../assets/service-1-800.webp" alt="Musterwerkstatt – service-1 (KI-generiert, openrouter-images)" class="service-media" loading="lazy" width="0" height="0" /></picture>
-      <div class="service-card-label"><span><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span>Inspektion</div>
+      <picture><source type="image/avif" srcset="../assets/service-1-800.avif 800w" sizes="100vw" /><source type="image/webp" srcset="../assets/service-1-800.webp 800w" sizes="100vw" /><img src="../assets/service-1-800.webp" alt="Musterradladen – service-1 (KI-generiert, openrouter-images)" class="service-media" loading="lazy" width="0" height="0" /></picture>
+      <div class="service-card-label"><span><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span>Verkauf</div>
     </li>
     <li class="service-card service-card--media " data-reveal style="--stagger-index:1">
-      <picture><source type="image/avif" srcset="../assets/service-2-800.avif 800w" sizes="100vw" /><source type="image/webp" srcset="../assets/service-2-800.webp 800w" sizes="100vw" /><img src="../assets/service-2-800.webp" alt="Musterwerkstatt – service-2 (KI-generiert, openrouter-images)" class="service-media" loading="lazy" width="0" height="0" /></picture>
-      <div class="service-card-label"><span><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span>Reparatur</div>
+      <picture><source type="image/avif" srcset="../assets/service-2-800.avif 800w" sizes="100vw" /><source type="image/webp" srcset="../assets/service-2-800.webp 800w" sizes="100vw" /><img src="../assets/service-2-800.webp" alt="Musterradladen – service-2 (KI-generiert, openrouter-images)" class="service-media" loading="lazy" width="0" height="0" /></picture>
+      <div class="service-card-label"><span><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span>Reparatur &amp; Service</div>
     </li>
     <li class="service-card service-card--media " data-reveal style="--stagger-index:2">
-      <picture><source type="image/avif" srcset="../assets/service-3-800.avif 800w" sizes="100vw" /><source type="image/webp" srcset="../assets/service-3-800.webp 800w" sizes="100vw" /><img src="../assets/service-3-800.webp" alt="Musterwerkstatt – service-3 (KI-generiert, openrouter-images)" class="service-media" loading="lazy" width="0" height="0" /></picture>
-      <div class="service-card-label"><span><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span>Reifenservice</div>
+      <picture><source type="image/avif" srcset="../assets/service-3-800.avif 800w" sizes="100vw" /><source type="image/webp" srcset="../assets/service-3-800.webp 800w" sizes="100vw" /><img src="../assets/service-3-800.webp" alt="Musterradladen – service-3 (KI-generiert, openrouter-images)" class="service-media" loading="lazy" width="0" height="0" /></picture>
+      <div class="service-card-label"><span><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span>Zubehör</div>
     </li></ul>
   </section>
 
@@ -1026,10 +1020,10 @@
   
   <section id="ueber-uns" class="about" data-reveal>
     <h2><span class="kinetic-word"><span class="kinetic-word-inner" style="transition-delay:0ms">Über</span></span> <span class="kinetic-word"><span class="kinetic-word-inner" style="transition-delay:45ms">uns</span></span></h2>
-    <p class="about-text">In Musterstadt zeigt sich Musterwerkstatt energiegeladen, kompetent und bodenständig — und immer persönlich. Inhalte und Bilder werden im nächsten Schritt gemeinsam final abgestimmt.</p>
+    <p class="about-text">Musterradladen wirkt in Musterstadt auf den ersten Blick energiegeladen, kompetent und bodenständig. Dieses Demo-Konzept zeigt, wie ein moderner, mobilfreundlicher Auftritt dazu aussehen könnte.</p>
     <blockquote class="about-promise">
-      <p><span class="promise-word">Musterwerkstatt</span> <span class="promise-word">steht</span> <span class="promise-word">für</span> <span class="promise-word">energiegeladen,</span> <span class="promise-word">kompetent</span> <span class="promise-word">und</span> <span class="promise-word">bodenständig</span> <span class="promise-word">—</span> <span class="promise-word">in</span> <span class="promise-word">jedem</span> <span class="promise-word">Detail,</span> <span class="promise-word">bei</span> <span class="promise-word">jedem</span> <span class="promise-word">Besuch.</span></p>
-      <cite>— Musterwerkstatt</cite>
+      <p><span class="promise-word">Energiegeladen,</span> <span class="promise-word">kompetent</span> <span class="promise-word">und</span> <span class="promise-word">bodenständig</span> <span class="promise-word">—</span> <span class="promise-word">dafür</span> <span class="promise-word">steht</span> <span class="promise-word">Musterradladen,</span> <span class="promise-word">jeden</span> <span class="promise-word">Tag</span> <span class="promise-word">aufs</span> <span class="promise-word">Neue.</span></p>
+      <cite>— Musterradladen</cite>
     </blockquote>
   </section>
 
@@ -1053,17 +1047,17 @@
   
 
   <footer>
-    <div>Unverbindliches Demo-Konzept — kein offizieller Auftritt von Musterwerkstatt.</div>
+    <div>Unverbindliches Demo-Konzept — kein offizieller Auftritt von Musterradladen.</div>
     <span class="demo-flag">Demo-Vorschau</span>
   </footer>
 
   
   
   <div class="color-picker">
-    <button type="button" class="color-picker-trigger" aria-expanded="false" aria-haspopup="true" aria-label="Farbe der Demo wählen" style="--swatch-color:#dc9326"></button>
+    <button type="button" class="color-picker-trigger" aria-expanded="false" aria-haspopup="true" aria-label="Farbe der Demo wählen" style="--swatch-color:#f7f916"></button>
     <div class="color-picker-panel" role="group" aria-label="Farbe der Demo wählen">
       <span class="color-picker-label">Farbe wählen</span>
-      <div class="color-picker-grid"><button type="button" class="color-swatch" data-index="0" style="--swatch-color:#dc2626" aria-label="Farbvariante 1 von 20"></button><button type="button" class="color-swatch" data-index="1" style="--swatch-color:#dc5d26" aria-label="Farbvariante 2 von 20"></button><button type="button" class="color-swatch is-active" data-index="2" style="--swatch-color:#dc9326" aria-label="Farbvariante 3 von 20"></button><button type="button" class="color-swatch" data-index="3" style="--swatch-color:#dcca26" aria-label="Farbvariante 4 von 20"></button><button type="button" class="color-swatch" data-index="4" style="--swatch-color:#b8dc26" aria-label="Farbvariante 5 von 20"></button><button type="button" class="color-swatch" data-index="5" style="--swatch-color:#81dc26" aria-label="Farbvariante 6 von 20"></button><button type="button" class="color-swatch" data-index="6" style="--swatch-color:#4adc26" aria-label="Farbvariante 7 von 20"></button><button type="button" class="color-swatch" data-index="7" style="--swatch-color:#26dc38" aria-label="Farbvariante 8 von 20"></button><button type="button" class="color-swatch" data-index="8" style="--swatch-color:#26dc6f" aria-label="Farbvariante 9 von 20"></button><button type="button" class="color-swatch" data-index="9" style="--swatch-color:#26dca5" aria-label="Farbvariante 10 von 20"></button><button type="button" class="color-swatch" data-index="10" style="--swatch-color:#26dcdc" aria-label="Farbvariante 11 von 20"></button><button type="button" class="color-swatch" data-index="11" style="--swatch-color:#26a5dc" aria-label="Farbvariante 12 von 20"></button><button type="button" class="color-swatch" data-index="12" style="--swatch-color:#266fdc" aria-label="Farbvariante 13 von 20"></button><button type="button" class="color-swatch" data-index="13" style="--swatch-color:#2638dc" aria-label="Farbvariante 14 von 20"></button><button type="button" class="color-swatch" data-index="14" style="--swatch-color:#4a26dc" aria-label="Farbvariante 15 von 20"></button><button type="button" class="color-swatch" data-index="15" style="--swatch-color:#7826dc" aria-label="Farbvariante 16 von 20"></button><button type="button" class="color-swatch" data-index="16" style="--swatch-color:#7826dc" aria-label="Farbvariante 17 von 20"></button><button type="button" class="color-swatch" data-index="17" style="--swatch-color:#dc2684" aria-label="Farbvariante 18 von 20"></button><button type="button" class="color-swatch" data-index="18" style="--swatch-color:#dc2684" aria-label="Farbvariante 19 von 20"></button><button type="button" class="color-swatch" data-index="19" style="--swatch-color:#dc265d" aria-label="Farbvariante 20 von 20"></button></div>
+      <div class="color-picker-grid"><button type="button" class="color-swatch" data-index="0" style="--swatch-color:#f97316" aria-label="Farbvariante 1 von 20"></button><button type="button" class="color-swatch" data-index="1" style="--swatch-color:#f9b716" aria-label="Farbvariante 2 von 20"></button><button type="button" class="color-swatch is-active" data-index="2" style="--swatch-color:#f7f916" aria-label="Farbvariante 3 von 20"></button><button type="button" class="color-swatch" data-index="3" style="--swatch-color:#b3f916" aria-label="Farbvariante 4 von 20"></button><button type="button" class="color-swatch" data-index="4" style="--swatch-color:#6ff916" aria-label="Farbvariante 5 von 20"></button><button type="button" class="color-swatch" data-index="5" style="--swatch-color:#2af916" aria-label="Farbvariante 6 von 20"></button><button type="button" class="color-swatch" data-index="6" style="--swatch-color:#16f946" aria-label="Farbvariante 7 von 20"></button><button type="button" class="color-swatch" data-index="7" style="--swatch-color:#16f98a" aria-label="Farbvariante 8 von 20"></button><button type="button" class="color-swatch" data-index="8" style="--swatch-color:#16f9ce" aria-label="Farbvariante 9 von 20"></button><button type="button" class="color-swatch" data-index="9" style="--swatch-color:#16e0f9" aria-label="Farbvariante 10 von 20"></button><button type="button" class="color-swatch" data-index="10" style="--swatch-color:#169cf9" aria-label="Farbvariante 11 von 20"></button><button type="button" class="color-swatch" data-index="11" style="--swatch-color:#1658f9" aria-label="Farbvariante 12 von 20"></button><button type="button" class="color-swatch" data-index="12" style="--swatch-color:#1816f9" aria-label="Farbvariante 13 von 20"></button><button type="button" class="color-swatch" data-index="13" style="--swatch-color:#5c16f9" aria-label="Farbvariante 14 von 20"></button><button type="button" class="color-swatch" data-index="14" style="--swatch-color:#7c16f9" aria-label="Farbvariante 15 von 20"></button><button type="button" class="color-swatch" data-index="15" style="--swatch-color:#7c16f9" aria-label="Farbvariante 16 von 20"></button><button type="button" class="color-swatch" data-index="16" style="--swatch-color:#f9168b" aria-label="Farbvariante 17 von 20"></button><button type="button" class="color-swatch" data-index="17" style="--swatch-color:#f91685" aria-label="Farbvariante 18 von 20"></button><button type="button" class="color-swatch" data-index="18" style="--swatch-color:#f91641" aria-label="Farbvariante 19 von 20"></button><button type="button" class="color-swatch" data-index="19" style="--swatch-color:#f92f16" aria-label="Farbvariante 20 von 20"></button></div>
     </div>
   </div>
 
@@ -1232,8 +1226,8 @@
   
   <script>
     (function () {
-      var palettes = [{"primary":"#DC2626","primaryDark":"#7C2D12","secondary":"#FB923C","accent":"#16A34A"},{"primary":"#dc5d26","primaryDark":"#7c4d12","secondary":"#fbcb3c","accent":"#16a374"},{"primary":"#dc9326","primaryDark":"#7c6d12","secondary":"#f1fb3c","accent":"#16a39f"},{"primary":"#dcca26","primaryDark":"#6c7c12","secondary":"#b8fb3c","accent":"#167da3"},{"primary":"#b8dc26","primaryDark":"#4c7c12","secondary":"#7ffb3c","accent":"#1653a3"},{"primary":"#81dc26","primaryDark":"#2c7c12","secondary":"#46fb3c","accent":"#1628a3"},{"primary":"#4adc26","primaryDark":"#127c18","secondary":"#3cfb6c","accent":"#2e16a3"},{"primary":"#26dc38","primaryDark":"#127c38","secondary":"#3cfba5","accent":"#5516a3"},{"primary":"#26dc6f","primaryDark":"#127c57","secondary":"#3cfbde","accent":"#5516a3"},{"primary":"#26dca5","primaryDark":"#127c77","secondary":"#3cdefb","accent":"#a3165f"},{"primary":"#26dcdc","primaryDark":"#12617c","secondary":"#3ca5fb","accent":"#a3165f"},{"primary":"#26a5dc","primaryDark":"#12417c","secondary":"#3c6cfb","accent":"#a31645"},{"primary":"#266fdc","primaryDark":"#12217c","secondary":"#463cfb","accent":"#a3161a"},{"primary":"#2638dc","primaryDark":"#22127c","secondary":"#7f3cfb","accent":"#a33c16"},{"primary":"#4a26dc","primaryDark":"#42127c","secondary":"#923cfb","accent":"#a36616"},{"primary":"#7826dc","primaryDark":"#42127c","secondary":"#923cfb","accent":"#a39116"},{"primary":"#7826dc","primaryDark":"#7c1249","secondary":"#fb3c9f","accent":"#8ba316"},{"primary":"#dc2684","primaryDark":"#7c1249","secondary":"#fb3c92","accent":"#61a316"},{"primary":"#dc2684","primaryDark":"#7c1237","secondary":"#fb3c59","accent":"#37a316"},{"primary":"#dc265d","primaryDark":"#7c1217","secondary":"#fb593c","accent":"#16a320"}];
-      var previewColors = ["#dc2626","#dc5d26","#dc9326","#dcca26","#b8dc26","#81dc26","#4adc26","#26dc38","#26dc6f","#26dca5","#26dcdc","#26a5dc","#266fdc","#2638dc","#4a26dc","#7826dc","#7826dc","#dc2684","#dc2684","#dc265d"];
+      var palettes = [{"primary":"#F97316","primaryDark":"#7C2D12","secondary":"#FB923C","accent":"#16A34A"},{"primary":"#f9b716","primaryDark":"#7c4d12","secondary":"#fbcb3c","accent":"#16a374"},{"primary":"#f7f916","primaryDark":"#7c6d12","secondary":"#f1fb3c","accent":"#16a39f"},{"primary":"#b3f916","primaryDark":"#6c7c12","secondary":"#b8fb3c","accent":"#167da3"},{"primary":"#6ff916","primaryDark":"#4c7c12","secondary":"#7ffb3c","accent":"#1653a3"},{"primary":"#2af916","primaryDark":"#2c7c12","secondary":"#46fb3c","accent":"#1628a3"},{"primary":"#16f946","primaryDark":"#127c18","secondary":"#3cfb6c","accent":"#2e16a3"},{"primary":"#16f98a","primaryDark":"#127c38","secondary":"#3cfba5","accent":"#5516a3"},{"primary":"#16f9ce","primaryDark":"#127c57","secondary":"#3cfbde","accent":"#5516a3"},{"primary":"#16e0f9","primaryDark":"#127c77","secondary":"#3cdefb","accent":"#a3165f"},{"primary":"#169cf9","primaryDark":"#12617c","secondary":"#3ca5fb","accent":"#a3165f"},{"primary":"#1658f9","primaryDark":"#12417c","secondary":"#3c6cfb","accent":"#a31645"},{"primary":"#1816f9","primaryDark":"#12217c","secondary":"#463cfb","accent":"#a3161a"},{"primary":"#5c16f9","primaryDark":"#22127c","secondary":"#7f3cfb","accent":"#a33c16"},{"primary":"#7c16f9","primaryDark":"#42127c","secondary":"#923cfb","accent":"#a36616"},{"primary":"#7c16f9","primaryDark":"#42127c","secondary":"#923cfb","accent":"#a39116"},{"primary":"#f9168b","primaryDark":"#7c1249","secondary":"#fb3c9f","accent":"#8ba316"},{"primary":"#f91685","primaryDark":"#7c1249","secondary":"#fb3c92","accent":"#61a316"},{"primary":"#f91641","primaryDark":"#7c1237","secondary":"#fb3c59","accent":"#37a316"},{"primary":"#f92f16","primaryDark":"#7c1217","secondary":"#fb593c","accent":"#16a320"}];
+      var previewColors = ["#f97316","#f9b716","#f7f916","#b3f916","#6ff916","#2af916","#16f946","#16f98a","#16f9ce","#16e0f9","#169cf9","#1658f9","#1816f9","#5c16f9","#7c16f9","#7c16f9","#f9168b","#f91685","#f91641","#f92f16"];
       var root = document.documentElement;
       var STORAGE_KEY = 'demoColorway';
       var picker = document.querySelector('.color-picker');
@@ -1289,7 +1283,7 @@
   
   
 
-  <nav class="tab-bar tab-bar--glass" aria-label="Schnellnavigation">
+  <nav class="tab-bar tab-bar--dark" aria-label="Schnellnavigation">
     <span class="tab-indicator" aria-hidden="true"></span>
     
       <a class="tab-item is-active" href="#" data-tab-index="0" aria-current="page">
