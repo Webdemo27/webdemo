@@ -2239,8 +2239,11 @@ export function renderDemoSite(
   // reference set. The older heroSection stays for 3D and colour-block
   // variants, which have no image surface for this treatment to sit on.
   const usesStackedHero = variant.heroStyle !== "3d" && variant.heroStyle !== "color-block";
+  // No hero image when the page-wide clip is running: a still laid over
+  // moving footage covers the very thing it is meant to reveal.
+  const heroVisualAsset = heroAsset?.videoScrubSrc ? undefined : heroAsset;
   const heroHtml = usesStackedHero
-    ? stackedHeroSection(lead.companyName, tagline, lead.companyName, location, heroAsset)
+    ? stackedHeroSection(lead.companyName, tagline, lead.companyName, location, heroVisualAsset)
     : heroSection(
         lead.companyName,
         tagline,
@@ -2667,7 +2670,14 @@ export function renderDemoSite(
      the photography, which is the whole point of the section. */
   .treatment-accordion { background: #0b0d10; color: #fff; }
   .treatment-accordion h2 { color: #fff; text-transform: uppercase; letter-spacing: -0.01em; }
-  .treatment-row { display: flex; gap: 0.6rem; height: clamp(280px, 52vh, 520px); }
+  /* Held well inside the viewport on purpose. Full-bleed panels covered
+     the scroll-scrubbed background completely, which is the one thing
+     the page is built around — the panels are content on top of the
+     film, not a replacement for it. */
+  .treatment-row {
+    display: flex; gap: 0.6rem; height: clamp(200px, 34vh, 340px);
+    max-width: 1040px; margin: 0 auto;
+  }
   .treatment-panel {
     position: relative; flex: 1 1 0; min-width: 0; padding: 0; border: none; cursor: pointer;
     border-radius: 1rem; overflow: hidden; background: #14171c;
@@ -2778,6 +2788,13 @@ export function renderDemoSite(
   .page-video-mode .header-cta { background: var(--accent); color: #fff; border-color: transparent; }
   .page-video-mode .brand, .page-video-mode .brand-name { color: #fff; }
   .page-video-mode .numbered-feature { border-color: rgba(255,255,255,0.2); }
+  /* Same reasoning as the accordion: over a moving background, content
+     images are held back so the film stays part of the page rather than
+     being papered over section by section. */
+  .page-video-mode .editorial-row,
+  .page-video-mode .scattered-gallery-grid,
+  .page-video-mode .services-grid { max-width: 1040px; margin-left: auto; margin-right: auto; }
+  .page-video-mode .environment-image { max-height: 46vh; object-fit: cover; }
   .page-video-mode .demo-flag { background: rgba(255,255,255,0.14); color: #fff; }
 
   /* Scroll-scrubbed background video (scrollVideoSection) — pinned

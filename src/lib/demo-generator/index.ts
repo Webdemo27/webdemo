@@ -10,6 +10,7 @@ import type { VisualProfile } from "../visual-director/types";
 import { reviewDemo } from "../visual-director/review";
 import { buildDemoConcept, preferredVariantFor, buildXray } from "../visual-director/concept";
 import { generateAssetsForLead, type AssetPipelineSummary } from "../images";
+import { attachIndustryVideo } from "../video/industry-video";
 import { captureAfterScreenshots } from "../analysis/screenshot";
 import type { WebsiteAnalysisData } from "../types";
 
@@ -53,9 +54,10 @@ export interface GenerateDemoResult {
  * lead. Order matters: X-Ray (from the existing analysis, if any) finds
  * the biggest real problem category → that picks a preferred concept
  * variant not yet tried for this lead → Visual Director builds the
- * creative brief around that variant → the asset pipeline fills it
- * (real photos from the lead's own site → abstract art, no provider
- * required) → the template renders around those assets → a research-
+ * creative brief around that variant → the asset pipeline fills it with
+ * generated imagery (abstract art as the always-available fallback) →
+ * the industry's key-visual clip is attached as the scroll-scrubbed
+ * background → the template renders around those assets → a research-
  * driven concept (business profile, website audit, opportunity map,
  * design rationale, pricing) is assembled for the dashboard. Written
  * under public/demos/<slug>/index.html, isolated from the dashboard.
@@ -174,6 +176,12 @@ export async function generateDemo(leadId: string): Promise<GenerateDemoResult> 
 
   const assetSummary = await generateAssetsForLead(leadId, profile);
 
+  // Give the demo its scroll-scrubbed background by reusing the
+  // industry's existing clip. Free and instant, unlike generating one
+  // per lead — and read before assetRows below, so the hero row already
+  // carries the video when the pages are rendered.
+  const gotVideo = await attachIndustryVideo(demo.id);
+
   const assetRows = await prisma.demoAsset.findMany({
     where: { demoId: demo.id },
     orderBy: { order: "asc" },
@@ -257,7 +265,7 @@ export async function generateDemo(leadId: string): Promise<GenerateDemoResult> 
   await logActivity(
     leadId,
     "DEMO_CREATED",
-    `Demo erstellt (/demos/${slug}/), Konzept "${variant.name}" — ${assetSummary.fromRealPhotos} echte Fotos, ${assetSummary.fromProvider} generiert, ${assetSummary.fromAbstractArt} abstrakte Kompositionen`
+    `Demo erstellt (/demos/${slug}/), Konzept "${variant.name}" — ${assetSummary.fromProvider} Bilder generiert, ${assetSummary.fromAbstractArt} abstrakte Kompositionen, Hintergrundvideo: ${gotVideo ? "Branchen-Clip übernommen" : "keines verfügbar"}`
   );
   if (!review.passed) {
     const failed = review.checks.filter((c) => !c.passed).map((c) => c.label);
