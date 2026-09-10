@@ -265,6 +265,21 @@ mission's top-priority ask this round.
 
 ## COMPLETED
 
+- **Scattered (non-grid) gallery showcase (2026-09-10)** —
+  `scatteredGallerySection()` (Gionatan Nese's mood-board principle,
+  static-only per the playbook's own scoping — no drag-canvas). Bug
+  caught+fixed during verification: rotation transform lived on the
+  same element as `data-reveal`, and the reveal system's own
+  `[data-reveal].is-visible { transform: none }` (higher specificity)
+  silently cancelled it — fixed with the same outer(reveal)/inner
+  (rotation) split the angled carousel already uses. Also fixed
+  `generate-showcase.ts`: the editorial section actually lives on
+  `ueber-uns.html`, not `index.html` — `buildBasePage()` now returns
+  every rendered page so each showcase can target the right one.
+  6 of ~7 showcases done now. **Only remaining**: 363 Car & Social
+  Club's neon-accent bottom-bar nav — deliberately deferred again,
+  still needs a genuinely new NavigationConcept + header changes, a
+  bigger structural change than a spliced body section.
 - **Three more showcase techniques (2026-09-10)**: atmosphere gradient
   (United Carriers — the playbook's own #1-ranked "highest-value,
   lowest-effort" technique, added to `gsapMotionScript`'s scroll-scrub
