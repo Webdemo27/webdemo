@@ -265,6 +265,42 @@ mission's top-priority ask this round.
 
 ## COMPLETED
 
+- **Hero-Videogenerierung mit eingebranntem DEMO-Wasserzeichen
+  (2026-09-10)** — the long-queued video item, built and verified
+  end-to-end against the live API (`src/lib/video/`).
+  **Cost correction — the old estimate in this file was wrong by ~20x**:
+  it assumed ~$0.50/video-second (Veo 3.1), so ~$2.50 a clip. Probing
+  the live catalog (`GET /api/v1/videos/models`, pricing lives in
+  `pricing_skus`) showed `google/veo-3.1-lite` at **$0.03/s** on its
+  without-audio 720p SKU. Three real generations billed **$0.12 each**
+  (4s clips). Per-lead hero video is therefore genuinely practical, not
+  a luxury. Re-run the catalog probe before trusting these numbers again.
+  Details worth not rediscovering:
+  - Models accept fixed duration sets — veo-3.1-lite rejects 5s with a
+    400 and takes 4/6/8. The provider now snaps the request onto the
+    catalog's supported values, so an OPENROUTER_VIDEO_MODEL swap can't
+    break the call.
+  - The hero renders with `object-fit: cover`, which measured live crops
+    ~8% off the top and bottom — a 40px-inset watermark was cropped
+    clean out of view. Insets are percentage-based now.
+  - `color-block` and `3d` hero styles have no image surface, so a video
+    attached to them is billed and never shown. Guarded before the API
+    call (found by wasting $0.12 on exactly that).
+  - ffmpeg 9.0 is installed on this machine and does the frame-level
+    watermarking + H.264/yuv420p/faststart re-encode; sharp can't
+    (video needs per-frame compositing).
+  Trigger per lead: `npx tsx scripts/generate-hero-video.ts <slug>`.
+  Deliberately NOT wired into generateDemo() — it must never fire
+  implicitly on a "Demo erstellen" click.
+- **ERA Residence seal badge + arched section edge (2026-09-10)** —
+  researched the live Awwwards Site-of-the-Day list; the only entry with
+  an honest local-business analogue was ERA Residence (Site of the Month
+  Aug 2026, luxury residential → Immobilienmakler). `rotatingSealBadge()`
+  fits the ring text to the actual circle circumference (a guessed
+  per-character width overlapped itself at the 12 o'clock join), and
+  `.arched-top` gives the post-hero section a wide elliptical arc.
+  Showcase 7. Reasoning for the winners NOT pursued is in the playbook,
+  so the next pass doesn't re-walk that list.
 - **Scattered (non-grid) gallery showcase (2026-09-10)** —
   `scatteredGallerySection()` (Gionatan Nese's mood-board principle,
   static-only per the playbook's own scoping — no drag-canvas). Bug
@@ -695,8 +731,29 @@ verified live.
 
 ## BLOCKED
 
-Nothing. Every external integration (Cloudflare, Gmail, OpenRouter, git
-push via SSH) is real, configured, and verified working end-to-end.
+Nothing blocking, but one piece of environment state to be aware of:
+
+**The database lost most of its demos (noticed 2026-09-10).** There are
+42 generated demo folders under `public/demos/` but only **2 demo rows**
+in `prisma/dev.db` (Orangerie Kassel, Kollektivcafé Kurbad) — the 35
+leads are still there. Demos that definitely existed earlier this
+session (tobias-gruenert, wille-rechtsanwaelte, dieter-meyer,
+joachim-langner …) are gone from the DB while their HTML sits on disk.
+Two things point at the same cause: this project lives inside a OneDrive
+folder, and on the same day the `typescript` package was found
+half-deleted (`_tsc.js` and `typescript.js` missing while sibling files
+remained) — repaired with a clean reinstall. Suspect OneDrive sync
+rather than anything the pipeline did.
+
+Consequence for future sessions: don't assume a demo slug still exists,
+query it. Any lead whose demo row is gone needs "Demo erstellen" again
+(the on-disk HTML is orphaned — no DB row, so the dashboard can't see
+or publish it). Worth asking the user whether they want a bulk
+re-generation before relying on those folders.
+
+Every external integration (Cloudflare, Gmail, OpenRouter images +
+video, git push via SSH) is real, configured, and verified working
+end-to-end.
 
 ## NEXT ACTION
 
