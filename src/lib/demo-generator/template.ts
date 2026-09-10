@@ -2442,6 +2442,14 @@ export function renderDemoSite(
     .treatment-panel { transition-duration: 1ms !important; }
   }
 
+  /* With the page-wide clip behind everything, the page scrim already
+     does the heavy darkening — the hero's own full scrim on top of it
+     would make the first screen markedly darker than the rest. Keep
+     only the left-side gradient the stacked headline needs. */
+  .page-video-mode .stacked-hero-scrim {
+    background: linear-gradient(90deg, rgba(8,10,14,0.62) 0%, rgba(8,10,14,0.15) 55%, rgba(8,10,14,0) 100%);
+  }
+
   /* Page-wide scrubbed video background (pageVideoBackground). The
      layer is fixed behind everything; .page-video-mode then has to undo
      every opaque surface in the document, otherwise the footage is

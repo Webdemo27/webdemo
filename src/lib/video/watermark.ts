@@ -77,11 +77,18 @@ export async function encodeScrubVariant(
       "-an",
       "-c:v", "libx264",
       "-preset", "slow",
-      // All-intra discards the compression inter-frames buy, so CRF
-      // costs far more detail here than in the ambient encode. This is
-      // the full-bleed hero background and file size is explicitly not
-      // a constraint for it, so this sits near visually lossless.
-      "-crf", "16",
+      // Decoding, not downloading, is the binding constraint here, so
+      // this is a bitrate ceiling rather than a quality target. Measured
+      // on a real page: an all-intra 1080p60 clip at CRF 16 came out at
+      // ~65 Mbit/s and the video fell up to 2.4s behind the scroll
+      // because the decoder could not keep up with the seeks. The same
+      // clip at CRF 23 (~42 Mbit/s) tracked scroll position exactly —
+      // 0.00s deviation at every sampled position, forwards and back.
+      // Raise this only against a re-measurement, not by eye.
+      "-crf", "23",
+      // Biases the encoder toward cheaper decoding, which is exactly the
+      // bottleneck when every frame is a keyframe being seeked to.
+      "-tune", "fastdecode",
       "-g", "1",
       "-keyint_min", "1",
       "-sc_threshold", "0",
