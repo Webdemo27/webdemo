@@ -116,7 +116,7 @@ export async function runMessageGeneration(leadId: string) {
   }
 
   const { subject, body } = generateMessage(
-    { companyName: lead.companyName, location: lead.location, demoUrl: lead.demo.publicUrl },
+    { companyName: lead.companyName, contactName: lead.contactName, location: lead.location, demoUrl: lead.demo.publicUrl },
     analysisRowToData(lead.analysis),
     leadId
   );
@@ -161,7 +161,7 @@ export async function reformulateSentMessage(leadId: string) {
   // than the one that was sent — a plain re-roll of the same
   // deterministic seed would very likely land on the exact same text.
   const { subject, body } = generateMessage(
-    { companyName: lead.companyName, location: lead.location, demoUrl: lead.demo.publicUrl },
+    { companyName: lead.companyName, contactName: lead.contactName, location: lead.location, demoUrl: lead.demo.publicUrl },
     analysisRowToData(lead.analysis),
     `${leadId}:reformulate:${Date.now()}`
   );

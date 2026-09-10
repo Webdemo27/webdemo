@@ -2,9 +2,14 @@ import type { WebsiteAnalysisData, AnalysisDimension } from "../types";
 import {
   SUBJECT_TEMPLATES,
   OPENERS,
+  ACKNOWLEDGEMENTS,
+  OBSERVATION_LEAD_INS,
+  FEELING_LINES,
+  ASKS,
   BRIDGES_WITH_LINK,
   BRIDGES_NO_LINK,
   CLOSINGS,
+  buildSalutation,
   buildSignature,
   pickVariant,
 } from "./templates";
@@ -20,29 +25,48 @@ const OBSERVATION_CANDIDATES: Array<keyof WebsiteAnalysisData> = [
   "contactExperience",
 ];
 
-const OBSERVATION_LEAD_INS = [
-  "Dabei ist mir aufgefallen:",
-  "Mir ist aufgefallen:",
-  "Dabei fiel mir auf:",
-];
+/**
+ * The analysis notes are written for us, not for the recipient — things
+ * like "3564 Wörter sichtbarer Text, 0 H1-Überschrift(en)". A café owner
+ * does not know what an H1 is, and a sentence they cannot decode cannot
+ * make them feel anything, which defeats the point of the message.
+ *
+ * So each dimension gets a plain sentence about what a visitor actually
+ * experiences. This states an implication, never an invented claim: the
+ * dimension really did score lowest and really is verifiable, and the
+ * raw finding still travels along in brackets for anyone who wants it.
+ */
+const OBSERVATION_IN_PLAIN_GERMAN: Record<string, string> = {
+  mobileUx: "Am Handy ist die Seite schwer zu bedienen — und die meisten Ihrer Kunden schauen genau dort zuerst.",
+  cta: "Es ist nicht auf Anhieb klar, was ein Interessent als Nächstes tun soll — anrufen, schreiben, vorbeikommen.",
+  design: "Der Auftritt wirkt älter, als Ihr Betrieb es ist.",
+  performance: "Die Seite braucht spürbar lange zum Laden. Die meisten Besucher warten das nicht ab.",
+  content: "Der Text macht es Besuchern schwer, schnell zu erfassen, worum es geht.",
+  contactExperience: "Wer Sie erreichen möchte, muss dafür suchen.",
+};
 
-function pickKeyObservation(analysis: WebsiteAnalysisData, seed: string): string | null {
-  let best: { note: string; score: number } | null = null;
+function pickKeyObservation(analysis: WebsiteAnalysisData): { plain: string; detail: string } | null {
+  let best: { key: string; note: string; score: number } | null = null;
 
   for (const key of OBSERVATION_CANDIDATES) {
     const dim = analysis[key] as AnalysisDimension;
     if (!dim.verifiable || dim.score == null || dim.notes.length === 0) continue;
     if (!best || dim.score < best.score) {
-      best = { note: dim.notes[0], score: dim.score };
+      best = { key, note: dim.notes[0], score: dim.score };
     }
   }
 
   if (!best) return null;
-  return `${pickVariant(OBSERVATION_LEAD_INS, seed + ":observation")} ${best.note}`;
+  const plain = OBSERVATION_IN_PLAIN_GERMAN[best.key];
+  if (!plain) return null;
+  return { plain, detail: best.note };
 }
 
 export interface MessageContext {
   companyName: string;
+  /** Real contact person if research found one — used only when it
+   * already carries a form of address, see buildSalutation(). */
+  contactName?: string | null;
   location: string | null;
   /** Real, publicly reachable HTTPS URL for the demo, or null if it
    * hasn't been deployed yet (Cloudflare, Phase 11). Never a localhost
@@ -70,25 +94,42 @@ export function generateMessage(
   seed: string
 ): GeneratedMessage {
   const location = lead.location ?? "Ihrer Region";
-  const observation = pickKeyObservation(analysis, seed);
+  const fill = (text: string) =>
+    text.replace(/\{company\}/g, lead.companyName).replace(/\{location\}/g, location);
 
-  const subject = pickVariant(SUBJECT_TEMPLATES, seed).replace("{company}", lead.companyName);
-  const opener = pickVariant(OPENERS, seed + ":opener")
-    .replace("{company}", lead.companyName)
-    .replace("{location}", location);
+  const observation = pickKeyObservation(analysis);
+
+  const subject = fill(pickVariant(SUBJECT_TEMPLATES, seed));
+  const opener = fill(pickVariant(OPENERS, seed + ":opener"));
+  const acknowledgement = pickVariant(ACKNOWLEDGEMENTS, seed + ":ack");
+  const feeling = pickVariant(FEELING_LINES, seed + ":feeling");
+  const ask = pickVariant(ASKS, seed + ":ask");
   const closing = pickVariant(CLOSINGS, seed + ":closing");
 
   const bridgeLine = lead.demoUrl
-    ? `${pickVariant(BRIDGES_WITH_LINK, seed + ":bridge")} ${lead.demoUrl}`
-    : pickVariant(BRIDGES_NO_LINK, seed + ":bridge");
+    ? `${fill(pickVariant(BRIDGES_WITH_LINK, seed + ":bridge"))} ${lead.demoUrl}`
+    : fill(pickVariant(BRIDGES_NO_LINK, seed + ":bridge"));
+
+  // The observation only appears once the reader's competence has been
+  // acknowledged. On its own, straight after the greeting, it reads as
+  // "your website is bad" — which is the fastest way to lose someone who
+  // has run their business for twenty years.
+  const observationBlock = observation
+    ? `${acknowledgement} ${pickVariant(OBSERVATION_LEAD_INS, seed + ":observation")} ${observation.plain} (${observation.detail})`
+    : null;
 
   const lines = [
-    `Hallo,`,
+    buildSalutation(lead.contactName ?? null),
     ``,
     opener,
-    observation ? observation : null,
+    ``,
+    observationBlock,
+    observationBlock ? `` : null,
+    feeling,
     ``,
     bridgeLine,
+    ``,
+    ask,
     ``,
     closing,
     ``,

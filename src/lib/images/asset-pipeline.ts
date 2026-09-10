@@ -4,7 +4,7 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "../db";
 import { toJson } from "../db/json";
 import type { VisualProfile, AssetPlanEntry, ImageRole } from "../visual-director/types";
-import { extractRealImages, type ExtractedImageCandidate } from "./real-image-extractor";
+import type { ExtractedImageCandidate } from "./real-image-extractor";
 import { generateAbstractSvg } from "./abstract-generator";
 import { optimizeAndSave, readImageMetadata } from "./optimizer";
 import { OpenAiImageProvider, isOpenAiImagesConfigured } from "./providers/openai-image-provider";
@@ -73,12 +73,12 @@ export interface AssetPipelineSummary {
   errors: string[];
 }
 
-/** Fills a lead's demo asset plan, in priority order: real photos
- * already on their own website (most honest/individual) → an image
- * generation provider if one is configured → deterministic abstract
- * art (always available, never fails). Clears any previous assets for
- * this demo first, so re-running produces a clean, consistent set
- * rather than accumulating duplicates. */
+/** Fills a lead's demo asset plan: an image generation provider if one
+ * is configured → deterministic abstract art (always available, never
+ * fails). Scraping the lead's own site used to come first and no longer
+ * runs at all — see the note at the call site. Clears any previous
+ * assets for this demo first, so re-running produces a clean, consistent
+ * set rather than accumulating duplicates. */
 export async function generateAssetsForLead(
   leadId: string,
   profile: VisualProfile
@@ -93,7 +93,13 @@ export async function generateAssetsForLead(
 
   await prisma.demoAsset.deleteMany({ where: { demoId: demo.id } });
 
-  const realCandidates = lead.website ? await extractRealImages(lead.website) : [];
+  // Deliberately NOT scraping the lead's own site any more. What comes
+  // back is rarely usable photography — it is promotional graphics with
+  // their logo and campaign text baked in ("Silvester in der Orangerie"
+  // landed as a hero), which reads as a collage of the old site rather
+  // than a new design, and it is their material to begin with. Every
+  // image is generated for us instead.
+  const realCandidates: ExtractedImageCandidate[] = [];
   const usedReal = new Set<string>();
   const provider = getProvider();
 

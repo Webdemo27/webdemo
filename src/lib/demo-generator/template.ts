@@ -451,12 +451,15 @@ export function stackedHeroSection(
   metaRight: string,
   hero: DemoAssetView | undefined
 ): string {
-  const lines = headline
-    .toUpperCase()
-    .split(" ")
-    .filter(Boolean)
-    .map((word) => `<span class="stacked-hero-line">${escapeHtml(word)}</span>`)
-    .join("");
+  // One word per line is what gives the block its weight, but a real
+  // company name can run long ("Anwaltskanzlei Posch – Fachanwalt für
+  // Strafrecht"), and eight stacked lines is a wall, not a hero. Past
+  // four words the text keeps its natural wrapping instead.
+  const words = headline.toUpperCase().split(" ").filter(Boolean);
+  const lines =
+    words.length <= 4
+      ? words.map((word) => `<span class="stacked-hero-line">${escapeHtml(word)}</span>`).join("")
+      : escapeHtml(headline.toUpperCase());
   const media = hero ? pictureTag(hero, "stacked-hero-media", true) : "";
   return `
   <section class="stacked-hero">
@@ -2229,17 +2232,38 @@ export function renderDemoSite(
   const secondaryHref = hasLeistungen ? "leistungen.html" : hasUeberUns ? "ueber-uns.html" : null;
   const secondaryLabel = hasLeistungen ? secondaryPageLabel(profile.industryKey) : "Über uns";
 
-  const heroHtml = heroSection(
-    lead.companyName,
-    taglineFor(lead.companyName, location, profile, seed),
-    heroAsset,
-    profile,
-    variant.heroStyle,
-    variant.ctaIntensity,
-    contactHref,
-    secondaryHref,
-    secondaryLabel
-  );
+  const tagline = taglineFor(lead.companyName, location, profile, seed);
+
+  // The house style: every demo opens with the stacked hero over its own
+  // key visual, so what a customer is shown matches the industry
+  // reference set. The older heroSection stays for 3D and colour-block
+  // variants, which have no image surface for this treatment to sit on.
+  const usesStackedHero = variant.heroStyle !== "3d" && variant.heroStyle !== "color-block";
+  const heroHtml = usesStackedHero
+    ? stackedHeroSection(lead.companyName, tagline, lead.companyName, location, heroAsset)
+    : heroSection(
+        lead.companyName,
+        tagline,
+        heroAsset,
+        profile,
+        variant.heroStyle,
+        variant.ctaIntensity,
+        contactHref,
+        secondaryHref,
+        secondaryLabel
+      );
+
+  // Real services with real images, presented the way the reference does
+  // it — only when there are actually enough images to expand between.
+  const accordionHtml =
+    services.length > 1 && serviceAssets.length > 1
+      ? treatmentAccordionSection(
+          serviceAssets
+            .slice(0, services.length)
+            .map((asset, i) => ({ asset, label: services[i] ?? services[0] })),
+          secondaryPageLabel(profile.industryKey)
+        )
+      : "";
 
   const quickLinksHtml =
     profile.layoutDirection === "editorial-asymmetric"
@@ -2249,9 +2273,12 @@ export function renderDemoSite(
   function bodyFor(slug: PageSlug): string {
     if (slug === "") {
       const homeKeys = variant.sectionOrder.filter((k) => k === "location" && nonHeroSections.location);
-      return [heroHtml, quickLinksHtml, ...homeKeys.map((k) => nonHeroSections[k as Exclude<SectionKey, "hero">] ?? "")].join(
-        "\n"
-      );
+      return [
+        heroHtml,
+        accordionHtml,
+        quickLinksHtml,
+        ...homeKeys.map((k) => nonHeroSections[k as Exclude<SectionKey, "hero">] ?? ""),
+      ].join("\n");
     }
     const group = activeSecondary.find((g) => g.slug === slug);
     if (!group) return "";
@@ -2259,6 +2286,31 @@ export function renderDemoSite(
       (group.sections as SectionKey[]).includes(k)
     );
     return keysInOrder.map((k) => nonHeroSections[k] ?? "").join("\n");
+  }
+
+  /** The floating tab bar mirrors the demo's real pages, so it is
+   * genuine navigation rather than decoration, and the treatment varies
+   * with the variant's own navigation concept instead of adding a
+   * fourteenth thing to choose. */
+  function tabBarFor(currentSlug: PageSlug): string {
+    if (navPages.length < 2) return "";
+    const style: TabBarStyle =
+      variant.navigationConcept === "floating-glass"
+        ? "glass"
+        : variant.navigationConcept === "fullscreen-overlay"
+        ? "dark"
+        : "light";
+    const iconFor = (s: PageSlug) =>
+      s === "" ? "home" : s === "leistungen" ? "services" : s === "ueber-uns" ? "about" : "contact";
+    return floatingTabBar(
+      navPages.map((p) => ({
+        href: p.filename,
+        label: p.label,
+        icon: iconFor(p.slug) as "home" | "services" | "about" | "contact",
+        active: p.slug === currentSlug,
+      })),
+      style
+    );
   }
 
   const mobileCtaBar =
@@ -3148,6 +3200,7 @@ export function renderDemoSite(
     <span class="demo-flag">Demo-Vorschau</span>
   </footer>
 
+  ${tabBarFor(slug)}
   ${mobileCtaBar}
   ${colorPickerWidget(colorwayOptions, activeColorwayIndex)}
 
