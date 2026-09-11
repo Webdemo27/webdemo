@@ -757,6 +757,27 @@ one of these first:
     — publishing already uploads whole demo folders there.
 This is a cost/ownership decision, so it belongs to the user.
 
+**Missing native binaries are an npm problem, not OneDrive (diagnosed
+2026-09-11).** Three separate failures in one session — prisma's query
+engine, lightningcss, @tailwindcss/oxide — all had the same shape: the
+platform package directory exists but contains only LICENSE, README and
+package.json, with the `.node` binary missing. npm's own error names it
+(npm/cli#4828, optional dependencies). Earlier sessions blamed OneDrive
+sync for this; the evidence points at npm, and `npm install` also warns
+that install scripts are blocked by allow-scripts.
+
+Diagnose the whole tree at once instead of discovering them one dev
+server crash at a time:
+
+    for d in $(find node_modules -maxdepth 2 -type d -name "*win32-x64*"); do
+      [ "$(find "$d" -name '*.node' | wc -l)" -eq 0 ] && echo "FEHLT: $d"
+    done
+
+(@esbuild/win32-x64 is a false positive — it ships esbuild.exe, not a
+.node.) Fix: `rm -rf` those directories, `npm install`, then `rm -rf
+.next` because Turbopack caches the failed resolution and will keep
+reporting it after the package is fixed.
+
 One piece of environment state to be aware of:
 
 **The database lost most of its demos (noticed 2026-09-10).** There are
