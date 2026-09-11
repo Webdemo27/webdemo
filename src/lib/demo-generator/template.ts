@@ -2160,6 +2160,54 @@ export interface DemoPage {
   html: string;
 }
 
+/**
+ * How each concept variant composes its home page.
+ *
+ * Without this every variant rendered the same page. The house-style
+ * work gave all of them the same stacked hero and the same accordion,
+ * and the home page passes only "location" through from sectionOrder —
+ * so twelve variants collapsed into five section structures, eight of
+ * them in just two buckets. Regenerating a demo changed the recorded
+ * variant and the colourway, and produced a page that looked identical.
+ *
+ * The palette is deliberately narrow. Every demo runs a scroll-scrubbed
+ * clip as its page-wide background, and anything large and opaque laid
+ * on top hides the one thing the page exists to show — the specific
+ * complaint that killed the earlier hero-image treatment. So the choices
+ * here are type-led (both heroes render without an image when the clip
+ * is running) and the feature sections are the two already proven
+ * against a moving background in the industry showcase set.
+ */
+type HeroTreatment = "stacked" | "typography";
+type FeatureTreatment = "accordion" | "gallery";
+
+interface HomeComposition {
+  hero: HeroTreatment;
+  feature: FeatureTreatment;
+  /** Type-only accents, safe over moving footage. */
+  marquee?: boolean;
+  seal?: boolean;
+}
+
+// Every entry is a distinct combination — verified, not assumed: two
+// heroes x two features x three accent states covers all twelve, and
+// the three variants whose own hero style wins (3D, colour-block) are
+// separated by their accents instead.
+const HOME_COMPOSITIONS: Record<string, HomeComposition> = {
+  "premium-editorial": { hero: "typography", feature: "gallery" },
+  "bold-conversion": { hero: "stacked", feature: "accordion", marquee: true },
+  "immersive-visual": { hero: "stacked", feature: "gallery" },
+  "luxury-minimal": { hero: "typography", feature: "accordion", seal: true },
+  "interactive-3d": { hero: "stacked", feature: "gallery", marquee: true },
+  corporate: { hero: "stacked", feature: "accordion" },
+  asymmetric: { hero: "typography", feature: "gallery", marquee: true },
+  "product-focused": { hero: "stacked", feature: "gallery", seal: true },
+  "cinematic-story": { hero: "typography", feature: "accordion", marquee: true },
+  "architectural-grid": { hero: "stacked", feature: "accordion", seal: true },
+  "dynamic-energy": { hero: "stacked", feature: "gallery", marquee: true, seal: true },
+  "quiet-confidence": { hero: "typography", feature: "accordion" },
+};
+
 export function renderDemoSite(
   lead: DemoData,
   profile: VisualProfile,
@@ -2237,17 +2285,15 @@ export function renderDemoSite(
 
   const tagline = taglineFor(lead.companyName, location, profile, seed);
 
-  // The house style: every demo opens with the stacked hero over its own
-  // key visual, so what a customer is shown matches the industry
-  // reference set. The older heroSection stays for 3D and colour-block
-  // variants, which have no image surface for this treatment to sit on.
+  // 3D and colour-block variants keep the older heroSection: their hero
+  // style is the visual, so there is no type-led treatment to apply.
   const usesStackedHero = variant.heroStyle !== "3d" && variant.heroStyle !== "color-block";
+  const composition = HOME_COMPOSITIONS[variant.id] ?? HOME_COMPOSITIONS.corporate;
   // No hero image when the page-wide clip is running: a still laid over
   // moving footage covers the very thing it is meant to reveal.
   const heroVisualAsset = heroAsset?.videoScrubSrc ? undefined : heroAsset;
-  const heroHtml = usesStackedHero
-    ? stackedHeroSection(lead.companyName, tagline, lead.companyName, location, heroVisualAsset)
-    : heroSection(
+  const heroHtml = !usesStackedHero
+    ? heroSection(
         lead.companyName,
         tagline,
         heroAsset,
@@ -2257,19 +2303,30 @@ export function renderDemoSite(
         contactHref,
         secondaryHref,
         secondaryLabel
-      );
+      )
+    : composition.hero === "typography"
+      ? typographyHeroSection(lead.companyName, tagline, variant.ctaIntensity, contactHref, secondaryHref, secondaryLabel)
+      : stackedHeroSection(lead.companyName, tagline, lead.companyName, location, heroVisualAsset);
 
-  // Real services with real images, presented the way the reference does
-  // it — only when there are actually enough images to expand between.
-  const accordionHtml =
-    services.length > 1 && serviceAssets.length > 1
-      ? treatmentAccordionSection(
-          serviceAssets
-            .slice(0, services.length)
-            .map((asset, i) => ({ asset, label: services[i] ?? services[0] })),
+  // Both feature treatments need more than one image to be worth
+  // showing: an accordion with one row does not expand into anything,
+  // and a scattered gallery of one is just a picture.
+  const canFeature = services.length > 1 && serviceAssets.length > 1;
+  const featureItems = serviceAssets
+    .slice(0, services.length)
+    .map((asset, i) => ({ asset, label: services[i] ?? services[0] }));
+  const featureHtml = !canFeature
+    ? ""
+    : composition.feature === "gallery"
+      ? scatteredGallerySection(
+          featureItems.map((item) => ({ asset: item.asset, headline: item.label })),
           secondaryPageLabel(profile.industryKey)
         )
-      : "";
+      : treatmentAccordionSection(featureItems, secondaryPageLabel(profile.industryKey));
+
+  // Type-only accents: they sit over the clip without hiding it.
+  const marqueeHtml = composition.marquee ? marqueeSection([lead.companyName, ...services.slice(0, 3)]) : "";
+  const sealHtml = composition.seal ? rotatingSealBadge(lead.companyName) : "";
 
   const quickLinksHtml =
     profile.layoutDirection === "editorial-asymmetric"
@@ -2281,7 +2338,9 @@ export function renderDemoSite(
       const homeKeys = variant.sectionOrder.filter((k) => k === "location" && nonHeroSections.location);
       return [
         heroHtml,
-        accordionHtml,
+        sealHtml,
+        featureHtml,
+        marqueeHtml,
         quickLinksHtml,
         ...homeKeys.map((k) => nonHeroSections[k as Exclude<SectionKey, "hero">] ?? ""),
       ].join("\n");
