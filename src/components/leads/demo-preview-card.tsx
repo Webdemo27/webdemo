@@ -1,5 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { variantDisplayName } from "@/lib/visual-director/variants";
 import { GenerateDemoButton } from "./generate-demo-button";
 import { PublishDemoButton } from "./publish-demo-button";
 import { CopyUrlButton } from "./copy-url-button";
@@ -24,7 +25,7 @@ export function DemoPreviewCard({
   leadId: string;
   demo: {
     slug: string;
-    templateKey: string;
+    conceptVariant: string | null;
     createdAt: Date;
     publicUrl: string | null;
   } | null;
@@ -56,7 +57,7 @@ export function DemoPreviewCard({
       <CardHeader>
         <div>
           <CardTitle>Demo</CardTitle>
-          <CardDescription>Konzept: {demo.templateKey}</CardDescription>
+          <CardDescription>Konzept: {variantDisplayName(demo.conceptVariant)}</CardDescription>
         </div>
         <div className="flex items-center gap-2">
           <a href={previewUrl} target="_blank" rel="noopener noreferrer">

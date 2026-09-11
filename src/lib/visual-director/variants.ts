@@ -277,3 +277,16 @@ export function pickNextVariant(
 export function getVariant(id: string): ConceptVariant {
   return CONCEPT_VARIANTS.find((v) => v.id === id) ?? CONCEPT_VARIANTS[0];
 }
+
+/** The variant's human name, for showing a user which concept a demo was
+ * built on.
+ *
+ * Separate from getVariant() because that one falls back to the first
+ * variant for an unknown id — right for rendering (something has to be
+ * rendered) but wrong for display, where it would confidently name a
+ * concept the demo was not built with. An unrecognised id is shown as
+ * itself instead, which is at least true. */
+export function variantDisplayName(id: string | null | undefined): string {
+  if (!id) return "—";
+  return CONCEPT_VARIANTS.find((v) => v.id === id)?.name ?? id;
+}

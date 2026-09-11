@@ -6,6 +6,7 @@ import { Table, Thead, Tbody, Tr, Th, Td } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { DeleteDemoButton } from "@/components/demos/delete-demo-button";
 import { deleteDemoAction } from "./actions";
+import { variantDisplayName } from "@/lib/visual-director/variants";
 import { Browser, ArrowSquareOut } from "@phosphor-icons/react/dist/ssr";
 
 export const dynamic = "force-dynamic";
@@ -35,7 +36,7 @@ export default async function DemosPage() {
               <Tr>
                 <Th>Unternehmen</Th>
                 <Th>Branche</Th>
-                <Th>Vorlage</Th>
+                <Th>Konzept</Th>
                 <Th>Lead-Status</Th>
                 <Th>Erstellt</Th>
                 <Th className="text-right">Aktion</Th>
@@ -50,7 +51,7 @@ export default async function DemosPage() {
                     </Link>
                   </Td>
                   <Td className="text-xs text-muted-foreground">{demo.lead.industry ?? "—"}</Td>
-                  <Td className="text-xs text-muted-foreground">{demo.templateKey}</Td>
+                  <Td className="text-xs text-muted-foreground">{variantDisplayName(demo.conceptVariant)}</Td>
                   <Td>
                     <StatusBadge status={demo.lead.status} />
                   </Td>
