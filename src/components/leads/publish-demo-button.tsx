@@ -9,6 +9,9 @@ interface PublishOutcome {
   publicUrl?: string;
   error?: string;
   configured: boolean;
+  /** Demos that had been publicly reachable without ever being published
+   * successfully, now taken out of the deployment. */
+  removedFromDeployment?: string[];
   /** Set when publishing succeeded: what happened with the Gmail draft
    * that is prepared straight afterwards. */
   gmail?: {
@@ -80,6 +83,16 @@ export function PublishDemoButton({
             >
               {result.publicUrl}
             </a>
+          ) : null}
+
+          {result.removedFromDeployment?.length ? (
+            <p className="flex items-start justify-end gap-1.5 text-amber-700">
+              <Warning size={14} weight="fill" aria-hidden="true" className="mt-0.5 shrink-0" />
+              <span>
+                Aus dem Deployment entfernt (waren öffentlich, ohne je veröffentlicht worden zu sein):{" "}
+                {result.removedFromDeployment.join(", ")}
+              </span>
+            </p>
           ) : null}
 
           {result.gmail?.draftCreated ? (

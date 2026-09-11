@@ -10,6 +10,10 @@ export interface PublishDemoOutcome {
   publicUrl?: string;
   error?: string;
   configured: boolean;
+  /** Demos that were publicly reachable without ever having been
+   * published successfully, and have now been removed from the
+   * deployment. See reconcileStaging() for how they got there. */
+  removedFromDeployment?: string[];
 }
 
 /**
@@ -41,11 +45,35 @@ export async function publishDemoPublicly(leadId: string): Promise<PublishDemoOu
     return { ok: false, configured, error: "Demo-HTML nicht gefunden — Demo zuerst (neu) erstellen." };
   }
 
+  // Everything already live. The shared project deploys as one tree, so
+  // this deploy republishes all of them anyway — passing them along lets
+  // their staged copies be refreshed from source instead of going live
+  // again at whatever state they were in on their own publish date.
+  const alreadyPublished = await prisma.demo.findMany({
+    where: { publicUrl: { not: null }, NOT: { slug: lead.demo.slug } },
+    select: { slug: true },
+  });
+
   const publisher = new CloudflarePagesPublisher();
-  const result = await publisher.publish({ slug: lead.demo.slug, directory: demoDir });
+  const result = await publisher.publish({
+    slug: lead.demo.slug,
+    directory: demoDir,
+    alsoPublished: alreadyPublished.map((d) => ({
+      slug: d.slug,
+      directory: path.join(process.cwd(), "public", "demos", d.slug),
+    })),
+  });
   if (!result.ok || !result.publicUrl) {
     await logActivity(leadId, "PUBLISH_FAILED", result.error ?? "Cloudflare-Veröffentlichung fehlgeschlagen");
     return { ok: false, configured, error: result.error };
+  }
+
+  if (result.removedFromDeployment?.length) {
+    await logActivity(
+      leadId,
+      "PUBLISH_CLEANUP",
+      `Aus dem Deployment entfernt, weil nie erfolgreich veröffentlicht: ${result.removedFromDeployment.join(", ")}`
+    );
   }
 
   const verification = await verifyPublicUrl(result.publicUrl, lead.companyName);
@@ -88,5 +116,10 @@ export async function publishDemoPublicly(leadId: string): Promise<PublishDemoOu
     }
   }
 
-  return { ok: true, configured, publicUrl: result.publicUrl };
+  return {
+    ok: true,
+    configured,
+    publicUrl: result.publicUrl,
+    removedFromDeployment: result.removedFromDeployment,
+  };
 }

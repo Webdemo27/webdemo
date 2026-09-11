@@ -1,7 +1,7 @@
 import { spawn } from "node:child_process";
 import { promises as fs } from "node:fs";
 import path from "node:path";
-import type { DemoPublisher, PublishInput, PublishResult } from "./types";
+import type { DemoPublisher, PublishInput, PublishResult, StagedDemo } from "./types";
 
 // The locally installed binary, not `npx wrangler` — this Next.js
 // process itself typically runs under an npx/npm-invoked script, and
@@ -60,7 +60,7 @@ const STAGING_ROOT = path.join(process.cwd(), ".cloudflare-deploy");
  * STAGING_ROOT is never completely empty (an empty directory would make
  * `wrangler pages deploy` fail), e.g. right after deleteProject() removes
  * the last remaining lead's subfolder. */
-async function ensureStagingRoot(): Promise<void> {
+export async function ensureStagingRoot(): Promise<void> {
   await fs.mkdir(STAGING_ROOT, { recursive: true });
   await fs.writeFile(
     path.join(STAGING_ROOT, "index.html"),
@@ -78,6 +78,77 @@ async function mirrorIntoStaging(slug: string, directory: string): Promise<void>
   const target = path.join(STAGING_ROOT, slug);
   await fs.rm(target, { recursive: true, force: true });
   await fs.cp(directory, target, { recursive: true });
+}
+
+/**
+ * Makes the staged tree equal exactly the set of demos that should be
+ * live: the one being published now, plus the ones already published.
+ * Anything else is removed, and everything kept is re-copied from its
+ * source.
+ *
+ * This is a reconcile rather than an append because the tree IS the
+ * deploy — wrangler uploads the whole directory, so every folder in it
+ * goes live. Only ever adding to it had two consequences, both found in
+ * production on 2026-09-11:
+ *
+ *  - Staged copies were never refreshed, so other leads went live again
+ *    at whatever state they were in on the day THEY were published. One
+ *    such copy was a 39.9 MiB video that had long since been re-encoded
+ *    to 22.9 MiB at the source, and it failed every deploy of every lead
+ *    on Cloudflare's 25 MiB file limit.
+ *
+ *  - mirrorIntoStaging() runs BEFORE the deploy, so a failed publish
+ *    left its folder behind. The next successful deploy of any other
+ *    lead then published it — a real business's demo, with its real
+ *    company data, publicly reachable without a single successful
+ *    publish and with no publicUrl recorded anywhere. The staged tree
+ *    held ten folders while exactly one demo was actually published.
+ *
+ * A demo that is published but whose source folder has since
+ * disappeared keeps its staged copy: taking it offline is a separate,
+ * deliberate action (deleteProject), not a side effect of regenerating
+ * something else.
+ */
+export async function reconcileStaging(current: StagedDemo, alsoPublished: StagedDemo[]): Promise<string[]> {
+  const wanted = new Map<string, StagedDemo>();
+  for (const demo of [current, ...alsoPublished]) wanted.set(demo.slug, demo);
+
+  const removed: string[] = [];
+  for (const entry of await fs.readdir(STAGING_ROOT, { withFileTypes: true }).catch(() => [])) {
+    if (!entry.isDirectory() || wanted.has(entry.name)) continue;
+    await fs.rm(path.join(STAGING_ROOT, entry.name), { recursive: true, force: true });
+    removed.push(entry.name);
+  }
+
+  for (const demo of wanted.values()) {
+    const hasSource = await fs
+      .access(path.join(demo.directory, "index.html"))
+      .then(() => true)
+      .catch(() => false);
+    if (hasSource) await mirrorIntoStaging(demo.slug, demo.directory);
+  }
+
+  return removed;
+}
+
+/** Cloudflare Pages rejects any single file over 25 MiB, and it rejects
+ * it after the upload attempt — so the whole deploy fails on one file. */
+const CLOUDFLARE_FILE_LIMIT = 25 * 1024 * 1024;
+
+export async function oversizedStagedFiles(): Promise<Array<{ file: string; bytes: number }>> {
+  const found: Array<{ file: string; bytes: number }> = [];
+  async function walk(dir: string) {
+    for (const entry of await fs.readdir(dir, { withFileTypes: true }).catch(() => [])) {
+      const full = path.join(dir, entry.name);
+      if (entry.isDirectory()) await walk(full);
+      else {
+        const { size } = await fs.stat(full);
+        if (size > CLOUDFLARE_FILE_LIMIT) found.push({ file: path.relative(STAGING_ROOT, full), bytes: size });
+      }
+    }
+  }
+  await walk(STAGING_ROOT);
+  return found;
 }
 
 /** Real incident (2026-09-09): `wrangler pages project create` returns
@@ -228,7 +299,7 @@ function runWrangler(args: string[]): Promise<WranglerRun> {
  * STAGING_ROOT).
  */
 export class CloudflarePagesPublisher implements DemoPublisher {
-  async publish({ slug, directory }: PublishInput): Promise<PublishResult> {
+  async publish({ slug, directory, alsoPublished }: PublishInput): Promise<PublishResult> {
     if (!isCloudflareConfigured()) {
       return {
         ok: false,
@@ -264,7 +335,25 @@ export class CloudflarePagesPublisher implements DemoPublisher {
       }
 
       await ensureStagingRoot();
-      await mirrorIntoStaging(slug, directory);
+      const unpublished = await reconcileStaging({ slug, directory }, alsoPublished ?? []);
+
+      // Checked here rather than left to Cloudflare: the limit is knowable
+      // locally, and wrangler only reports it after trying to upload,
+      // with a message that names a file belonging to some *other* lead —
+      // baffling when you just pressed publish on this one. Naming the
+      // file and the fix beats a wrangler transcript.
+      const oversized = await oversizedStagedFiles();
+      if (oversized.length > 0) {
+        const list = oversized
+          .map((o) => `${o.file} (${(o.bytes / 1024 / 1024).toFixed(1)} MiB)`)
+          .join(", ");
+        return {
+          ok: false,
+          error:
+            `Cloudflare Pages erlaubt maximal 25 MiB pro Datei. Zu gross: ${list}. ` +
+            `Mit "npx tsx scripts/shrink-scrub-videos.ts" neu kodieren und erneut veroeffentlichen.`,
+        };
+      }
 
       const deploy = await runWrangler([
         "pages",
@@ -303,7 +392,11 @@ export class CloudflarePagesPublisher implements DemoPublisher {
         };
       }
 
-      return { ok: true, publicUrl: `https://${projectName}.pages.dev/${slug}/` };
+      return {
+        ok: true,
+        publicUrl: `https://${projectName}.pages.dev/${slug}/`,
+        removedFromDeployment: unpublished.length > 0 ? unpublished : undefined,
+      };
     } catch (e) {
       return {
         ok: false,
