@@ -30,8 +30,11 @@ export interface GeneratedVideo {
 }
 
 export interface SavedVideoAsset {
-  /** Relative to the demo's own directory, e.g. "assets/hero-video.mp4". */
-  videoPath: string;
+  /** The clip the page actually plays, relative to the demo's own
+   * directory, e.g. "assets/hero-video-scrub.mp4". The full-quality
+   * master is kept outside the demo folder (see masterDirFor) because
+   * no page requests it. */
+  scrubPath: string;
   /** First frame, written as a real image file so the <video> has a
    * poster and non-autoplay contexts still show something. */
   posterPath: string;

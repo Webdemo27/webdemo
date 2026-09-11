@@ -166,7 +166,9 @@ async function main() {
     localPath: null,
     formats: {
       ...heroRaw.formats,
-      video: path.basename(encoded.videoPath),
+      // Marker only — the page plays the scrub, and the master is
+      // kept outside the demo folder (see masterDirFor).
+      video: path.basename(encoded.scrubPath),
       poster: path.basename(encoded.posterPath),
       videoScrub: path.basename(encoded.scrubPath),
     },

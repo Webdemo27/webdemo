@@ -31,6 +31,24 @@ function fontFileArg(): string {
   return chosen.replace(/^([A-Za-z]):/, "$1\\\\:");
 }
 
+/** Where the watermarked full-quality encode is kept.
+ *
+ * Deliberately outside public/demos: no page ever requests it (the
+ * page-wide background plays the scrub encode), so inside a demo folder
+ * it was pure weight — 118 MB across the industry set, carried by every
+ * LFS push and re-uploaded on every publish, for bytes no visitor
+ * fetches. It is still worth keeping, just not there: re-encoding a
+ * scrub from the master scores VMAF 81.3, from an existing scrub only
+ * 76.6, and that loss would compound with every future pass.
+ *
+ * Mirrors the demo's own folder name so a master is findable from its
+ * demo without a lookup table. Git-ignored — reproducible from the
+ * source clip, and 118 MB of quota is worth more than the convenience.
+ */
+export function masterDirFor(assetsDir: string): string {
+  return path.join(process.cwd(), ".video-masters", path.basename(path.dirname(assetsDir)));
+}
+
 /** Cloudflare Pages rejects any single asset over 25 MiB — a hard
  * platform limit, not a preference. */
 const SCRUB_LIMIT_BYTES = 25 * 1024 * 1024;
@@ -53,17 +71,6 @@ async function probeDurationSeconds(file: string): Promise<number> {
   return Number.isFinite(seconds) && seconds > 0 ? seconds : 8;
 }
 
-/**
- * A second encode of the same clip, made seekable frame-by-frame:
- * every frame is a keyframe (`-g 1`), so setting `currentTime` lands
- * instantly instead of decoding forward from a distant I-frame.
- *
- * This is what makes scroll-scrubbed video (scrollVideoSection) smooth
- * — with a normal ~2-second GOP, scrubbing visibly stutters and jumps.
- * The cost is file size (all-intra is several times larger), which is
- * why it is a separate file rather than the default: the ambient hero
- * loop plays linearly and doesn't need it.
- */
 async function runScrubEncode(sourcePath: string, outPath: string, targetKbit: number): Promise<number> {
   await execFileAsync(
     "ffmpeg",
@@ -112,6 +119,15 @@ async function runScrubEncode(sourcePath: string, outPath: string, targetKbit: n
   return (await fs.stat(outPath)).size;
 }
 
+/**
+ * A second encode of the same clip, made seekable frame-by-frame:
+ * every frame is a keyframe (`-g 1`), so setting `currentTime` lands
+ * instantly instead of decoding forward from a distant I-frame.
+ *
+ * This is what makes scroll-scrubbed video smooth — with a normal
+ * ~2-second GOP, scrubbing visibly stutters and jumps. The cost is file
+ * size, which is why it is a separate file from the master.
+ */
 export async function encodeScrubVariant(
   sourcePath: string,
   outDir: string,
@@ -179,7 +195,7 @@ export async function watermarkAndEncodeVideo(
   input: Buffer,
   outDir: string,
   baseName: string
-): Promise<{ videoPath: string; posterPath: string; scrubPath: string }> {
+): Promise<{ masterPath: string; posterPath: string; scrubPath: string }> {
   if (!(await isFfmpegAvailable())) {
     throw new Error("ffmpeg wurde nicht gefunden — ohne ffmpeg kann kein DEMO-Wasserzeichen ins Video gebrannt werden.");
   }
@@ -189,9 +205,10 @@ export async function watermarkAndEncodeVideo(
   await fs.writeFile(tmpInput, input);
 
   await fs.mkdir(outDir, { recursive: true });
-  const videoFile = `${baseName}.mp4`;
+  const masterDir = masterDirFor(outDir);
+  await fs.mkdir(masterDir, { recursive: true });
   const posterFile = `${baseName}-poster.jpg`;
-  const videoOut = path.join(outDir, videoFile);
+  const videoOut = path.join(masterDir, `${baseName}.mp4`);
   const posterOut = path.join(outDir, posterFile);
   let scrubPath: string;
 
@@ -249,5 +266,5 @@ export async function watermarkAndEncodeVideo(
     await fs.rm(tmpDir, { recursive: true, force: true });
   }
 
-  return { videoPath: `assets/${videoFile}`, posterPath: `assets/${posterFile}`, scrubPath };
+  return { masterPath: videoOut, posterPath: `assets/${posterFile}`, scrubPath };
 }

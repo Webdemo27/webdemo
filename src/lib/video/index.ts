@@ -115,7 +115,7 @@ export async function generateHeroVideoForDemo(demoId: string): Promise<SavedVid
   });
 
   const destDir = path.join(DEMOS_ROOT, demo.slug, "assets");
-  const { videoPath, posterPath, scrubPath } = await watermarkAndEncodeVideo(video.buffer, destDir, "hero-video");
+  const { posterPath, scrubPath } = await watermarkAndEncodeVideo(video.buffer, destDir, "hero-video");
 
   const existingFormats = (fromJson<Record<string, unknown>>(heroAsset.formats) ?? {}) as Record<string, unknown>;
   await prisma.demoAsset.update({
@@ -123,7 +123,11 @@ export async function generateHeroVideoForDemo(demoId: string): Promise<SavedVid
     data: {
       formats: toJson({
         ...existingFormats,
-        video: path.basename(videoPath),
+        // `video` only marks the asset as carrying one at all (see
+        // toAssetView); the page-wide background plays the scrub. It
+        // must not point at the master, which lives outside the demo
+        // folder and would 404 if anything ever rendered it.
+        video: path.basename(scrubPath),
         poster: path.basename(posterPath),
         videoScrub: path.basename(scrubPath),
       }),
@@ -143,5 +147,5 @@ export async function generateHeroVideoForDemo(demoId: string): Promise<SavedVid
     `Hero-Video generiert (${video.model}, ${video.durationSeconds}s, ${video.resolution}, ${costLabel}, DEMO-Wasserzeichen eingebrannt).`
   );
 
-  return { videoPath, posterPath, costUsd: video.costUsd };
+  return { scrubPath, posterPath, costUsd: video.costUsd };
 }

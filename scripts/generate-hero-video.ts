@@ -22,7 +22,7 @@ async function main() {
 
   const seconds = Math.round((Date.now() - started) / 1000);
   console.log(`\nFertig nach ${seconds}s`);
-  console.log(`  Video:  ${result.videoPath}`);
+  console.log(`  Video:  ${result.scrubPath}`);
   console.log(`  Poster: ${result.posterPath}`);
   console.log(`  Kosten: ${result.costUsd != null ? `$${result.costUsd.toFixed(3)}` : "von der API nicht gemeldet"}`);
 

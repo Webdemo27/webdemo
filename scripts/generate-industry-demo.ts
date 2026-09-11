@@ -348,7 +348,10 @@ async function buildIndustry(industry: string, htmlOnly = false) {
     // Names are fixed by watermarkAndEncodeVideo's baseName, so an
     // HTML-only rebuild can address the same files without re-encoding.
     formats: {
-      video: "bg-video.mp4",
+      // `video` is the "carries a video" marker; the page plays the
+      // scrub. The full-quality master is kept outside the demo folder
+      // (masterDirFor) because no page requests it.
+      video: "bg-video-scrub.mp4",
       poster: "bg-video-poster.jpg",
       videoScrub: "bg-video-scrub.mp4",
     },

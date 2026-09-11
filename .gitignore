@@ -94,3 +94,14 @@ next-env.d.ts
 # regenerate these locally.
 /.agents/
 /.claude/skills/
+
+# Full-quality watermarked video masters. No page requests them — the
+# page-wide background plays the -scrub encode — so they were 118 MB of
+# pure weight inside public/demos: carried by every LFS push and
+# re-uploaded on every publish, for bytes no visitor fetches.
+#
+# Kept rather than deleted because re-encoding a scrub from its master
+# measures VMAF 81.3 against 76.6 from an existing scrub, and that loss
+# would compound with every future pass. Reproducible by regenerating
+# the clip (~$0.24 each), so not worth LFS quota.
+/.video-masters/
