@@ -30,7 +30,10 @@ const SKIP_STATUSES: LeadStatus[] = [
 interface CliArgs {
   location?: string;
   category?: string;
+  /** How many businesses the RESEARCH step pulls from the source. */
   limit: number;
+  /** How many existing leads this run advances. Unbounded when unset. */
+  max?: number;
 }
 
 function parseArgs(argv: string[]): CliArgs {
@@ -40,6 +43,10 @@ function parseArgs(argv: string[]): CliArgs {
     if (arg === "--location") args.location = argv[++i];
     else if (arg === "--category") args.category = argv[++i];
     else if (arg === "--limit") args.limit = Number(argv[++i]) || 15;
+    else if (arg === "--max") {
+      const parsed = Number(argv[++i]);
+      if (Number.isFinite(parsed) && parsed > 0) args.max = Math.floor(parsed);
+    }
   }
   return args;
 }
@@ -118,12 +125,22 @@ async function main() {
     console.log("Kein --location/--category angegeben — überspringe Recherche, verarbeite bestehende Leads.");
   }
 
-  const leads = await prisma.lead.findMany({
+  const pending = await prisma.lead.findMany({
     where: { status: { notIn: SKIP_STATUSES } },
     orderBy: { createdAt: "asc" },
   });
 
-  console.log(`${leads.length} Lead(s) im Pipeline-Durchlauf.`);
+  // Every advanced lead generates images, which costs money. Without a
+  // bound, one command spends whatever 45 leads happen to cost and there
+  // is no way to measure the per-lead price first. The run is resumable
+  // by design — leads that already moved are skipped next time — so
+  // stopping early loses nothing.
+  const leads = args.max != null ? pending.slice(0, args.max) : pending;
+  console.log(
+    args.max != null && pending.length > leads.length
+      ? `${leads.length} von ${pending.length} Lead(s) in diesem Durchlauf (--max ${args.max}).`
+      : `${leads.length} Lead(s) im Pipeline-Durchlauf.`
+  );
 
   for (const lead of leads) {
     try {

@@ -65,6 +65,11 @@ export async function loadCallQueue(limit = 50): Promise<CallQueueEntry[]> {
     where: {
       contactPhone: { not: null },
       status: { notIn: ["REJECTED", "CONVERTED"] },
+      // A demo is not optional here: the script says "ich habe Ihnen
+      // einen Entwurf gebaut", and saying that with nothing to send is
+      // inventing a fact to a stranger on the phone. Leads without one
+      // wait until the pipeline has built it.
+      demo: { isNot: null },
     },
     include: {
       analysis: true,

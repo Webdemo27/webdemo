@@ -7,12 +7,16 @@ import { recordCall } from "@/app/(dashboard)/anrufe/actions";
 
 type Outcome = "NOT_REACHED" | "WRONG_PERSON" | "NOT_INTERESTED" | "LINK_SENT" | "FOLLOW_UP" | "WON";
 
+interface Beat {
+  sagen: string;
+  danach?: string;
+  hinweis?: string;
+}
+
 interface ScriptShape {
-  einstieg: string[];
-  beobachtung: string | null;
+  abschnitte: Array<{ titel: string; beats: Beat[] }>;
   beleg: string | null;
-  ueberleitung: string[];
-  bitte: string[];
+  ohneBefund: boolean;
   einwaende: Array<{ einwand: string; antwort: string }>;
   danach: string[];
 }
@@ -75,7 +79,8 @@ export function CallCockpit({ queue }: { queue: QueueEntry[] }) {
           {done > 0 ? `${done} Anruf${done === 1 ? "" : "e"} erfasst — Liste durch.` : "Keine Anrufe offen."}
         </p>
         <p className="mt-1 text-xs text-muted-foreground">
-          Neue Leads über den Pipeline-Lauf erzeugen, dann erscheinen sie hier.
+          Hier erscheint ein Betrieb, sobald er eine Telefonnummer <em>und</em> eine fertige Demo hat — ohne
+          Entwurf gäbe es am Telefon nichts zu zeigen. Neue über <code>npm run loop</code> erzeugen.
         </p>
       </div>
     );
@@ -150,43 +155,43 @@ export function CallCockpit({ queue }: { queue: QueueEntry[] }) {
         </header>
 
         <div className="space-y-5 p-5">
-          <Section title="Einstieg">
-            {s.einstieg.map((l, i) => (
-              <Line key={i}>{l}</Line>
-            ))}
-          </Section>
+          {s.ohneBefund ? (
+            <p className="rounded-md border border-amber-300 bg-amber-50 p-3 text-xs text-amber-800">
+              Die Analyse hat für diesen Betrieb nichts Belastbares gefunden. Nichts erfinden — das Skript
+              fragt deshalb, statt etwas zu behaupten.
+            </p>
+          ) : null}
 
-          {s.beobachtung ? (
-            <Section title="Was mir aufgefallen ist">
-              <Line>{s.beobachtung}</Line>
-              {s.beleg ? (
+          {s.abschnitte.map((abschnitt, ai) => (
+            <Section key={abschnitt.titel} title={abschnitt.titel}>
+              <div
+                className={
+                  ai === s.abschnitte.length - 1
+                    ? "space-y-3 rounded-md border-l-2 border-primary bg-primary/5 py-2.5 pl-3"
+                    : "space-y-3"
+                }
+              >
+                {abschnitt.beats.map((beat, bi) => (
+                  <div key={bi}>
+                    <Line>{beat.sagen}</Line>
+                    {beat.danach ? (
+                      <p className="mt-0.5 text-xs font-medium text-primary">↳ {beat.danach}</p>
+                    ) : null}
+                    {beat.hinweis ? (
+                      <p className="mt-0.5 text-xs italic text-muted-foreground">{beat.hinweis}</p>
+                    ) : null}
+                  </div>
+                ))}
+              </div>
+              {ai === 1 && s.beleg ? (
                 <p className="text-xs italic text-muted-foreground">Beleg, nicht vorlesen: {s.beleg}</p>
               ) : null}
             </Section>
-          ) : (
-            <p className="rounded-md border border-amber-300 bg-amber-50 p-3 text-xs text-amber-800">
-              Für diesen Lead hat die Analyse nichts Belastbares gefunden. Nichts erfinden — mit der Frage
-              einsteigen statt mit einer Feststellung.
-            </p>
-          )}
-
-          <Section title="Überleitung">
-            {s.ueberleitung.map((l, i) => (
-              <Line key={i}>{l}</Line>
-            ))}
-          </Section>
-
-          <Section title="Die Bitte — hier entscheidet sich alles">
-            <div className="rounded-md border-l-2 border-primary bg-primary/5 py-2 pl-3">
-              {s.bitte.map((l, i) => (
-                <Line key={i}>{l}</Line>
-              ))}
-            </div>
-          </Section>
+          ))}
 
           <details className="group">
             <summary className="cursor-pointer text-[11px] font-semibold uppercase tracking-wider text-muted-foreground hover:text-foreground">
-              Einwände ({s.einwaende.length})
+              Wenn er bremst ({s.einwaende.length} Einwände)
             </summary>
             <dl className="mt-2 space-y-2">
               {s.einwaende.map((e) => (
