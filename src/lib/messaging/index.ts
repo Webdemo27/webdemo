@@ -139,6 +139,21 @@ export function generateMessage(
   return { subject, body: lines.join("\n") };
 }
 
+/** Turns a bridge template into a pattern that matches the *rendered*
+ * sentence.
+ *
+ * The stored body has already been through generateMessage's fill(), so
+ * "{company}" in the template is a real company name in the body. The
+ * previous version compared the raw template against the body with
+ * includes(), which could therefore never match any template containing
+ * a placeholder — three of the four. Every such message silently fell
+ * through to the fallback and got its link appended after the signature,
+ * while the sentence above still promised the link was coming. */
+function renderedBridgePattern(template: string): RegExp {
+  const escaped = template.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return new RegExp(escaped.replace(/\\\{company\\\}|\\\{location\\\}/g, "[\\s\\S]+?"));
+}
+
 /**
  * Swaps a message's "I'll send you the link separately" promise for the
  * real link, once one exists — used right after a successful Cloudflare
@@ -148,21 +163,37 @@ export function generateMessage(
  * a call to generateMessage(): it preserves everything the human
  * actually reviewed and approved (the specific observation, the exact
  * wording) and only ever changes the one sentence that promised a link,
- * never resets approval/rejection/sent state. Returns the original body
- * unchanged if the link is already present or no matching "no link"
- * phrase is found (e.g. the message was hand-edited into something
- * unrecognizable) — appends a clearly-separated fallback line in that
- * last case rather than silently doing nothing, since a human should
- * still get the link somehow.
+ * never resets approval/rejection/sent state.
+ *
+ * When no bridge sentence can be found at all (a hand-edited body), the
+ * link goes in above the signature rather than after it. Below the
+ * signature it reads as an afterthought bolted onto a finished letter,
+ * which is exactly how it looked in the first real draft this produced.
  */
-export function insertDemoLink(body: string, url: string): string {
+export function insertDemoLink(
+  body: string,
+  url: string,
+  lead: { companyName: string; location: string | null }
+): string {
   if (body.includes(url)) return body;
 
+  const fill = (text: string) =>
+    text.replace(/\{company\}/g, lead.companyName).replace(/\{location\}/g, lead.location ?? "Ihrer Region");
+
   for (let i = 0; i < BRIDGES_NO_LINK.length; i++) {
-    if (body.includes(BRIDGES_NO_LINK[i])) {
-      return body.replace(BRIDGES_NO_LINK[i], `${BRIDGES_WITH_LINK[i]} ${url}`);
+    const pattern = renderedBridgePattern(BRIDGES_NO_LINK[i]);
+    if (pattern.test(body)) {
+      const replacement = `${fill(BRIDGES_WITH_LINK[i])} ${url}`;
+      // Function form: a "$" in the URL would otherwise be read as a
+      // replacement pattern rather than a literal.
+      return body.replace(pattern, () => replacement);
     }
   }
 
-  return `${body}\n\nDen Link zur Demo reiche ich hiermit nach: ${url}`;
+  const signature = buildSignature();
+  const line = `Hier ist der Link zum Entwurf: ${url}`;
+  const cut = body.lastIndexOf(signature);
+  return cut === -1 || !signature
+    ? `${body}\n\n${line}`
+    : `${body.slice(0, cut)}${line}\n\n${body.slice(cut)}`;
 }

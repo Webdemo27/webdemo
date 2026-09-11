@@ -109,7 +109,10 @@ export async function publishDemoPublicly(leadId: string): Promise<PublishDemoOu
   await logActivity(leadId, "PUBLISHED", `Demo öffentlich unter ${result.publicUrl} verifiziert und veröffentlicht`);
 
   if (lead.message) {
-    const updatedBody = insertDemoLink(lead.message.body, result.publicUrl);
+    const updatedBody = insertDemoLink(lead.message.body, result.publicUrl, {
+      companyName: lead.companyName,
+      location: lead.location,
+    });
     if (updatedBody !== lead.message.body) {
       await prisma.message.update({ where: { leadId }, data: { body: updatedBody } });
       await logActivity(leadId, "MESSAGE_LINK_INSERTED", "Nachricht automatisch mit dem echten Demo-Link aktualisiert.");

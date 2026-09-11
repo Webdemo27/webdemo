@@ -1,4 +1,5 @@
 import { prisma } from "../db";
+import { buildSignature } from "../messaging/templates";
 
 export interface PreflightCheck {
   label: string;
@@ -75,15 +76,25 @@ export async function runPreflightChecklist(leadId: string): Promise<PreflightRe
   // that at publish time — this check is what notices when it didn't, so
   // the gap surfaces here instead of in an email that invites someone to
   // look at a demo and then never says where.
-  const linkInBody = Boolean(publicUrl) && body.includes(publicUrl!);
+  // "Somewhere in the string" is not enough. The first real draft this
+  // produced had the URL below the signature, bolted onto a finished
+  // letter, while the sentence above still promised the link was coming
+  // separately — from the reader's side there was no link in the
+  // message. So it has to sit in the body text, above the sign-off.
+  const linkAt = publicUrl ? body.indexOf(publicUrl) : -1;
+  const signature = buildSignature();
+  const signatureAt = signature ? body.lastIndexOf(signature) : -1;
+  const linkInBody = linkAt !== -1 && (signatureAt === -1 || linkAt < signatureAt);
   checks.push({
     label: "Demo-Link steht in der Nachricht",
     passed: linkInBody,
-    detail: linkInBody
-      ? publicUrl!
-      : publicUrl
+    detail: !publicUrl
+      ? "Ohne öffentliche URL kann die Nachricht keinen Link enthalten."
+      : linkAt === -1
         ? "Die Nachricht nennt die öffentliche Demo-URL nicht."
-        : "Ohne öffentliche URL kann die Nachricht keinen Link enthalten.",
+        : linkInBody
+          ? publicUrl
+          : "Der Link steht erst unter der Signatur — im Nachrichtentext selbst fehlt er.",
   });
 
   const mentionsLocalhost = LOCALHOST_PATTERN.test(body);
