@@ -757,6 +757,32 @@ one of these first:
     — publishing already uploads whole demo folders there.
 This is a cost/ownership decision, so it belongs to the user.
 
+**Nine demos were publicly reachable that had never been published
+(found and fixed 2026-09-11).** `.cloudflare-deploy/` held ten folders
+while exactly one demo had a `publicUrl`; six belonged to leads no
+longer in the database. All returned HTTP 200 at
+`https://webdemo-demos.pages.dev/<slug>/`, carrying real company data.
+
+Cause: the staged tree IS the deploy unit (wrangler uploads the whole
+directory), but it was only ever appended to — one slug mirrored per
+publish, and that mirroring happens BEFORE the deploy, so a failed
+publish left its folder behind for the next successful deploy of any
+other lead to carry live. reconcileStaging() now makes the tree equal
+{current} ∪ {published} on every publish, and
+`npx tsx scripts/reconcile-deployment.ts` does the same without
+deploying. Note that removing a folder locally does not take it offline
+— only a deploy does.
+
+**Not every industry has a key-visual clip.** `attachIndustryVideo()`
+matches `branche-<slug>` against the twelve generated industries and
+returns false for anything else — silently, so the demo renders with no
+video background at all, against the standing "HINTERGRUND IST IMMER EIN
+VIDEO" directive. Hit by Naturheilpraxis Kudritzki (industry
+"Arztpraxis") and previously by Kollektivcafé Kurbad. Either generate a
+clip for the industry (~$0.24 via generate-industry-demo.ts) or add an
+alias to an existing one — do not map "Arztpraxis" to the Zahnarzt clip,
+whose key visual is a chrome molar.
+
 **Missing native binaries are an npm problem, not OneDrive (diagnosed
 2026-09-11).** Three separate failures in one session — prisma's query
 engine, lightningcss, @tailwindcss/oxide — all had the same shape: the
