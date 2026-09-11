@@ -82,14 +82,53 @@ export async function generateLeadMessage(leadId: string): Promise<{ ok: boolean
   }
 }
 
+export interface PublishLeadDemoOutcome extends PublishDemoOutcome {
+  /** Result of the Gmail draft attempt that follows a successful
+   * publish. Absent when publishing itself failed. */
+  gmail?: GmailDraftOutcome;
+}
+
 /** Publishes the demo publicly via Cloudflare and verifies the URL is
  * actually reachable over HTTPS before saving it — see
  * lib/publishing/publish-demo.ts. Fails closed with a clear reason when
- * Cloudflare isn't configured (no credentials in this project). */
-export async function publishLeadDemo(leadId: string): Promise<PublishDemoOutcome> {
+ * Cloudflare isn't configured (no credentials in this project).
+ *
+ * On success it immediately prepares the Gmail draft, so the moment a
+ * demo is live the outreach mail is waiting in Drafts with the real link
+ * already in it (publishDemoPublicly -> insertDemoLink puts it there).
+ * That is the whole point of publishing, and doing it by hand afterwards
+ * was an easy step to forget.
+ *
+ * This does NOT weaken the send rules. prepareGmailDraft still runs the
+ * full preflight and still goes through requireApprovedMessage, so an
+ * unapproved message produces no draft — the outcome just says why. And
+ * a draft is inert: it sits in Gmail until a human opens it and presses
+ * Send. Nothing here can put mail in front of a prospect.
+ *
+ * A failed draft never fails the publish: the demo really is live, and
+ * reporting otherwise would be a lie about the thing that matters most.
+ */
+export async function publishLeadDemo(leadId: string): Promise<PublishLeadDemoOutcome> {
   const result = await publishDemoPublicly(leadId);
+  if (!result.ok) {
+    refresh(leadId);
+    return result;
+  }
+
+  let gmail: GmailDraftOutcome | undefined;
+  try {
+    gmail = await prepareGmailDraft(leadId);
+  } catch (e) {
+    gmail = {
+      preflight: { passed: false, checks: [], recipient: null, subject: "", body: "" },
+      draftCreated: false,
+      gmailConfigured: isGmailConfigured(),
+      error: e instanceof Error ? e.message : "Unbekannter Fehler beim Gmail-Entwurf.",
+    };
+  }
+
   refresh(leadId);
-  return result;
+  return { ...result, gmail };
 }
 
 /** Exports whatever the static-HTML engine already generated for this

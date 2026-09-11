@@ -62,11 +62,28 @@ export async function runPreflightChecklist(leadId: string): Promise<PreflightRe
       : "Nachricht wurde noch nicht durch einen Menschen freigegeben.",
   });
 
-  const hasPublicUrl = Boolean(lead?.demo?.publicUrl);
+  const publicUrl = lead?.demo?.publicUrl ?? null;
   checks.push({
     label: "Demo erreichbar (öffentliche HTTPS-URL)",
-    passed: hasPublicUrl,
-    detail: lead?.demo?.publicUrl ?? "Noch keine öffentliche Demo-URL (Cloudflare-Veröffentlichung fehlt).",
+    passed: Boolean(publicUrl),
+    detail: publicUrl ?? "Noch keine öffentliche Demo-URL (Cloudflare-Veröffentlichung fehlt).",
+  });
+
+  // That a public URL exists says nothing about the recipient being able
+  // to reach it: the message is written before publishing, so its bridge
+  // sentence promises a demo without carrying one. insertDemoLink() fixes
+  // that at publish time — this check is what notices when it didn't, so
+  // the gap surfaces here instead of in an email that invites someone to
+  // look at a demo and then never says where.
+  const linkInBody = Boolean(publicUrl) && body.includes(publicUrl!);
+  checks.push({
+    label: "Demo-Link steht in der Nachricht",
+    passed: linkInBody,
+    detail: linkInBody
+      ? publicUrl!
+      : publicUrl
+        ? "Die Nachricht nennt die öffentliche Demo-URL nicht."
+        : "Ohne öffentliche URL kann die Nachricht keinen Link enthalten.",
   });
 
   const mentionsLocalhost = LOCALHOST_PATTERN.test(body);
