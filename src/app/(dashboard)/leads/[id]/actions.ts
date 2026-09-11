@@ -99,11 +99,24 @@ export interface PublishLeadDemoOutcome extends PublishDemoOutcome {
  * That is the whole point of publishing, and doing it by hand afterwards
  * was an easy step to forget.
  *
- * This does NOT weaken the send rules. prepareGmailDraft still runs the
- * full preflight and still goes through requireApprovedMessage, so an
- * unapproved message produces no draft — the outcome just says why. And
- * a draft is inert: it sits in Gmail until a human opens it and presses
- * Send. Nothing here can put mail in front of a prospect.
+ * Publishing also counts as the human approval of the message, because
+ * it IS a deliberate per-lead decision: a person looked at this one lead
+ * and chose to put its demo on the public internet under their own name.
+ * Requiring a separate "Freigeben" click straight afterwards asked the
+ * same person to confirm the same decision twice, and it was the step
+ * that silently stopped the draft from ever appearing.
+ *
+ * What that does NOT do is send anything. The draft sits in Gmail until
+ * a human opens it and presses Send — the review still happens, just in
+ * the inbox the mail will actually leave from, with the finished text
+ * and the live link in front of them. Nothing in this codebase can put
+ * mail in front of a prospect: GmailSender.send() is never called from
+ * any button.
+ *
+ * The approval is narrow and never silent. Only a draft still waiting
+ * for review is approved; a rejected or already-sent message is left
+ * exactly as it is, and the approval is written to the activity log
+ * saying it came from publishing.
  *
  * A failed draft never fails the publish: the demo really is live, and
  * reporting otherwise would be a lie about the thing that matters most.
@@ -113,6 +126,18 @@ export async function publishLeadDemo(leadId: string): Promise<PublishLeadDemoOu
   if (!result.ok) {
     refresh(leadId);
     return result;
+  }
+
+  // Approve before drafting: "Nachricht freigegeben" is one of the
+  // preflight checks prepareGmailDraft insists on.
+  const message = await prisma.message.findUnique({ where: { leadId } });
+  if (message && !message.approvedAt && !message.rejectedAt && !message.sentAt) {
+    await prisma.message.update({ where: { leadId }, data: { approvedAt: new Date() } });
+    await updateLeadStatus(
+      leadId,
+      "APPROVED",
+      "Mit dem Veröffentlichen der Demo freigegeben — der Versand bleibt ein eigener Klick in Gmail"
+    );
   }
 
   let gmail: GmailDraftOutcome | undefined;

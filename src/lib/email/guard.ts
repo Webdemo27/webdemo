@@ -10,6 +10,14 @@ import { prisma } from "../db";
  * before every `GmailSender.createDraft()` call. `GmailSender.send()`
  * exists and is gated the same way, but is deliberately never called
  * from any button — draft-only, matching "niemals automatisch senden".
+ *
+ * Two human actions can set that approval, and both are an explicit
+ * per-lead click in the dashboard: the "Freigeben" button, and
+ * publishing the demo (publishLeadDemo — putting this lead's demo on the
+ * public internet under the user's own name is the same decision, and
+ * asking for it twice in a row only stopped the draft from appearing).
+ * Neither sends anything; the draft waits in Gmail for a human to press
+ * Send.
  */
 export async function requireApprovedMessage(leadId: string) {
   const message = await prisma.message.findUnique({ where: { leadId } });

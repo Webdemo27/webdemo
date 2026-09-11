@@ -96,9 +96,11 @@ export function PublishDemoButton({
           ) : null}
 
           {result.gmail?.draftCreated ? (
-            <p className="flex items-center justify-end gap-1.5 text-emerald-700">
-              <Envelope size={14} weight="fill" aria-hidden="true" />
-              <span>Gmail-Entwurf mit dem Link liegt bereit</span>
+            <p className="flex items-start justify-end gap-1.5 text-emerald-700">
+              <Envelope size={14} weight="fill" aria-hidden="true" className="mt-0.5 shrink-0" />
+              <span>
+                Gmail-Entwurf liegt bereit — Link ist eingebaut, in Gmail nur noch auf Senden drücken
+              </span>
             </p>
           ) : result.gmail ? (
             <p className="flex items-start justify-end gap-1.5 text-amber-700">
