@@ -729,6 +729,38 @@ actually do in the dashboard today.
 Everything else in this file is complete, type-checked, linted, and
 verified live.
 
+## PHASE 0 ABGESCHLOSSEN (2026-09-11)
+
+Vorher: 55 Leads, 45 davon nie ueber RESEARCHED hinaus, 10 Demos, 10
+Nachrichten, **0 gesendet**, 0 erfasste Kontaktversuche.
+
+Jetzt: **54 Demos, 54 Nachrichten, 43 Betriebe in der Anrufliste.**
+Der Lauf brauchte rund 44s pro Lead, 41 von 42 erfolgreich, 0 Fehler.
+
+**Korrektur am eigenen Audit.** Ich hatte geschrieben, die Schwelle von
+50 sei "ein Ausschalter, kein Filter", weil von 10 bewerteten Leads
+keiner sie erreichte. Mit allen 55 bewertet stimmt das so nicht: 8 von
+55 (15%) haetten sie passiert. Sie war eine sehr enge Pforte, kein
+geschlossenes Tor. Der groessere Blocker war banaler — 45 der 55 Leads
+waren schlicht nie durch die Pipeline gelaufen.
+
+Die Umstellung auf Erreichbarkeit statt Score bleibt trotzdem richtig:
+43 von 55 (78%) sind telefonisch erreichbar gegenueber 15%, die die
+Schwelle passiert haetten. Volle Verteilung: 3 unter 20, 34 bei 20-39,
+10 bei 40-49, 2 bei 50-59, 5 bei 60-79, 1 ueber 80 (Heike Emmrich, 81).
+Es gibt also sehr wohl starke Leads — sie waren nur nie analysiert.
+
+**Nachschub ist nicht der Engpass.** Gemessen ueber Overpass, Frankfurt,
+nur Restaurants und Cafés: 338 Betriebe mit Website UND Telefonnummer
+sofort verfuegbar. Zusaetzlich 106 ohne Website, die die Quelle heute
+wegwirft (overpass-source.ts:67). Dieser Umbau lohnt erst, wenn die
+Anrufe laufen — er vergroessert einen Vorrat, der schon sechsfach ueber
+dem liegt, was abtelefoniert wird.
+
+**Naechster Schritt gehoert dem Nutzer:** anrufen. Bis echte
+Anrufergebnisse vorliegen, ist jede weitere Design- oder
+Generierungsarbeit blind.
+
 ## BLOCKED
 
 **Git LFS storage is at ~940 MB of GitHub's 1 GB free quota (measured
