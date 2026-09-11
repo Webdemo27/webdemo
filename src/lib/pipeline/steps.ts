@@ -82,9 +82,27 @@ export async function runAnalysisAndScoring(leadId: string) {
   });
   await saveLeadScore(leadId, leadScore, reasons);
 
-  const qualified = isQualified(leadScore);
+  // Reachability decides, not the score — see isQualified(). The score
+  // travels along in the log because it is what orders the call list.
+  const contactEmail = contactDiscovery.primary?.email ?? lead.contactEmail;
+  const qualified = isQualified({ contactPhone: lead.contactPhone, contactEmail });
   if (qualified) {
-    await advancePipelineStatus(leadId, "QUALIFIED", `Lead qualifiziert (Score ${leadScore}/100)`);
+    const reachableVia = [lead.contactPhone ? "Telefon" : null, contactEmail ? "E-Mail" : null]
+      .filter(Boolean)
+      .join(" und ");
+    await advancePipelineStatus(
+      leadId,
+      "QUALIFIED",
+      `Lead qualifiziert — erreichbar per ${reachableVia} (Chancen-Score ${leadScore}/100)`
+    );
+  } else {
+    // Not a rejection — the analysis stands and the lead stays in the
+    // list. It simply cannot be worked until someone finds a number.
+    await logActivity(
+      leadId,
+      "SCORED",
+      `Nicht erreichbar: weder Telefon noch E-Mail bekannt (Chancen-Score ${leadScore}/100). Keine Demo erzeugt.`
+    );
   }
 
   return { websiteScore, leadScore, qualified };

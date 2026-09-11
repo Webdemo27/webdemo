@@ -8,11 +8,16 @@ import {
   Browser,
   ChatCircleText,
   GearSix,
+  Phone,
 } from "@phosphor-icons/react";
 import { cn } from "@/lib/utils/cn";
 
+// Anrufe sits directly under Overview because it is the work: 78% of
+// these leads have a phone number and 38% an email, and nothing in this
+// pipeline earns anything until someone actually speaks to a business.
 const NAV_ITEMS = [
   { href: "/", label: "Overview", icon: SquaresFour },
+  { href: "/anrufe", label: "Anrufe", icon: Phone },
   { href: "/leads", label: "Leads", icon: Buildings },
   { href: "/demos", label: "Demos", icon: Browser },
   { href: "/messages", label: "Messages", icon: ChatCircleText },

@@ -1,9 +1,12 @@
 import type { AnalysisDimension, ScoreReason, WebsiteAnalysisData } from "../types";
 
-/** A lead qualifies for demo/message generation once its score reaches
- * this threshold. One named constant so the cutoff is easy to find and
- * tune, and never silently duplicated. */
-export const QUALIFICATION_THRESHOLD = 50;
+/** Kept for display and for ordering the call list — NOT a gate any
+ * more. See isQualified() for why.
+ *
+ * A lead at or above this scores as a strong opportunity. Measured
+ * against the first 10 real scored leads the distribution ran 20–59, so
+ * treat this as "clearly worth calling first", not as a pass mark. */
+export const STRONG_OPPORTUNITY_SCORE = 45;
 
 interface ScoringFactor {
   key: string;
@@ -107,6 +110,27 @@ export function scoreLead(
   return { leadScore: Math.max(0, Math.min(100, Math.round(score))), reasons };
 }
 
-export function isQualified(leadScore: number): boolean {
-  return leadScore >= QUALIFICATION_THRESHOLD;
+/**
+ * Whether this lead is worth building a demo for.
+ *
+ * Deliberately NOT a score threshold any more. The old cutoff was 50,
+ * and measured against every lead this system has actually scored, not
+ * one reached it — 7 of 10 landed at 20–39, 3 at 40–59. The automated
+ * pipeline could therefore never produce a demo; every demo in the
+ * database was made by hand, past the gate. A threshold nobody passes is
+ * not a filter, it is an off switch.
+ *
+ * Lowering the number would only move the guess. The gate existed
+ * because a demo used to be expensive; it now costs about 46 seconds and
+ * a few cents of image generation, and the industry clip is copied
+ * rather than generated. What is actually scarce is the time to call
+ * these businesses — so the score should ORDER that work, not block it,
+ * and it does (see the call list's ranking).
+ *
+ * What genuinely disqualifies a lead is being unable to reach them at
+ * all. No phone and no email means there is no way to start a
+ * conversation, however weak their website is.
+ */
+export function isQualified(signals: { contactPhone: string | null; contactEmail: string | null }): boolean {
+  return Boolean(signals.contactPhone || signals.contactEmail);
 }

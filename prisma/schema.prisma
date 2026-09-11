@@ -80,6 +80,16 @@ model Lead {
   activity       ActivityLog[]
   contactEmails  ContactEmail[]
 
+  /// Every call attempt, newest first. This is the only place the
+  /// business learns what actually works: before it existed, the system
+  /// had produced 55 leads, 10 demos and zero recorded contact attempts,
+  /// so every design decision was made without a single data point about
+  /// whether any of it converts.
+  calls          CallAttempt[]
+  /// Mirrored from the newest CallAttempt so the call list can sort by
+  /// "not called in a while" without joining and aggregating.
+  lastCalledAt   DateTime?
+
   lastErrorAt    DateTime?
   lastError      String?
 
@@ -90,6 +100,48 @@ model Lead {
   @@index([normalizedName])
   @@index([status])
   @@index([leadScore])
+  @@index([lastCalledAt])
+}
+
+/// What happened on one phone call.
+///
+/// Deliberately a row per attempt rather than a status field on Lead:
+/// "not reached" three times then "link sent" is the story that tells
+/// you how many dials a conversation costs, and a single overwritten
+/// field throws that away.
+model CallAttempt {
+  id        String     @id @default(cuid())
+  leadId    String
+  lead      Lead       @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  outcome   CallOutcome
+  /// Free text the caller typed — objections, when to call back, who to
+  /// ask for. Never generated.
+  note      String?
+  /// Set when the demo link was actually handed over, and how. This is
+  /// also the record of consent for a follow-up email: on the phone the
+  /// business agreed to receive it.
+  linkSentVia String?
+
+  createdAt DateTime   @default(now())
+
+  @@index([leadId])
+  @@index([createdAt])
+}
+
+enum CallOutcome {
+  /// Nobody picked up, or a machine did.
+  NOT_REACHED
+  /// Reached someone, but not the person who decides.
+  WRONG_PERSON
+  /// Spoke to the right person, they said no.
+  NOT_INTERESTED
+  /// Spoke to the right person, they agreed to look at the demo.
+  LINK_SENT
+  /// Concrete next step agreed — a call back, a meeting.
+  FOLLOW_UP
+  /// They want to buy.
+  WON
 }
 
 /// Structured, modular website analysis. Each dimension stores a

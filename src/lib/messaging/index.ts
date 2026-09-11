@@ -45,7 +45,11 @@ const OBSERVATION_IN_PLAIN_GERMAN: Record<string, string> = {
   contactExperience: "Wer Sie erreichen möchte, muss dafür suchen.",
 };
 
-function pickKeyObservation(analysis: WebsiteAnalysisData): { plain: string; detail: string } | null {
+/** Exported so the phone script says exactly what the written message
+ * says — the same verified finding, in the same plain German. Two
+ * different-sounding observations about the same website would make the
+ * follow-up mail read like it came from someone else. */
+export function pickKeyObservation(analysis: WebsiteAnalysisData): { plain: string; detail: string } | null {
   let best: { key: string; note: string; score: number } | null = null;
 
   for (const key of OBSERVATION_CANDIDATES) {
